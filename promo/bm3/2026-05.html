@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>🏆 BM3 프로모션 개인전</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', 'Noto Sans KR', sans-serif;
+      background: #0f1623;
+      color: #e0e6f0;
+      min-height: 100vh;
+      padding: 24px 16px 60px;
+    }
+
+    .title-wrap { text-align: center; margin-bottom: 28px; }
+    .title-wrap h1 {
+      font-size: 1.9rem; font-weight: 900;
+      background: linear-gradient(90deg, #60a5fa, #a78bfa, #f472b6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: 2px;
+    }
+    .subtitle { font-size: 0.85rem; color: #64748b; margin-top: 6px; }
+    .update-time { font-size: 0.78rem; color: #475569; margin-top: 4px; }
+
+    .btn-group {
+      display: flex; justify-content: center;
+      gap: 12px; margin-bottom: 28px; flex-wrap: wrap;
+    }
+    .btn {
+      padding: 10px 26px; border: none; border-radius: 50px;
+      font-size: 0.9rem; font-weight: 700; cursor: pointer;
+      transition: all .2s; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-refresh { background: linear-gradient(135deg,#3b82f6,#6366f1); color:#fff; box-shadow:0 4px 14px rgba(99,102,241,.4); }
+    .btn-refresh:hover { transform: translateY(-2px); }
+    .btn-png { background: linear-gradient(135deg,#10b981,#059669); color:#fff; box-shadow:0 4px 14px rgba(16,185,129,.4); }
+    .btn-png:hover { transform: translateY(-2px); }
+    .btn:active { transform: scale(.97); }
+
+    .card {
+      background: #1e2a3a; border-radius: 20px; padding: 24px;
+      margin-bottom: 22px; border: 1px solid #2a3a50;
+      box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    }
+    .card-title {
+      font-size: 0.95rem; font-weight: 700; color: #94a3b8;
+      letter-spacing: 1px; margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+
+    /* ── 전체 목표 배너 ── */
+    .mission-banner {
+      border-radius: 20px; padding: 22px 24px;
+      margin-bottom: 22px; border: 1px solid #2a3a50;
+      background: linear-gradient(135deg, #1a1f35, #1e2a3a);
+      box-shadow: 0 8px 32px rgba(0,0,0,.3);
+    }
+    .mission-top {
+      display: flex; align-items: center;
+      justify-content: space-between; flex-wrap: wrap;
+      gap: 10px; margin-bottom: 16px;
+    }
+    .mission-title { font-size: 1rem; font-weight: 800; }
+    .achieve-badge {
+      font-size: 0.85rem; font-weight: 800;
+      padding: 5px 16px; border-radius: 50px;
+    }
+    .badge-ok   { background:rgba(16,185,129,.2); color:#34d399; border:1px solid #10b981; }
+    .badge-ing  { background:rgba(251,191,36,.15); color:#fbbf24; border:1px solid #f59e0b; }
+    .badge-fail { background:rgba(239,68,68,.15);  color:#f87171; border:1px solid #ef4444; }
+
+    .mission-stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px; margin-bottom: 16px;
+    }
+    .stat-box {
+      background: #1a2535; border-radius: 12px;
+      padding: 12px; text-align: center;
+    }
+    .stat-label { font-size: 0.7rem; color: #64748b; margin-bottom: 4px; }
+    .stat-val   { font-size: 1.1rem; font-weight: 800; }
+
+    .total-track {
+      width: 100%; height: 12px;
+      background: #1a2535; border-radius: 50px;
+      overflow: hidden; margin-bottom: 6px;
+    }
+    .total-fill {
+      height: 100%; border-radius: 50px;
+      transition: width .9s ease;
+      background: linear-gradient(90deg, #6366f1, #a78bfa, #f472b6);
+    }
+    .total-info {
+      display: flex; justify-content: space-between;
+      font-size: 0.78rem; color: #64748b;
+    }
+
+    /* ── 섹션 라벨 ── */
+    .section-label {
+      font-size: 0.82rem; font-weight: 700; letter-spacing: .5px;
+      padding: 5px 14px; border-radius: 50px;
+      display: inline-flex; align-items: center; gap: 5px;
+    }
+    .label-ok   { background:rgba(16,185,129,.15); color:#34d399; }
+    .label-fail { background:rgba(239,68,68,.15);  color:#f87171; }
+    .label-pts  { background:rgba(99,102,241,.15); color:#a78bfa; }
+
+    /* ── 개인 카드 ── */
+    .person-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+    .person-card {
+      background: #263347; border-radius: 16px;
+      padding: 16px; border: 1px solid #2e3f58;
+      transition: transform .2s, box-shadow .2s;
+      position: relative; overflow: hidden;
+    }
+    .person-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+    .person-card.achieved {
+      border-color: #10b981;
+      background: linear-gradient(160deg, #1a3028, #263347);
+    }
+    .person-card.achieved::after {
+      content: '✅';
+      position: absolute; top: 12px; right: 14px; font-size: 1.1rem;
+    }
+    .person-card.special { border-color: #a78bfa; }
+
+    .person-name {
+      font-size: 1rem; font-weight: 800;
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 7px;
+    }
+    .special-tag {
+      font-size: 0.63rem; background: rgba(167,139,250,.2);
+      color: #a78bfa; padding: 2px 7px; border-radius: 50px;
+      white-space: nowrap;
+    }
+
+    .gauge-labels {
+      display: flex; justify-content: space-between;
+      font-size: 0.7rem; color: #64748b; margin-bottom: 5px;
+    }
+    .gauge-track {
+      width: 100%; height: 8px;
+      background: #1a2535; border-radius: 50px; overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .gauge-fill { height: 100%; border-radius: 50px; transition: width .7s ease; }
+    .fill-ok      { background: linear-gradient(90deg,#10b981,#34d399); }
+    .fill-warning { background: linear-gradient(90deg,#f59e0b,#fbbf24); }
+    .fill-danger  { background: linear-gradient(90deg,#ef4444,#f87171); }
+
+    .sales-row {
+      display: flex; align-items: baseline;
+      justify-content: space-between; margin-bottom: 2px;
+    }
+    .sales-amount { font-size: 1.15rem; font-weight: 900; }
+    .sales-amount.ok      { color: #34d399; }
+    .sales-amount.warning { color: #fbbf24; }
+    .sales-amount.danger  { color: #f87171; }
+    .sales-full { font-size: 0.7rem; color: #475569; }
+
+    .pts-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-top: 10px; padding-top: 10px;
+      border-top: 1px solid #1a2535;
+    }
+    .pts-label { font-size: 0.75rem; color: #64748b; }
+    .pts-val   { font-size: 1rem; font-weight: 800; color: #a78bfa; }
+
+    /* ── 포인트 순위 ── */
+    .rank-list { display: flex; flex-direction: column; gap: 8px; }
+    .rank-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 16px; border-radius: 14px;
+      background: #263347; transition: background .15s;
+    }
+    .rank-row:hover { background: #2e3f58; }
+    .rank-row.r1 { background:linear-gradient(135deg,#3d3000,#6b4a06); border:1px solid #fbbf24; }
+    .rank-row.r2 { background:linear-gradient(135deg,#1e2330,#2e3a50); border:1px solid #94a3b8; }
+    .rank-row.r3 { background:linear-gradient(135deg,#2d1a0e,#5a3010); border:1px solid #cd7c3b; }
+    .rank-medal { font-size:1.4rem; min-width:30px; text-align:center; }
+    .rank-name  { flex:1; font-size:0.95rem; font-weight:700; }
+    .rank-goal-pct { font-size:0.75rem; color:#64748b; }
+    .rank-pts   { font-size:1rem; font-weight:900; color:#a78bfa; min-width:44px; text-align:right; }
+
+    /* ── 전체 통합 순위 ── */
+    .full-rank-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px; border-radius: 14px;
+      margin-bottom: 8px; background: #263347;
+      transition: background .15s;
+    }
+    .full-rank-row:hover { background: #2e3f58; }
+    .full-rank-row.achieved-row { border-left: 3px solid #10b981; }
+    .full-rank-row.fail-row     { border-left: 3px solid #6366f1; }
+    .full-rank-num  { font-size:0.85rem; font-weight:700; min-width:26px; text-align:center; color:#64748b; }
+    .full-rank-name { flex:1; font-size:0.92rem; font-weight:700; }
+    .full-rank-status {
+      font-size:0.72rem; font-weight:700;
+      padding:2px 10px; border-radius:50px;
+    }
+    .status-ok   { background:rgba(16,185,129,.2); color:#34d399; }
+    .status-fail { background:rgba(99,102,241,.15); color:#a78bfa; }
+    .full-rank-sales { font-size:0.8rem; color:#94a3b8; min-width:60px; text-align:right; }
+    .full-rank-pts   { font-size:0.9rem; font-weight:800; color:#a78bfa; min-width:42px; text-align:right; }
+
+    /* ── 날짜 테이블 ── */
+    .date-table-wrap { overflow-x: auto; }
+    table.date-table {
+      width:100%; border-collapse:collapse;
+      font-size:0.78rem; min-width:640px;
+    }
+    .date-table th {
+      padding:8px 7px; text-align:center;
+      font-weight:700; letter-spacing:.3px;
+    }
+    .date-table th.th-date { background:#2e3f58; color:#94a3b8; }
+    .date-table th.th-m    { background:rgba(99,102,241,.2); color:#a78bfa; }
+    .date-table th.th-tot  { background:rgba(99,102,241,.4); color:#c4b5fd; }
+    .date-table td {
+      padding:7px 7px; text-align:center;
+      border-bottom:1px solid #1a2535;
+    }
+    .date-table tr:hover td { background:#1a2a3a; }
+    .td-tot { color:#a78bfa; font-weight:800; }
+    .td-sub { font-size:0.68rem; color:#475569; }
+
+    /* ── 로딩 ── */
+    .loading { text-align:center; padding:60px; color:#475569; }
+    .spinner {
+      width:40px; height:40px; margin:0 auto 16px;
+      border:4px solid #2a3a50; border-top-color:#3b82f6;
+      border-radius:50%; animation:spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform:rotate(360deg); } }
+    .cache-badge {
+      display:inline-block; font-size:0.7rem;
+      background:rgba(251,191,36,.15); color:#fbbf24;
+      padding:2px 8px; border-radius:50px; margin-left:6px;
+    }
+
+    @media (max-width:640px) {
+      .person-grid { grid-template-columns: 1fr 1fr; }
+      .mission-stats { grid-template-columns: 1fr 1fr; }
+      .title-wrap h1 { font-size:1.4rem; }
+      .card { padding:16px; }
+    }
+    @media (max-width:380px) {
+      .person-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="title-wrap">
+  <h1>🏆 BM3본부 5월 프로모션</h1>
+  <div class="subtitle">개인전 · 이관매출 &amp; 포인트 현황 (7인)</div>
+  <div class="update-time" id="updateTime">-</div>
+</div>
+
+<div class="btn-group">
+  <button class="btn btn-refresh" onclick="loadData(true)">🔄 새로고침</button>
+  <button class="btn btn-png"     onclick="downloadPNG()">📥 PNG 저장</button>
+</div>
+
+<div id="app">
+  <div class="loading"><div class="spinner"></div>데이터를 불러오는 중...</div>
+</div>
+
+<script>
+  // ⚠️ Apps Script 웹앱 URL 여기에 붙여넣기!
+  const API_URL = 'https://script.google.com/macros/s/AKfycbx6sOf8RFTY6VMiA-KE1bdMcXofRvbGK7i5hEc03xJ8CmC45eGAI0Cnhdq2UdUZH9q8/exec';
+
+  const CACHE_KEY = 'bm3_indiv_v2';
+  const CACHE_TTL = 60 * 1000;
+
+  function fmtM(n) {
+    if (n >= 10000000) return (n/10000000).toFixed(1) + '천만';
+    if (n >= 1000000)  return (n/1000000).toFixed(2)  + '백만';
+    if (n >= 10000)    return Math.round(n/10000)      + '만';
+    if (n > 0)         return n.toLocaleString();
+    return '0';
+  }
+
+  async function loadData(force = false) {
+    if (!force) {
+      const c  = sessionStorage.getItem(CACHE_KEY);
+      const ct = sessionStorage.getItem(CACHE_KEY+'_t');
+      if (c && ct && Date.now()-Number(ct) < CACHE_TTL) { render(JSON.parse(c), true); return; }
+    }
+    document.getElementById('app').innerHTML =
+      '<div class="loading"><div class="spinner"></div>데이터를 불러오는 중...</div>';
+    try {
+      const res  = await fetch(API_URL);
+      const data = await res.json();
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(data));
+      sessionStorage.setItem(CACHE_KEY+'_t', Date.now());
+      render(data, false);
+    } catch(e) {
+      const c = sessionStorage.getItem(CACHE_KEY);
+      if (c) { render(JSON.parse(c), true); return; }
+      document.getElementById('app').innerHTML =
+        `<div class="loading" style="color:#f87171">❌ 로드 실패<br><small>${e.message}</small></div>`;
+    }
+  }
+
+  function render(data, fromCache) {
+    const { total, sales, achieved, achieveCount,
+            totalSales, daily, members, personalGoal, goals } = data;
+
+    const G_TOTAL  = goals?.total         || 23000000;
+    const G_TARGET = goals?.achieveTarget || 4;
+
+    document.getElementById('updateTime').innerHTML =
+      '🕐 ' + (data.updatedAt||'-') + ' 기준' +
+      (fromCache ? '<span class="cache-badge">캐시</span>' : '');
+
+    const achievedList    = members.filter(m =>  achieved[m]);
+    const notAchievedList = members.filter(m => !achieved[m]);
+    const isGoalMet       = achieveCount >= G_TARGET;
+
+    const totalPct  = Math.min(totalSales / G_TOTAL * 100, 100);
+    const badgeCls  = isGoalMet ? 'badge-ok' : achieveCount >= G_TARGET-1 ? 'badge-ing' : 'badge-fail';
+    const badgeTxt  = isGoalMet
+      ? `🎉 목표달성! ${achieveCount}/${members.length}명`
+      : `${achieveCount}/${members.length}명 달성 (목표 ${G_TARGET}명)`;
+
+    // 포인트 순위 (미달성자)
+    const ptRanked = [...notAchievedList].sort((a,b) => (total[b]||0)-(total[a]||0));
+
+    // 전체 통합 순위
+    const fullRanked = [
+      ...achievedList.sort((a,b)  => (sales[b]||0)-(sales[a]||0)),
+      ...notAchievedList.sort((a,b) => (total[b]||0)-(total[a]||0))
+    ];
+
+    // 날짜별 누적
+    const cumS = {}; const cumP = {};
+    members.forEach(m => { cumS[m]=0; cumP[m]=0; });
+    const dailyRows = (daily||[]).map(d => {
+      members.forEach(m => {
+        cumS[m] += (d.sale?.[m]||0);
+        cumP[m] += (d.pts?.[m]||0);
+      });
+      return {
+        date: d.date,
+        cumS: {...cumS}, cumP: {...cumP},
+        totS: members.reduce((s,m)=>s+cumS[m],0),
+        totP: members.reduce((s,m)=>s+cumP[m],0)
+      };
+    });
+
+    // 개인 카드 생성
+    function personCard(m) {
+      const goal   = personalGoal[m] || 4000000;
+      const s      = sales[m] || 0;
+      const p      = total[m] || 0;
+      const pct    = Math.min(s / goal * 100, 100);
+      const isOk   = achieved[m];
+      const isSpec = goal === 1500000;
+      const fillCls = isOk ? 'fill-ok' : pct >= 50 ? 'fill-warning' : 'fill-danger';
+      const amtCls  = isOk ? 'ok'      : pct >= 50 ? 'warning'      : 'danger';
+      return `
+        <div class="person-card ${isOk?'achieved':''} ${isSpec?'special':''}">
+          <div class="person-name">
+            ${m}
+            ${isSpec ? '<span class="special-tag">목표 150만</span>' : ''}
+          </div>
+          <div class="gauge-labels">
+            <span>이관매출</span>
+            <span>${pct.toFixed(0)}%</span>
+          </div>
+          <div class="gauge-track">
+            <div class="gauge-fill ${fillCls}" style="width:${pct.toFixed(1)}%"></div>
+          </div>
+          <div class="sales-row">
+            <span class="sales-amount ${amtCls}">${fmtM(s)}</span>
+            <span class="sales-full">/ 목표 ${fmtM(goal)}</span>
+          </div>
+          <div style="font-size:0.68rem;color:#475569;margin-top:2px">${s.toLocaleString()}원</div>
+          <div class="pts-row">
+            <span class="pts-label">🎯 프로모션 포인트</span>
+            <span class="pts-val">${p}P</span>
+          </div>
+        </div>`;
+    }
+
+    const medals = ['🥇','🥈','🥉'];
+    const rClass = ['r1','r2','r3'];
+
+    document.getElementById('app').innerHTML = `
+
+      <!-- ① 전체 미션 현황 -->
+      <div class="mission-banner">
+        <div class="mission-top">
+          <div class="mission-title">🎯 전체 미션 현황</div>
+          <div class="achieve-badge ${badgeCls}">${badgeTxt}</div>
+        </div>
+        <div class="mission-stats">
+          <div class="stat-box">
+            <div class="stat-label">달성 인원</div>
+            <div class="stat-val" style="color:${isGoalMet?'#34d399':'#fbbf24'}">
+              ${achieveCount} / ${members.length}명
+            </div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">전체 이관매출</div>
+            <div class="stat-val" style="color:#60a5fa">${fmtM(totalSales)}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">전체 목표</div>
+            <div class="stat-val" style="color:#a78bfa">${fmtM(G_TOTAL)}</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">달성률</div>
+            <div class="stat-val"
+              style="color:${totalPct>=100?'#34d399':totalPct>=60?'#fbbf24':'#f87171'}">
+              ${totalPct.toFixed(1)}%
+            </div>
+          </div>
+        </div>
+        <div class="total-track">
+          <div class="total-fill" style="width:${totalPct.toFixed(1)}%"></div>
+        </div>
+        <div class="total-info">
+          <span>${fmtM(totalSales)} 달성</span>
+          <span>목표 ${fmtM(G_TOTAL)}</span>
+        </div>
+      </div>
+
+      <!-- ② 목표 달성자 -->
+      <div class="card">
+        <div class="card-title">
+          <span class="section-label label-ok">✅ 목표 달성 (${achievedList.length}명)</span>
+        </div>
+        ${achievedList.length
+          ? `<div class="person-grid">${achievedList.map(m => personCard(m)).join('')}</div>`
+          : `<div style="color:#475569;text-align:center;padding:20px;font-size:0.9rem">
+               아직 달성자가 없습니다 💪
+             </div>`}
+      </div>
+
+      <!-- ③ 미달성자 (포인트 경쟁) -->
+      <div class="card">
+        <div class="card-title">
+          <span class="section-label label-fail">🔥 도전 중 (${notAchievedList.length}명)</span>
+          ${notAchievedList.length > 0
+            ? '<span class="section-label label-pts" style="margin-left:4px">포인트로 경쟁 중!</span>'
+            : ''}
+        </div>
+        ${notAchievedList.length
+          ? `<div class="person-grid">${notAchievedList.map(m => personCard(m)).join('')}</div>`
+          : `<div style="color:#34d399;text-align:center;padding:20px;font-weight:800;font-size:1rem">
+               🎉 전원 목표 달성!
+             </div>`}
+      </div>
+
+      <!-- ④ 포인트 순위 (미달성자) -->
+      ${notAchievedList.length > 1 ? `
+      <div class="card">
+        <div class="card-title">🎖️ 포인트 순위 — 미달성자 경쟁</div>
+        <div style="font-size:0.75rem;color:#475569;margin-bottom:12px">
+          이관매출 미달성자 간 포인트 순위입니다
+        </div>
+        <div class="rank-list">
+          ${ptRanked.map((m,i) => {
+            const goal = personalGoal[m]||4000000;
+            const pct  = Math.min((sales[m]||0)/goal*100,100);
+            return `
+            <div class="rank-row ${rClass[i]||''}">
+              <span class="rank-medal">${medals[i]||'#'+(i+1)}</span>
+              <span class="rank-name">${m}</span>
+              <span class="rank-goal-pct">매출 ${pct.toFixed(0)}%</span>
+              <span class="rank-pts">${total[m]||0}P</span>
+            </div>`;
+          }).join('')}
+        </div>
+      </div>` : ''}
+
+      <!-- ⑤ 전체 통합 순위 -->
+      <div class="card">
+        <div class="card-title">📊 전체 통합 순위</div>
+        <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:5px;font-size:0.75rem">
+            <div style="width:12px;height:12px;border-radius:2px;background:#10b981"></div>
+            <span style="color:#94a3b8">달성자 — 매출 기준 정렬</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px;font-size:0.75rem">
+            <div style="width:12px;height:12px;border-radius:2px;background:#6366f1"></div>
+            <span style="color:#94a3b8">미달성자 — 포인트 기준 정렬</span>
+          </div>
+        </div>
+        ${fullRanked.map((m,i) => {
+          const isAch = achieved[m];
+          return `
+          <div class="full-rank-row ${isAch?'achieved-row':'fail-row'}">
+            <span class="full-rank-num">${i+1}</span>
+            <span class="full-rank-name">${m}</span>
+            <span class="full-rank-status ${isAch?'status-ok':'status-fail'}">
+              ${isAch ? '✅ 달성' : '🔥 도전'}
+            </span>
+            <span class="full-rank-sales">${fmtM(sales[m]||0)}</span>
+            <span class="full-rank-pts">${total[m]||0}P</span>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- ⑥ 날짜별 누적 -->
+      <div class="card">
+        <div class="card-title">📅 날짜별 누적 현황</div>
+        <div class="date-table-wrap">
+          <table class="date-table">
+            <thead>
+              <tr>
+                <th class="th-date" rowspan="2">날짜</th>
+                ${members.map(m => `<th class="th-m">${m}</th>`).join('')}
+                <th class="th-tot" rowspan="2">합계</th>
+              </tr>
+              <tr>
+                ${members.map(() =>
+                  `<th class="th-m" style="font-size:0.66rem;font-weight:400">매출/P</th>`
+                ).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${dailyRows.length
+                ? dailyRows.map(d => `
+                  <tr>
+                    <td><b>${d.date}</b></td>
+                    ${members.map(m => {
+                      const goal = personalGoal[m]||4000000;
+                      const pct  = Math.min(d.cumS[m]/goal*100,100);
+                      const col  = d.cumS[m]>=goal ? '#34d399'
+                                 : pct>=50          ? '#fbbf24' : '#f87171';
+                      return `<td>
+                        <span style="color:${col};font-weight:700">${fmtM(d.cumS[m])}</span>
+                        <br><span class="td-sub">${d.cumP[m]}P</span>
+                      </td>`;
+                    }).join('')}
+                    <td class="td-tot">
+                      ${fmtM(d.totS)}<br>
+                      <span class="td-sub">${d.totP}P</span>
+                    </td>
+                  </tr>`).join('')
+                : `<tr>
+                    <td colspan="${members.length+2}"
+                      style="color:#475569;padding:24px;text-align:center">
+                      데이터 없음
+                    </td>
+                  </tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
+  function downloadPNG() {
+    const btn = document.querySelector('.btn-png');
+    btn.textContent = '⏳ 생성 중...'; btn.disabled = true;
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+    s.onload = () => {
+      html2canvas(document.body, { backgroundColor:'#0f1623', scale:2, useCORS:true })
+        .then(canvas => {
+          const a = document.createElement('a');
+          const today = new Date().toLocaleDateString('ko-KR')
+            .replace(/\.\s*/g,'-').replace(/-$/,'');
+          a.download = `BM3_프로모션_${today}.png`;
+          a.href = canvas.toDataURL('image/png');
+          a.click();
+          btn.innerHTML = '📥 PNG 저장'; btn.disabled = false;
+        });
+    };
+    document.head.appendChild(s);
+  }
+
+  loadData();
+</script>
+</body>
+</html>
