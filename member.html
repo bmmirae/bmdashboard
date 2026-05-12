@@ -3122,6 +3122,34 @@ function _promoRoundSW(id){
   if(p){_PRpromo=p;_promoLoad(p);}
 }
 
+// ── CSS 스코핑: 프로모션 스타일이 메인 페이지로 누출 방지 ────────
+function _scopeRules(css, scope) {
+  return css.replace(/([^{}@]+)\{([^{}]+)\}/g, function(match, sel, rules) {
+    const s = sel.trim();
+    if (!s) return match;
+    const scoped = s.split(',').map(function(x) {
+      x = x.trim();
+      if (!x) return '';
+      // body/html/*은 스코프 컨테이너 자체에 적용
+      if (/^(body|html|\*)$/.test(x) || x === '*::before' || x === '*::after') return scope;
+      if (x.startsWith(':root') || x.startsWith('@')) return x;
+      return scope + ' ' + x;
+    }).filter(Boolean).join(', ');
+    return scoped + '{' + rules + '}';
+  });
+}
+function _scopeCSS(css, scope) {
+  // 주석 제거
+  css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  // @media 내부 규칙도 스코핑
+  css = css.replace(/(@media[^{]+\{)([\s\S]+?)(
+?\}(\s*\}))/g, function(m, open, inner, close) {
+    return open + _scopeRules(inner, scope) + close;
+  });
+  // 일반 규칙 스코핑
+  return _scopeRules(css, scope);
+}
+
 function _promoLoad(promo){
   const el=document.getElementById('promoContent');
   if(!el) return;
@@ -3130,11 +3158,20 @@ function _promoLoad(promo){
     .then(function(r){if(!r.ok)throw new Error(r.status);return r.text();})
     .then(function(html){
       const doc=new DOMParser().parseFromString(html,'text/html');
-      let style='';
-      doc.querySelectorAll('style').forEach(function(s){style+='<style>'+s.innerHTML+'</style>';});
+      // 고유 스코프 클래스 생성
+      const scopeClass='promo_s_'+Date.now();
+      const scope='.'+scopeClass;
+      // 스타일 스코핑 처리
+      let styleHtml='';
+      doc.querySelectorAll('style').forEach(function(s){
+        styleHtml+='<style>'+_scopeCSS(s.innerHTML, scope)+'</style>';
+      });
+      // body 내용 추출 (script 제외)
       const clone=doc.body.cloneNode(true);
       clone.querySelectorAll('script').forEach(function(s){s.remove();});
-      el.innerHTML=style+clone.innerHTML;
+      // 스코프 컨테이너로 래핑
+      el.innerHTML=styleHtml+'<div class="'+scopeClass+'">'+clone.innerHTML+'</div>';
+      // 스크립트 재실행
       doc.querySelectorAll('script').forEach(function(orig){
         const s=document.createElement('script');
         orig.src?s.src=orig.src:s.textContent=orig.textContent;
