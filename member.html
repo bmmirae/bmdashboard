@@ -2583,17 +2583,24 @@ const PROMO_REGISTRY = {
 let _promoBU=null, _promoCur=null;
 
 function _promoGetBUs(){
-  if(!SESSION) return [];
-  const sc=SESSION.scope||{}, ri=SESSION.roleInfo||{}, title=ri.title||'';
-  function ok(bu){
-    const a=(PROMO_REGISTRY[bu]||[]).find(function(p){return p.active;});
-    return a && !(a.internOnly && title!=='인턴');
-  }
-  if(sc.type==='all') return ['통합','BM2','BM3'].filter(ok);
-  const buStr=(sc.bu||ri.bu||sc.team||'').toString();
-  const key=buStr.includes('BM2')?'BM2':buStr.includes('BM3')?'BM3':'';
-  if(!key||!ok(key)) return [];
-  const r=[]; if(ok('통합')) r.push('통합'); r.push(key); return r;
+  if(!SESSION) return ['통합','BM2','BM3'];
+  const s=SESSION.scope||{}, r=SESSION.roleInfo||{};
+
+  // 전체 권한 (센터장·마스터)
+  if(s.type==='all' || SESSION.role==='center' || SESSION.role==='master')
+    return ['통합','BM2','BM3'];
+
+  // 본부장·팀장: role 이름으로 직접 판별
+  if(['bm2','bm2_2','bm2_3'].includes(SESSION.role)) return ['통합','BM2'];
+  if(['bm3','bm3_2'].includes(SESSION.role))          return ['통합','BM3'];
+
+  // 일반 사원: SESSION에 저장된 bu/team 값으로 판별
+  const combined = (s.bu||r.bu||s.team||r.team||'').toString();
+  if(combined.includes('BM2')) return ['통합','BM2'];
+  if(combined.includes('BM3')) return ['통합','BM3'];
+
+  // 판별 불가 → 통합만 표시 (타 본부 노출 방지)
+  return ['통합'];
 }
 
 function loadPromoTab(){
