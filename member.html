@@ -3139,14 +3139,7 @@ function _scopeRules(css, scope) {
   });
 }
 function _scopeCSS(css, scope) {
-  // 주석 제거
   css = css.replace(/\/\*[\s\S]*?\*\//g, '');
-  // @media 내부 규칙도 스코핑
-  css = css.replace(/(@media[^{]+\{)([\s\S]+?)(
-?\}(\s*\}))/g, function(m, open, inner, close) {
-    return open + _scopeRules(inner, scope) + close;
-  });
-  // 일반 규칙 스코핑
   return _scopeRules(css, scope);
 }
 
