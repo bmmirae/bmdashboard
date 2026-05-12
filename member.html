@@ -2292,12 +2292,24 @@ function _promoGetBUs(){
   if(['bm2','bm2_2','bm2_3'].includes(SESSION.role)) return ['통합','BM2'];
   if(['bm3','bm3_2'].includes(SESSION.role))          return ['통합','BM3'];
 
-  // 일반 사원: 소속 본부로 판별
+  // ① scope/roleInfo에 bu·team 값이 있으면 그걸로 판별
   const b=(s.bu||r.bu||s.team||r.team||'').toString();
   if(b.includes('BM2')) return ['통합','BM2'];
   if(b.includes('BM3')) return ['통합','BM3'];
 
-  // 판별 불가 → 통합만 (타 본부 노출 방지)
+  // ② bu 값이 없는 사원 → ORG_MAP에서 이름으로 직접 찾기
+  const myName = r.name||'';
+  if(myName){
+    for(const bu in ORG_MAP){
+      for(const team in ORG_MAP[bu]){
+        if((ORG_MAP[bu][team]||[]).includes(myName)){
+          return bu.includes('BM2') ? ['통합','BM2'] : ['통합','BM3'];
+        }
+      }
+    }
+  }
+
+  // ③ 판별 불가 → 통합만 (타 본부 노출 방지)
   return ['통합'];
 }
 
