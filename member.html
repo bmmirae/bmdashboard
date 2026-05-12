@@ -3147,35 +3147,29 @@ function _promoLoad(promo){
   const el=document.getElementById('promoContent');
   if(!el) return;
   el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';
+  
   fetch(promo.file+'?t='+Date.now())
     .then(function(r){if(!r.ok)throw new Error(r.status);return r.text();})
     .then(function(html){
-      const doc=new DOMParser().parseFromString(html,'text/html');
-      // 고유 스코프 클래스 생성
-      const scopeClass='promo_s_'+Date.now();
-      const scope='.'+scopeClass;
-      // 스타일 스코핑 처리
-      let styleHtml='';
-      doc.querySelectorAll('style').forEach(function(s){
-        styleHtml+='<style>'+_scopeCSS(s.innerHTML, scope)+'</style>';
-      });
-      // body 내용 추출 (script 제외)
-      const clone=doc.body.cloneNode(true);
-      clone.querySelectorAll('script').forEach(function(s){s.remove();});
-      // 스코프 컨테이너로 래핑
-      el.innerHTML=styleHtml+'<div class="'+scopeClass+'">'+clone.innerHTML+'</div>';
-      // 스크립트 재실행
-      doc.querySelectorAll('script').forEach(function(orig){
-        if(orig.src){
-          const s=document.createElement('script');
-          s.src=orig.src;
-          document.body.appendChild(s);
-        } else {
-          // new Function: 완전 격리 스코프에서 실행 → const 충돌 방지
-          try{ (new Function(orig.textContent))(); }
-          catch(e){ console.warn('promo script:', e.message); }
-        }
-      });
+      // srcdoc iframe: JS/CSS 완전 격리 → 변수 충돌 없음, 스타일 누출 없음
+      const iframe=document.createElement('iframe');
+      iframe.style.cssText='width:100%;border:none;display:block;';
+      iframe.scrolling='no';
+      el.innerHTML='';
+      el.appendChild(iframe);
+      iframe.srcdoc=html;
+      // 높이 자동 조정
+      iframe.onload=function(){
+        try{
+          const h=iframe.contentDocument.body.scrollHeight;
+          iframe.style.height=(h+40)+'px';
+          // 내용 변경 시 높이 재조정
+          const ro=new ResizeObserver(function(){
+            try{ iframe.style.height=iframe.contentDocument.body.scrollHeight+40+'px'; }catch(e){}
+          });
+          ro.observe(iframe.contentDocument.body);
+        }catch(e){}
+      };
     })
     .catch(function(e){
       el.innerHTML='<div style="text-align:center;padding:60px;color:#c62828;">❌ '+e.message+'</div>';
