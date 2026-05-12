@@ -641,7 +641,7 @@ function goPromo() {
 
 function switchMainTab(tab) {
   CURRENT_MAIN_TAB = tab;
-  ['db','perf'].forEach(function(t) {
+  ['db','perf','promo'].forEach(function(t) {
     const content = document.getElementById('tabContent_'+t);
     const btn = document.getElementById('mainTab_'+t);
     if (content) content.style.display = t===tab ? 'block' : 'none';
