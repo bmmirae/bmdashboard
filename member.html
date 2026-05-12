@@ -635,7 +635,8 @@ let PERF_YEAR  = new Date().getFullYear();
 let PERF_MONTH = new Date().getMonth() + 1;
 
 function goPromo() {
-  location.href = 'promo.html';
+  switchMainTab('promo');
+  if (!window._promoReady) { initPromoTab(); window._promoReady = true; }
 }
 
 function switchMainTab(tab) {
@@ -3020,6 +3021,129 @@ function _promoIndividual(promo,data){
   });
   h.push('</div></div>');
   return h.join('');
+}// ══════════════════════════════════════════════════════════════════
+//  🏆 프로모션 탭 인라인 렌더링
+//  promo-registry.json → BU탭/팀서브탭/회차드롭다운 → fetch+inject
+// ══════════════════════════════════════════════════════════════════
+let _PR=null, _PRbu=null, _PRteam=null, _PRpromo=null;
+const _BU_LBL={'통합':'🟣 통합','BM2':'🔵 BM2본부','BM3':'🔴 BM3본부'};
+
+function initPromoTab(){
+  const area=document.getElementById('promoInner');
+  area.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';
+  fetch('promo-registry.json?t='+Date.now())
+    .then(function(r){return r.json();})
+    .then(function(reg){_PR=reg;_promoRender();})
+    .catch(function(){_PR={};_promoRender();});
+}
+
+function _promoGetBUs(){
+  if(!SESSION) return ['통합','BM2','BM3'];
+  const s=SESSION.scope||{},r=SESSION.roleInfo||{};
+  if(s.type==='all') return ['통합','BM2','BM3'];
+  const b=(s.bu||r.bu||s.team||'').toString();
+  if(b.includes('BM2')) return ['통합','BM2'];
+  if(b.includes('BM3')) return ['통합','BM3'];
+  return ['통합','BM2','BM3'];
+}
+
+function _promoGetTeams(bu){
+  if(!_PR||!_PR[bu]||Array.isArray(_PR[bu])) return [];
+  const all=Object.keys(_PR[bu]).filter(function(k){return k!=='전체';});
+  if(!SESSION) return all;
+  const s=SESSION.scope||{},r=SESSION.roleInfo||{};
+  if(s.type==='all'||s.type==='bu') return all;
+  const my=s.team||r.team||'';
+  return my&&all.includes(my)?[my]:all;
+}
+
+function _promoRender(){
+  const area=document.getElementById('promoInner');
+  const vis=_promoGetBUs();
+  if(!_PRbu) _PRbu=vis[0];
+
+  // BU 탭
+  const buTabs=vis.map(function(bu){
+    const on=bu===_PRbu;
+    return '<button onclick="_promoBUSW(\''+bu+'\')" style="padding:10px 20px;font-size:13px;font-weight:'+(on?700:400)+';border:none;background:none;cursor:pointer;color:'+(on?'#3949ab':'var(--text-sub)')+';border-bottom:3px solid '+(on?'#3949ab':'transparent')+';">'
+      +(_BU_LBL[bu]||bu)+'</button>';
+  }).join('');
+
+  const data=_PR&&_PR[_PRbu];
+  const isList=Array.isArray(data);
+  const teams=isList?[]:['전체',..._promoGetTeams(_PRbu)].filter(function(k){return data&&data[k]!==undefined;});
+  if(!_PRteam||!teams.includes(_PRteam)) _PRteam=teams[0]||'전체';
+
+  // 팀 서브탭
+  let teamTabs='';
+  if(!isList&&teams.length>1){
+    teamTabs='<div style="background:var(--surface2);border-bottom:1px solid var(--border);padding:4px 16px;display:flex;gap:4px;">'
+      +teams.map(function(k){
+        const on=k===_PRteam;
+        return '<button onclick="_promoTeamSW(\''+k+'\')" style="padding:5px 14px;font-size:12px;font-weight:600;border:none;border-radius:20px;cursor:pointer;background:'+(on?'#3949ab':'none')+';color:'+(on?'#fff':'var(--text-sub)')+';">'+(k==='전체'?'📋 전체':k)+'</button>';
+      }).join('')+'</div>';
+  }
+
+  const list=isList?data:(data&&data[_PRteam])||[];
+  const ai=list.findIndex(function(p){return p.active;});
+  if(!_PRpromo||!list.find(function(p){return p.id===_PRpromo.id;}))
+    _PRpromo=list[ai>=0?ai:0]||null;
+
+  // 회차 바
+  let roundBar='<div style="background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:10px;">';
+  if(list.length){
+    const hasActive=list.some(function(p){return p.active;});
+    roundBar+='<span style="font-size:12px;color:var(--text-sub);font-weight:600;">회차 선택</span>';
+    roundBar+='<select onchange="_promoRoundSW(this.value)" style="padding:5px 10px;border-radius:8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text);outline:none;">';
+    list.forEach(function(p){
+      roundBar+='<option value="'+p.id+'"'+(_PRpromo&&_PRpromo.id===p.id?' selected':'')+'>'+(p.active?'● ':'○ ')+p.label+'</option>';
+    });
+    roundBar+='</select>';
+    if(hasActive) roundBar+='<span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:50px;background:rgba(46,125,50,.15);color:#2e7d32;border:1px solid #388e3c;">● 진행 중</span>';
+  } else {
+    roundBar+='<span style="font-size:12px;color:var(--text-muted);">등록된 프로모션 없음</span>';
+  }
+  roundBar+='</div>';
+
+  area.innerHTML='<div style="border-bottom:2px solid var(--border);">'+buTabs+'</div>'
+    +teamTabs+roundBar
+    +'<div id="promoContent" style="min-height:400px;"></div>';
+
+  if(_PRpromo) _promoLoad(_PRpromo);
+  else document.getElementById('promoContent').innerHTML='<div style="text-align:center;padding:60px;color:var(--text-sub);">📭 등록된 프로모션이 없습니다.</div>';
+}
+
+function _promoBUSW(bu){_PRbu=bu;_PRteam=null;_PRpromo=null;_promoRender();}
+function _promoTeamSW(team){_PRteam=team;_PRpromo=null;_promoRender();}
+function _promoRoundSW(id){
+  const data=_PR&&_PR[_PRbu];
+  const list=Array.isArray(data)?data:(data&&_PRteam?data[_PRteam]:[]);
+  const p=(list||[]).find(function(x){return x.id===id;});
+  if(p){_PRpromo=p;_promoLoad(p);}
+}
+
+function _promoLoad(promo){
+  const el=document.getElementById('promoContent');
+  if(!el) return;
+  el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';
+  fetch(promo.file+'?t='+Date.now())
+    .then(function(r){if(!r.ok)throw new Error(r.status);return r.text();})
+    .then(function(html){
+      const doc=new DOMParser().parseFromString(html,'text/html');
+      let style='';
+      doc.querySelectorAll('style').forEach(function(s){style+='<style>'+s.innerHTML+'</style>';});
+      const clone=doc.body.cloneNode(true);
+      clone.querySelectorAll('script').forEach(function(s){s.remove();});
+      el.innerHTML=style+clone.innerHTML;
+      doc.querySelectorAll('script').forEach(function(orig){
+        const s=document.createElement('script');
+        orig.src?s.src=orig.src:s.textContent=orig.textContent;
+        document.body.appendChild(s);
+      });
+    })
+    .catch(function(e){
+      el.innerHTML='<div style="text-align:center;padding:60px;color:#c62828;">❌ '+e.message+'</div>';
+    });
 }
 </script>
 </body>
