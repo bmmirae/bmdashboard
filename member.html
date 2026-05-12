@@ -3166,15 +3166,15 @@ function _promoLoad(promo){
       el.innerHTML=styleHtml+'<div class="'+scopeClass+'">'+clone.innerHTML+'</div>';
       // 스크립트 재실행
       doc.querySelectorAll('script').forEach(function(orig){
-        const s=document.createElement('script');
         if(orig.src){
+          const s=document.createElement('script');
           s.src=orig.src;
+          document.body.appendChild(s);
         } else {
-          // type=module: 독립 스코프로 변수 충돌 완전 차단
-          s.type='module';
-          s.textContent=orig.textContent;
+          // new Function: 완전 격리 스코프에서 실행 → const 충돌 방지
+          try{ (new Function(orig.textContent))(); }
+          catch(e){ console.warn('promo script:', e.message); }
         }
-        document.body.appendChild(s);
       });
     })
     .catch(function(e){
