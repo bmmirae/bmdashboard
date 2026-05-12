@@ -635,8 +635,7 @@ let PERF_YEAR  = new Date().getFullYear();
 let PERF_MONTH = new Date().getMonth() + 1;
 
 function goPromo() {
-  switchMainTab('promo');
-  if (!window._promoLoaded) { loadPromoTab(); window._promoLoaded = true; }
+  location.href = 'promo.html';
 }
 
 function switchMainTab(tab) {
