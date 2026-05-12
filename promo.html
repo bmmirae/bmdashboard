@@ -271,35 +271,49 @@ function onRoundChange(id) {
   if (promo) { CUR_PROMO = promo; loadPromo(promo); }
 }
 
-// ── 프로모션 로드 (iframe) ────────────────────────────────────────
+// ── 프로모션 로드 (fetch + inject) ──────────────────────────────
 function loadPromo(promo) {
   const area = document.getElementById('contentArea');
   area.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>불러오는 중...</span></div>';
 
-  const iframe = document.createElement('iframe');
-  iframe.id    = 'promoFrame';
-  iframe.style.cssText = 'flex:1;border:none;width:100%;min-height:calc(100vh - 130px);background:var(--bg);';
+  fetch(promo.file + '?t=' + Date.now())
+    .then(function(r) {
+      if (!r.ok) throw new Error(r.status);
+      return r.text();
+    })
+    .then(function(html) {
+      const parser = new DOMParser();
+      const doc    = parser.parseFromString(html, 'text/html');
 
-  iframe.onload = function() {
-    area.innerHTML = '';
-    area.appendChild(iframe);
-  };
-  iframe.onerror = function() {
-    area.innerHTML = '<div class="empty-state">'
-      + '<div class="empty-icon">❌</div>'
-      + '<div class="empty-text">파일을 불러올 수 없습니다.<br>'
-      + '<span style="font-size:12px;color:var(--text-muted);">' + promo.file + '</span></div>'
-      + '</div>';
-  };
+      // <style> 추출
+      let styleHtml = '';
+      doc.querySelectorAll('style').forEach(function(s) {
+        styleHtml += '<style>' + s.innerHTML + '</style>';
+      });
 
-  iframe.src = promo.file + '?t=' + Date.now();
+      // <body> 내용 추출 (script 제외)
+      const clone = doc.body.cloneNode(true);
+      clone.querySelectorAll('script').forEach(function(s) { s.remove(); });
+      const bodyHtml = clone.innerHTML;
 
-  // 3초 후에도 onload 미발생 시 강제 표시
-  setTimeout(function() {
-    if (document.getElementById('promoFrame')) return;
-    area.innerHTML = '';
-    area.appendChild(iframe);
-  }, 3000);
+      // 주입
+      area.innerHTML = '<div id="promoInject" style="flex:1;">' + styleHtml + bodyHtml + '</div>';
+
+      // script 재실행
+      doc.querySelectorAll('script').forEach(function(orig) {
+        const s = document.createElement('script');
+        if (orig.src) { s.src = orig.src; }
+        else { s.textContent = orig.textContent; }
+        document.body.appendChild(s);
+      });
+    })
+    .catch(function(e) {
+      area.innerHTML = '<div class="empty-state">'
+        + '<div class="empty-icon">❌</div>'
+        + '<div class="empty-text">파일을 불러올 수 없습니다.<br>'
+        + '<span style="font-size:12px;color:var(--text-muted);">' + e.message + '</span></div>'
+        + '</div>';
+    });
 }
 
 // ── 시작 ─────────────────────────────────────────────────────────
