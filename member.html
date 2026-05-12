@@ -3167,7 +3167,12 @@ function _promoLoad(promo){
       // 스크립트 재실행
       doc.querySelectorAll('script').forEach(function(orig){
         const s=document.createElement('script');
-        orig.src?s.src=orig.src:s.textContent=orig.textContent;
+        if(orig.src){
+          s.src=orig.src;
+        } else {
+          // IIFE로 감싸서 변수 충돌 방지
+          s.textContent='(function(){'+orig.textContent+'})();';
+        }
         document.body.appendChild(s);
       });
     })
