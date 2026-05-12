@@ -3170,8 +3170,9 @@ function _promoLoad(promo){
         if(orig.src){
           s.src=orig.src;
         } else {
-          // IIFE로 감싸서 변수 충돌 방지
-          s.textContent='(function(){'+orig.textContent+'})();';
+          // type=module: 독립 스코프로 변수 충돌 완전 차단
+          s.type='module';
+          s.textContent=orig.textContent;
         }
         document.body.appendChild(s);
       });
