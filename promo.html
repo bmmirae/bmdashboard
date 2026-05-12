@@ -10,125 +10,69 @@
       --text:#333;--text-sub:#777;--text-muted:#aaa;
       --header-bg:linear-gradient(135deg,#1a237e,#283593);
       --card-shadow:0 2px 10px rgba(0,0,0,.07);
-      --th-bg:#e8eaf6;--th-color:#555;
       --badge-bg:rgba(255,255,255,.15);
-      --primary:#3949ab;--primary-lt:#5c6bc0;
+      --primary:#3949ab;
     }
     [data-theme="dark"]{
       --bg:#0d1117;--surface:#161b22;--surface2:#1f2937;--border:#30363d;
       --text:#e6edf3;--text-sub:#8b949e;--text-muted:#484f58;
       --header-bg:linear-gradient(135deg,#0d1b4b,#091235);
       --card-shadow:0 2px 14px rgba(0,0,0,.4);
-      --th-bg:#1f2937;--th-color:#8b949e;
       --badge-bg:rgba(255,255,255,.08);
-      --primary:#4a6cf7;--primary-lt:#90caf9;
+      --primary:#4a6cf7;
     }
     *{box-sizing:border-box;margin:0;padding:0;}
     body{font-family:'Segoe UI',Pretendard,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;}
 
-    /* ── 헤더 (대시보드와 동일) ── */
-    .header{
-      background:var(--header-bg);color:#fff;
-      padding:14px 24px;display:flex;justify-content:space-between;
-      align-items:center;flex-wrap:wrap;gap:10px;
-      position:sticky;top:0;z-index:100;
-    }
+    /* ── 헤더 ── */
+    .header{background:var(--header-bg);color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;}
     .header-left h1{font-size:17px;font-weight:700;}
     .header-left .scope{font-size:12px;opacity:.75;margin-top:2px;}
     .header-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-    .back-btn{
-      background:var(--badge-bg);border:1px solid rgba(255,255,255,.25);
-      color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;
-      cursor:pointer;text-decoration:none;display:inline-block;transition:background .2s;
-    }
+    .back-btn{background:var(--badge-bg);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;text-decoration:none;display:inline-block;transition:background .2s;}
     .back-btn:hover{background:rgba(255,255,255,.2);}
-    .user-chip{
-      background:var(--badge-bg);border-radius:20px;padding:5px 14px;
-      font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.2);
-    }
-    .theme-btn{
-      background:var(--badge-bg);border:1px solid rgba(255,255,255,.2);
-      color:#fff;padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;
-    }
+    .user-chip{background:var(--badge-bg);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.2);}
+    .theme-btn{background:var(--badge-bg);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;}
 
-    /* ── 메인 탭 (광고주DB / 성과지표 스타일과 동일) ── */
-    .main-tabs{
-      background:var(--surface);border-bottom:2px solid var(--border);
-      padding:0 20px;display:flex;gap:0;
-    }
-    .main-tab{
-      padding:12px 22px;font-size:14px;font-weight:400;
-      cursor:pointer;color:var(--text-sub);background:none;border:none;
-      border-bottom:3px solid transparent;margin-bottom:-2px;
-      transition:all .15s;
-    }
-    .main-tab:hover{color:var(--text);}
-    .main-tab.active{font-weight:700;color:#3949ab;border-bottom-color:#3949ab;}
+    /* ── BU 탭 (메인) ── */
+    .bu-tabs{background:var(--surface);border-bottom:2px solid var(--border);padding:0 20px;display:flex;}
+    .bu-tab{padding:12px 22px;font-size:14px;font-weight:400;cursor:pointer;color:var(--text-sub);background:none;border:none;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .15s;}
+    .bu-tab:hover{color:var(--text);}
+    .bu-tab.active{font-weight:700;color:#3949ab;border-bottom-color:#3949ab;}
+
+    /* ── 팀 서브탭 ── */
+    .team-tabs{background:var(--surface2);border-bottom:1px solid var(--border);padding:0 20px;display:flex;gap:4px;min-height:40px;align-items:center;}
+    .team-tab{padding:6px 16px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text-sub);background:none;border:none;border-radius:20px;transition:all .15s;}
+    .team-tab:hover{background:var(--border);color:var(--text);}
+    .team-tab.active{background:#3949ab;color:#fff;}
+    .team-tabs.hidden{display:none;}
 
     /* ── 회차 선택 바 ── */
-    .round-bar{
-      background:var(--surface);border-bottom:1px solid var(--border);
-      padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-      min-height:48px;
-    }
+    .round-bar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;min-height:48px;}
     .round-label{font-size:12px;color:var(--text-sub);font-weight:600;}
-    .round-select{
-      padding:6px 12px;border-radius:8px;font-size:13px;
-      background:var(--surface2);border:1px solid var(--border);
-      color:var(--text);cursor:pointer;outline:none;transition:border-color .15s;
-    }
+    .round-select{padding:6px 12px;border-radius:8px;font-size:13px;background:var(--surface2);border:1px solid var(--border);color:var(--text);cursor:pointer;outline:none;transition:border-color .15s;}
     .round-select:focus{border-color:#3949ab;}
-    .live-badge{
-      font-size:11px;font-weight:700;padding:2px 10px;border-radius:50px;
-      background:rgba(46,125,50,.15);color:#2e7d32;border:1px solid #388e3c;
-      display:flex;align-items:center;gap:4px;
-    }
+    .live-badge{font-size:11px;font-weight:700;padding:2px 10px;border-radius:50px;background:rgba(46,125,50,.15);color:#2e7d32;border:1px solid #388e3c;display:flex;align-items:center;gap:4px;}
     [data-theme="dark"] .live-badge{background:rgba(52,211,153,.12);color:#34d399;border-color:#10b981;}
-    .live-dot{
-      width:6px;height:6px;border-radius:50%;background:currentColor;
-      animation:blink 1.6s ease-in-out infinite;
-    }
+    .live-dot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1.6s ease-in-out infinite;}
     @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
-    /* ── 컨텐츠 영역 ── */
+    /* ── 컨텐츠 ── */
     .content-area{flex:1;display:flex;flex-direction:column;}
-    #promoFrame{
-      flex:1;border:none;width:100%;
-      min-height:calc(100vh - 130px);
-      background:var(--bg);
-    }
-
-    /* ── 빈 상태 ── */
-    .empty-state{
-      flex:1;display:flex;align-items:center;justify-content:center;
-      flex-direction:column;gap:14px;padding:80px 20px;
-    }
+    .empty-state{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;padding:80px 20px;}
     .empty-icon{font-size:3rem;}
     .empty-text{font-size:14px;color:var(--text-sub);text-align:center;line-height:1.6;}
-
-    /* ── 로딩 ── */
-    .loading-state{
-      flex:1;display:flex;align-items:center;justify-content:center;
-      flex-direction:column;gap:12px;color:var(--text-muted);padding:60px;
-    }
-    .spinner{
-      width:34px;height:34px;
-      border:3px solid var(--border);border-top-color:#3949ab;
-      border-radius:50%;animation:spin .7s linear infinite;
-    }
+    .loading-state{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--text-muted);padding:60px;}
+    .spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;}
     @keyframes spin{to{transform:rotate(360deg)}}
-
-    /* ── 카드 (빈 상태용) ── */
-    .sec{background:var(--surface);border-radius:12px;padding:20px;box-shadow:var(--card-shadow);margin:20px;}
   </style>
 </head>
 <body>
 
-<!-- 헤더 -->
 <div class="header">
   <div class="header-left">
     <h1>🏆 미래아이엔씨 프로모션</h1>
-    <div class="scope" id="headerScope">프로모션 현황</div>
+    <div class="scope">프로모션 현황</div>
   </div>
   <div class="header-right">
     <span class="user-chip" id="userChip">-</span>
@@ -137,10 +81,13 @@
   </div>
 </div>
 
-<!-- BU 탭 -->
-<div class="main-tabs" id="buTabs"></div>
+<!-- BU 메인 탭 -->
+<div class="bu-tabs" id="buTabs"></div>
 
-<!-- 회차 선택 바 -->
+<!-- 팀 서브탭 -->
+<div class="team-tabs hidden" id="teamTabs"></div>
+
+<!-- 회차 선택 -->
 <div class="round-bar" id="roundBar">
   <div class="loading-state" style="padding:4px 0;flex-direction:row;gap:8px;">
     <div class="spinner" style="width:16px;height:16px;border-width:2px;"></div>
@@ -150,173 +97,209 @@
 
 <!-- 컨텐츠 -->
 <div class="content-area" id="contentArea">
-  <div class="loading-state">
-    <div class="spinner"></div>
-    <span>프로모션 목록을 불러오는 중...</span>
-  </div>
+  <div class="loading-state"><div class="spinner"></div><span>프로모션 목록을 불러오는 중...</span></div>
 </div>
 
 <script>
-// ── 테마 ─────────────────────────────────────────────────────────
+// ── 테마 ──────────────────────────────────────────────────────────
 (function(){
   const t = localStorage.getItem('dash_theme') || 'light';
   document.documentElement.setAttribute('data-theme', t);
-  document.getElementById('themeBtn').textContent = t === 'dark' ? '☀️ 라이트' : '🌙 다크';
+  document.getElementById('themeBtn').textContent = t==='dark'?'☀️ 라이트':'🌙 다크';
 })();
 function toggleTheme(){
-  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  document.documentElement.setAttribute('data-theme', next);
-  localStorage.setItem('dash_theme', next);
-  document.getElementById('themeBtn').textContent = next === 'dark' ? '☀️ 라이트' : '🌙 다크';
+  const next = document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',next);
+  localStorage.setItem('dash_theme',next);
+  document.getElementById('themeBtn').textContent = next==='dark'?'☀️ 라이트':'🌙 다크';
 }
 
-// ── 세션 ─────────────────────────────────────────────────────────
-let SESSION = null;
-try { SESSION = JSON.parse(sessionStorage.getItem('dash_session') || 'null'); } catch(e) {}
+// ── 세션 ──────────────────────────────────────────────────────────
+let SESSION=null;
+try{SESSION=JSON.parse(sessionStorage.getItem('dash_session')||'null');}catch(e){}
+const sc=(SESSION&&SESSION.scope)||{};
+const ri=(SESSION&&SESSION.roleInfo)||{};
+document.getElementById('backBtn').href = sc.type==='member'?'member.html':'index.html';
+document.getElementById('userChip').textContent=(ri.name||'')+' '+(ri.title||'');
 
-const sc = (SESSION && SESSION.scope) || {};
-const ri = (SESSION && SESSION.roleInfo) || {};
-document.getElementById('backBtn').href = sc.type === 'member' ? 'member.html' : 'index.html';
-document.getElementById('userChip').textContent = (ri.name || '') + ' ' + (ri.title || '');
+// ── 상태 ──────────────────────────────────────────────────────────
+let REGISTRY=null;
+let CUR_BU=null;
+let CUR_TEAM=null; // '전체' | 'BM3-1팀' | ...
+let CUR_PROMO=null;
 
-// ── 상태 ─────────────────────────────────────────────────────────
-let REGISTRY  = null;
-let CUR_BU    = null;
-let CUR_PROMO = null;
+const BU_LABEL={'통합':'🟣 통합','BM2':'🔵 BM2본부','BM3':'🔴 BM3본부'};
 
-const BU_LABEL = { '통합': '🟣 통합', 'BM2': '🔵 BM2본부', 'BM3': '🔴 BM3본부' };
+// ── 권한별 접근 가능 BU ───────────────────────────────────────────
+function getVisibleBUs(){
+  if(!SESSION) return ['통합','BM2','BM3'];
+  if(sc.type==='all') return ['통합','BM2','BM3'];
+  const buStr=(sc.bu||ri.bu||sc.team||'').toString();
+  if(buStr.includes('BM2')) return ['통합','BM2'];
+  if(buStr.includes('BM3')) return ['통합','BM3'];
+  return ['통합','BM2','BM3'];
+}
 
-// ── 접근 가능 BU ─────────────────────────────────────────────────
-function getVisibleBUs() {
-  if (!SESSION) return ['통합', 'BM2', 'BM3'];
-  if (sc.type === 'all') return ['통합', 'BM2', 'BM3'];
-  const buStr = (sc.bu || ri.bu || sc.team || '').toString();
-  if (buStr.includes('BM2')) return ['통합', 'BM2'];
-  if (buStr.includes('BM3')) return ['통합', 'BM3'];
-  return ['통합', 'BM2', 'BM3'];
+// 팀장의 경우 자신 팀만
+function getVisibleTeams(bu){
+  if(!REGISTRY||!REGISTRY[bu]) return [];
+  const allTeams=Object.keys(REGISTRY[bu]).filter(function(k){return k!=='전체';});
+  if(!SESSION) return allTeams;
+  if(sc.type==='all'||sc.type==='bu') return allTeams;
+  // 팀장: 자기 팀만
+  const myTeam=sc.team||ri.team||'';
+  if(myTeam&&allTeams.includes(myTeam)) return [myTeam];
+  return allTeams;
 }
 
 // ── 레지스트리 로드 ───────────────────────────────────────────────
-async function loadRegistry() {
-  try {
-    const r = await fetch('promo-registry.json?t=' + Date.now());
-    REGISTRY = await r.json();
-  } catch(e) {
-    REGISTRY = { '통합': [], 'BM2': [], 'BM3': [] };
+async function loadRegistry(){
+  try{
+    const r=await fetch('promo-registry.json?t='+Date.now());
+    REGISTRY=await r.json();
+  }catch(e){
+    REGISTRY={'통합':[],'BM2':{'전체':[]},'BM3':{'전체':[]}};
   }
   init();
 }
 
-function init() {
-  const vis = getVisibleBUs();
-  CUR_BU = vis[0];
+function init(){
+  const vis=getVisibleBUs();
+  CUR_BU=vis[0];
   renderBUTabs(vis);
   switchBU(CUR_BU);
 }
 
 // ── BU 탭 ─────────────────────────────────────────────────────────
-function renderBUTabs(vis) {
-  document.getElementById('buTabs').innerHTML = vis.map(function(bu) {
-    return '<button class="main-tab' + (bu === CUR_BU ? ' active' : '') + '" onclick="switchBU(\'' + bu + '\')">'
-      + (BU_LABEL[bu] || bu) + '</button>';
+function renderBUTabs(vis){
+  document.getElementById('buTabs').innerHTML=vis.map(function(bu){
+    return '<button class="bu-tab'+(bu===CUR_BU?' active':'')+'" onclick="switchBU(\''+bu+'\')">'
+      +(BU_LABEL[bu]||bu)+'</button>';
   }).join('');
 }
 
 // ── BU 전환 ───────────────────────────────────────────────────────
-function switchBU(bu) {
-  CUR_BU = bu;
-  CUR_PROMO = null;
+function switchBU(bu){
+  CUR_BU=bu; CUR_TEAM=null; CUR_PROMO=null;
   renderBUTabs(getVisibleBUs());
 
-  const list = (REGISTRY && REGISTRY[bu]) || [];
-  if (!list.length) {
-    document.getElementById('roundBar').innerHTML =
-      '<span class="round-label" style="color:var(--text-muted);">등록된 프로모션 없음</span>';
-    document.getElementById('contentArea').innerHTML =
-      '<div class="empty-state">'
-      + '<div class="empty-icon">📭</div>'
-      + '<div class="empty-text"><b>' + bu + '</b> 프로모션이 아직 등록되지 않았습니다.<br>'
-      + '<span style="font-size:12px;color:var(--text-muted);">프로모션 시작 시 promo-registry.json에 추가됩니다.</span></div>'
-      + '</div>';
+  const data=REGISTRY&&REGISTRY[bu];
+
+  // 통합: 배열 형태 (팀 없음)
+  if(Array.isArray(data)){
+    document.getElementById('teamTabs').className='team-tabs hidden';
+    renderRoundAndContent(data);
     return;
   }
 
-  const ai = list.findIndex(function(p) { return p.active; });
-  const target = list[ai >= 0 ? ai : 0];
-  CUR_PROMO = target;
-  renderRoundBar(list);
-  loadPromo(target);
-}
+  // BU: 객체 형태 {전체:[...], 팀명:[...]}
+  if(data&&typeof data==='object'){
+    const visTeams=getVisibleTeams(bu);
+    const teamKeys=['전체',...visTeams].filter(function(k){return data[k]!==undefined;});
 
-// ── 회차 선택 바 ─────────────────────────────────────────────────
-function renderRoundBar(list) {
-  const hasActive = list.some(function(p) { return p.active; });
-  let html = '<span class="round-label">회차 선택</span>';
-  html += '<select class="round-select" onchange="onRoundChange(this.value)">';
-  list.forEach(function(p) {
-    const sel = CUR_PROMO && CUR_PROMO.id === p.id ? ' selected' : '';
-    html += '<option value="' + p.id + '"' + sel + '>'
-      + (p.active ? '● ' : '○ ') + p.label + '</option>';
-  });
-  html += '</select>';
-  if (hasActive) {
-    html += '<span class="live-badge"><span class="live-dot"></span>진행 중</span>';
+    if(teamKeys.length<=1){
+      // 팀이 하나뿐이면 서브탭 숨김
+      document.getElementById('teamTabs').className='team-tabs hidden';
+      CUR_TEAM=teamKeys[0]||'전체';
+    } else {
+      // 서브탭 표시
+      CUR_TEAM=teamKeys[0];
+      renderTeamTabs(teamKeys);
+    }
+    renderRoundAndContent(data[CUR_TEAM]||[]);
+    return;
   }
-  document.getElementById('roundBar').innerHTML = html;
+
+  // 데이터 없음
+  document.getElementById('teamTabs').className='team-tabs hidden';
+  document.getElementById('roundBar').innerHTML='<span style="font-size:12px;color:var(--text-muted);">등록된 프로모션 없음</span>';
+  document.getElementById('contentArea').innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text"><b>'+bu+'</b> 프로모션이 아직 등록되지 않았습니다.</div></div>';
 }
 
-function onRoundChange(id) {
-  const list = (REGISTRY && REGISTRY[CUR_BU]) || [];
-  const promo = list.find(function(p) { return p.id === id; });
-  if (promo) { CUR_PROMO = promo; loadPromo(promo); }
+// ── 팀 서브탭 ─────────────────────────────────────────────────────
+function renderTeamTabs(keys){
+  const el=document.getElementById('teamTabs');
+  el.className='team-tabs';
+  el.innerHTML=keys.map(function(k){
+    const label=k==='전체'?'📋 전체':k;
+    return '<button class="team-tab'+(k===CUR_TEAM?' active':'')+'" onclick="switchTeam(\''+k+'\')">'
+      +label+'</button>';
+  }).join('');
 }
 
-// ── 프로모션 로드 (fetch + inject) ──────────────────────────────
-function loadPromo(promo) {
-  const area = document.getElementById('contentArea');
-  area.innerHTML = '<div class="loading-state"><div class="spinner"></div><span>불러오는 중...</span></div>';
+function switchTeam(team){
+  CUR_TEAM=team; CUR_PROMO=null;
+  // 서브탭 활성 상태 업데이트
+  document.querySelectorAll('.team-tab').forEach(function(btn){
+    btn.classList.toggle('active', btn.textContent.trim()===(team==='전체'?'📋 전체':team));
+  });
+  const data=REGISTRY&&REGISTRY[CUR_BU];
+  renderRoundAndContent((data&&data[team])||[]);
+}
 
-  fetch(promo.file + '?t=' + Date.now())
-    .then(function(r) {
-      if (!r.ok) throw new Error(r.status);
-      return r.text();
-    })
-    .then(function(html) {
-      const parser = new DOMParser();
-      const doc    = parser.parseFromString(html, 'text/html');
+// ── 회차 + 컨텐츠 렌더 ───────────────────────────────────────────
+function renderRoundAndContent(list){
+  if(!list||!list.length){
+    document.getElementById('roundBar').innerHTML='<span style="font-size:12px;color:var(--text-muted);">등록된 프로모션 없음</span>';
+    const label=CUR_TEAM&&CUR_TEAM!=='전체'?CUR_TEAM:CUR_BU;
+    document.getElementById('contentArea').innerHTML='<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-text"><b>'+label+'</b> 프로모션이 아직 등록되지 않았습니다.</div></div>';
+    return;
+  }
+  const ai=list.findIndex(function(p){return p.active;});
+  CUR_PROMO=list[ai>=0?ai:0];
+  renderRoundBar(list);
+  loadPromo(CUR_PROMO);
+}
 
-      // <style> 추출
-      let styleHtml = '';
-      doc.querySelectorAll('style').forEach(function(s) {
-        styleHtml += '<style>' + s.innerHTML + '</style>';
-      });
+// ── 회차 바 ───────────────────────────────────────────────────────
+function renderRoundBar(list){
+  const hasActive=list.some(function(p){return p.active;});
+  let html='<span class="round-label">회차 선택</span>';
+  html+='<select class="round-select" onchange="onRoundChange(this.value)">';
+  list.forEach(function(p){
+    const sel=CUR_PROMO&&CUR_PROMO.id===p.id?' selected':'';
+    html+='<option value="'+p.id+'"'+sel+'>'+(p.active?'● ':'○ ')+p.label+'</option>';
+  });
+  html+='</select>';
+  if(hasActive) html+='<span class="live-badge"><span class="live-dot"></span>진행 중</span>';
+  document.getElementById('roundBar').innerHTML=html;
+}
 
-      // <body> 내용 추출 (script 제외)
-      const clone = doc.body.cloneNode(true);
-      clone.querySelectorAll('script').forEach(function(s) { s.remove(); });
-      const bodyHtml = clone.innerHTML;
+function onRoundChange(id){
+  const data=REGISTRY&&REGISTRY[CUR_BU];
+  const list=Array.isArray(data)?data:(data&&CUR_TEAM?data[CUR_TEAM]:[]);
+  const promo=(list||[]).find(function(p){return p.id===id;});
+  if(promo){CUR_PROMO=promo;loadPromo(promo);}
+}
 
-      // 주입
-      area.innerHTML = '<div id="promoInject" style="flex:1;">' + styleHtml + bodyHtml + '</div>';
+// ── 프로모션 로드 (fetch+inject) ──────────────────────────────────
+function loadPromo(promo){
+  const area=document.getElementById('contentArea');
+  area.innerHTML='<div class="loading-state"><div class="spinner"></div><span>불러오는 중...</span></div>';
 
-      // script 재실행
-      doc.querySelectorAll('script').forEach(function(orig) {
-        const s = document.createElement('script');
-        if (orig.src) { s.src = orig.src; }
-        else { s.textContent = orig.textContent; }
+  fetch(promo.file+'?t='+Date.now())
+    .then(function(r){if(!r.ok)throw new Error(r.status);return r.text();})
+    .then(function(html){
+      const parser=new DOMParser();
+      const doc=parser.parseFromString(html,'text/html');
+      let styleHtml='';
+      doc.querySelectorAll('style').forEach(function(s){styleHtml+='<style>'+s.innerHTML+'</style>';});
+      const clone=doc.body.cloneNode(true);
+      clone.querySelectorAll('script').forEach(function(s){s.remove();});
+      area.innerHTML='<div id="promoInject" style="flex:1;">'+styleHtml+clone.innerHTML+'</div>';
+      doc.querySelectorAll('script').forEach(function(orig){
+        const s=document.createElement('script');
+        if(orig.src){s.src=orig.src;}else{s.textContent=orig.textContent;}
         document.body.appendChild(s);
       });
     })
-    .catch(function(e) {
-      area.innerHTML = '<div class="empty-state">'
-        + '<div class="empty-icon">❌</div>'
-        + '<div class="empty-text">파일을 불러올 수 없습니다.<br>'
-        + '<span style="font-size:12px;color:var(--text-muted);">' + e.message + '</span></div>'
-        + '</div>';
+    .catch(function(e){
+      area.innerHTML='<div class="empty-state"><div class="empty-icon">❌</div>'
+        +'<div class="empty-text">파일을 불러올 수 없습니다.<br>'
+        +'<span style="font-size:12px;color:var(--text-muted);">'+e.message+'</span></div></div>';
     });
 }
 
-// ── 시작 ─────────────────────────────────────────────────────────
 loadRegistry();
 </script>
 </body>
