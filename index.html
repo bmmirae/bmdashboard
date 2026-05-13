@@ -561,32 +561,74 @@ function showDash(){
   initYearSelect();
 }
 
-async function loadData(forceRefresh=false){
-  loading(true,forceRefresh?'🔄 최신 데이터 불러오는 중...':'📡 데이터 불러오는 중...');
-  try{
-    const res=await callServer('serverData',{role:SESSION.role,token:SESSION.token,forceRefresh});
-    if(!res.success){if(res.error.includes('세션'))doLogout();throw new Error(res.error);}
-    CURRENT_ROWS=res.rows||[];
-    CURRENT_FILTER='all';
-    MEMBER_NAV_ACTIVATED=false;
-    RECENT_GRADE_CHANGES=res.recentGradeChanges||[];
-    if(res.orgMap) Object.assign(ORG_MAP,res.orgMap);
-    if(res.sheetMap) Object.assign(SHEET_MAP,res.sheetMap);
-    if(res.roleInfo){
-      SESSION.roleInfo=res.roleInfo;
-      const ri=res.roleInfo;
-      document.getElementById('userChip').textContent=`${ri.name} ${ri.title||''}${ri.joinDate?` (${ri.joinDate.slice(0,7)})`:''}`; 
-      sessionStorage.setItem('dash_session',JSON.stringify(SESSION));
-    }
-    buildNav(calcClientStats(CURRENT_ROWS));
-    renderDash(calcClientStats(CURRENT_ROWS),res.roleInfo);
-    loadSalesData(SALES_MONTH||'');
-    toast('✅ 데이터 로드 완료!'+(res._cached?' (캐시)':''));
-  }catch(e){toast('❌ '+e.message,'err');}
-  finally{loading(false);}
+// ══ ⚡ localStorage Stale-While-Revalidate 캐시 ══════════════════
+const LS_VER = 'v512';
+const LS_TTL = 15 * 60 * 1000;
+function _lsKey(role){ return 'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10); }
+function lsSave(role,data){ try{ localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data})); }catch(e){} }
+function lsLoad(role){ try{ const r=localStorage.getItem(_lsKey(role)); if(!r)return null; const p=JSON.parse(r); return(Date.now()-p.ts>LS_TTL)?null:p.data; }catch(e){return null;} }
+function lsClear(role){ try{ localStorage.removeItem(_lsKey(role)); }catch(e){} }
+// ═════════════════════════════════════════════════════════════════
+
+function _applyData(res){
+  CURRENT_ROWS=res.rows||[];
+  CURRENT_FILTER='all';
+  MEMBER_NAV_ACTIVATED=false;
+  RECENT_GRADE_CHANGES=res.recentGradeChanges||[];
+  if(res.orgMap) Object.assign(ORG_MAP,res.orgMap);
+  if(res.sheetMap) Object.assign(SHEET_MAP,res.sheetMap);
+  if(res.roleInfo){
+    SESSION.roleInfo=res.roleInfo;
+    const ri=res.roleInfo;
+    document.getElementById('userChip').textContent=`${ri.name} ${ri.title||''}${ri.joinDate?` (${ri.joinDate.slice(0,7)})`:''}`; 
+    sessionStorage.setItem('dash_session',JSON.stringify(SESSION));
+  }
+  buildNav(calcClientStats(CURRENT_ROWS));
+  renderDash(calcClientStats(CURRENT_ROWS),res.roleInfo);
 }
 
-function refreshData(){if(SESSION)loadData(true);}
+async function loadData(forceRefresh=false){
+  if(forceRefresh) lsClear(SESSION.role);
+
+  // ① 캐시 즉시 표시
+  if(!forceRefresh){
+    const cached = lsLoad(SESSION.role);
+    if(cached && cached.success){
+      _applyData(cached);
+      loadSalesData(SALES_MONTH||'');
+      loading(false);
+      toast('⚡ 빠른 로드 완료 (백그라운드 갱신 중...)');
+      callServer('serverData',{role:SESSION.role,token:SESSION.token,forceRefresh:false})
+        .then(function(res){
+          if(!res.success) return;
+          lsSave(SESSION.role, res);
+          if((res.rows||[]).length !== CURRENT_ROWS.length){
+            _applyData(res); loadSalesData(SALES_MONTH||'');
+            toast('✅ 데이터 갱신 완료');
+          }
+        }).catch(function(){});
+      return;
+    }
+  }
+
+  // ② 캐시 없거나 강제 갱신
+  loading(true, forceRefresh ? '🔄 최신 데이터 불러오는 중...' : '📡 데이터 불러오는 중...');
+  try{
+    const res = await callServer('serverData',{role:SESSION.role,token:SESSION.token,forceRefresh});
+    if(!res.success){
+      if(res.error.includes('세션')) doLogout();
+      throw new Error(res.error);
+    }
+    lsSave(SESSION.role, res);
+    _applyData(res);
+    loadSalesData(SALES_MONTH||'');
+    toast('✅ 데이터 로드 완료!'+(res._cached?' (서버캐시)':''));
+  }catch(e){
+    toast('❌ '+e.message,'err');
+  }finally{ loading(false); }
+}
+
+function refreshData(){if(SESSION){ lsClear(SESSION.role); loadData(true); }}
 
 // ── 조직 구조 ─────────────────────────────────
 const ORG_MAP={
