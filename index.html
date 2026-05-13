@@ -662,6 +662,8 @@ function renderPerformanceMember(res) {
     return KR_HOLIDAYS.has(ds);
   };
 
+  if (!SESSION) return;
+
   const results  = res.results || [];
   const myName   = SESSION.roleInfo ? SESSION.roleInfo.name : '';
   const myTitle  = SESSION.roleInfo ? (SESSION.roleInfo.title||'') : '';
