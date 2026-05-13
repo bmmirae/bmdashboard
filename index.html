@@ -423,7 +423,7 @@ function renderPerformance(res) {
       '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;">'+
         '<div class="card"><div class="card-lbl">🎯 목표매출</div><div class="card-val" style="font-size:18px;">'+fmtW(r.targetSales)+'</div></div>'+
         '<div class="card"><div class="card-lbl">💰 현재매출</div><div class="card-val cv-blue" style="font-size:18px;">'+fmtW(r.totalSales)+'</div><div class="card-sub">달성률 <b style="color:'+achColor+'">'+r.achieveRate+'%</b></div></div>'+
-        '<div class="card"><div class="card-lbl">📈 예상매출</div><div class="card-val cv-orange" style="font-size:18px;">'+fmtW(r.projectedSales||0)+'</div></div>'+
+        '<div class="card"><div class="card-lbl">📈 예상매출</div><div class="card-val cv-orange" style="font-size:18px;">'+fmtW(r.projectedSales||0)+'</div><div class="card-sub">예상달성률 <b>'+(r.projectedRate||0)+'%</b></div></div>'+
         '<div class="card"><div class="card-lbl">📞 콜 건수</div><div class="card-val cv-blue">'+r.totalCalls+'건</div></div>'+
         '<div class="card"><div class="card-lbl">✅ 이관건수</div><div class="card-val cv-green">'+r.totalTransfers+'건</div></div>'+
         '<div class="card"><div class="card-lbl">💵 이관매출</div><div class="card-val cv-green">'+fmtW(r.totalTransferSales)+'</div></div>'+
