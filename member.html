@@ -1282,7 +1282,10 @@ function renderMemberCompareCharts(s){
   const myTitle=ri.title||'사원';
   const allRows=CURRENT_ROWS;
   const activeAll=allRows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
-  const myBU=(activeAll.find(r=>r.manager===myName)||{}).bu||ri.bu||'';
+  // 가망건 0건이어도 소속 본부 찾기: rows → roleInfo.bu → ORG_MAP 순서로 탐색
+  const myBU=(activeAll.find(r=>r.manager===myName)||{}).bu
+    ||ri.bu
+    ||(()=>{ for(const bu in ORG_MAP) for(const team in ORG_MAP[bu]) if((ORG_MAP[bu][team]||[]).includes(myName)) return bu; return ''; })();
   const isIntern=myTitle==='인턴';
   const GRADE_KEYS=['단기','장기','권한오픈','권한+브리핑','메일전송','이관완료'];
   const GRADE_COLORS={'단기':'#e65100','장기':'#c62828','권한오픈':'#6a1b9a','권한+브리핑':'#1565c0','메일전송':'#00897b','이관완료':'#2e7d32','미분류':'#9e9e9e'};
