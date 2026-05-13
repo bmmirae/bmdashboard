@@ -604,6 +604,7 @@ function switchMainTab(tab) {
     }
   });
   if (tab === 'perf') {
+    if (!SESSION) return;
     PERF_YEAR  = new Date().getFullYear();
     PERF_MONTH = new Date().getMonth() + 1;
     PERF_DATA  = null;
@@ -612,6 +613,7 @@ function switchMainTab(tab) {
 }
 
 async function loadPerformance() {
+  if (!SESSION) return;
   const area = document.getElementById('perfContent');
   if (!area) return;
   area.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-sub);">📊 성과 데이터 불러오는 중...</div>';
@@ -916,6 +918,7 @@ function renderPerformanceMember(res) {
 
 
 function changePerfMonth(val) {
+  if (!SESSION) return;
   const parts = val.split('-');
   PERF_YEAR  = parseInt(parts[0]);
   PERF_MONTH = parseInt(parts[1]);
@@ -926,6 +929,7 @@ function changePerfMonth(val) {
 let SALES_DATA=null, SALES_MONTH='', SALES_TAB='all';
 
 async function loadSalesData(month){
+  if(!SESSION) return;
   try{
     const res=await callServer('serverGetSalesData',{role:SESSION.role,token:SESSION.token,month:month||''});
     if(!res.success){ console.error('sales 오류:',res.error); return; }
