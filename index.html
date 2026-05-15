@@ -782,6 +782,8 @@ function renderDash(stats,roleInfo,filteredRows){
   html+=renderRecentGradeChanges();
   html+=renderListSection(rows);
   document.getElementById('dashContent').innerHTML=html;
+  // 이관완료 필터 초기화 (최근 7일 기본)
+  setTimeout(function(){ if(typeof rtReset==='function') rtReset(); }, 50);
   initCharts(stats);
   renderMemberTableBody(stats.memberStats||[]);
   buildMgrFilter(rows);curPage=1;renderListBody(rows);
@@ -795,7 +797,217 @@ function renderTeamCompare(s){const role=SESSION.role;let targetTeams=[];if(role
 
 function renderCompareChart(s){const role=SESSION.role;if(!['bm2_2','bm2_3','bm3_2'].includes(role))return'';const teamName=role==='bm2_2'?'BM2-2팀':role==='bm2_3'?'BM2-3팀':'BM3-2팀';const teamStats=s.teamStats||[];const myTeam=teamStats.find(t=>t.team===teamName)||{total:0,grades:{}};const totalAll=teamStats.reduce((sum,t)=>sum+t.total,0);const doneAll=teamStats.reduce((sum,t)=>sum+(t.grades['이관완료']||0),0);const avgTotal=teamStats.length?Math.round(totalAll/teamStats.length):0;const avgDone=teamStats.length?Math.round(doneAll/teamStats.length):0;const avgRate=avgTotal>0?(avgDone/avgTotal*100).toFixed(0):0;const myTotal=myTeam.total;const myDone=myTeam.grades['이관완료']||0;const myRate=myTotal>0?(myDone/myTotal*100).toFixed(0):0;const donut=(total,done,color,label)=>{const rate=total>0?done/total:0;const r=54,circ=2*Math.PI*r;const dash=(rate*circ).toFixed(1);const gap=(circ-dash).toFixed(1);return`<div style="text-align:center;flex:1;min-width:160px;"><svg width="140" height="140" viewBox="0 0 140 140" style="display:block;margin:0 auto;"><circle cx="70" cy="70" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="14"/><circle cx="70" cy="70" r="${r}" fill="none" stroke="${color}" stroke-width="14" stroke-dasharray="${dash} ${gap}" stroke-dashoffset="${circ/4}" stroke-linecap="round"/><text x="70" y="65" text-anchor="middle" font-size="22" font-weight="700" fill="${color}">${(rate*100).toFixed(0)}%</text><text x="70" y="85" text-anchor="middle" font-size="11" fill="var(--text)">이관완료율</text></svg><div style="font-size:13px;font-weight:700;margin-top:4px;">${label}</div><div style="font-size:11px;color:var(--text);margin-top:2px;">전체 ${total}건 · 이관 ${done}건</div></div>`;};return`<div class="sec"><div class="sec-hd sh-b" style="margin-bottom:16px;">📊 전체 평균 vs ${teamName} 비교</div><div style="display:flex;gap:20px;justify-content:center;flex-wrap:wrap;padding:10px 0;">${donut(avgTotal,avgDone,'#78909c','전체 팀 평균')}<div style="display:flex;align-items:center;font-size:20px;color:var(--text);">vs</div>${donut(myTotal,myDone,'#1565c0',teamName)}</div><div style="margin-top:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div style="background:var(--surface2);border-radius:10px;padding:12px;text-align:center;"><div style="font-size:11px;color:var(--text);margin-bottom:4px;">전체 평균 이관완료율</div><div style="font-size:22px;font-weight:700;color:#78909c;">${avgRate}%</div><div style="font-size:11px;color:var(--text);">${avgDone}건 / ${avgTotal}건</div></div><div style="background:${parseInt(myRate)>=parseInt(avgRate)?'#e8f5e9':'#fff3e0'};border-radius:10px;padding:12px;text-align:center;border:2px solid ${parseInt(myRate)>=parseInt(avgRate)?'#2e7d32':'#e65100'};"><div style="font-size:11px;color:var(--text);margin-bottom:4px;">${teamName} 이관완료율</div><div style="font-size:22px;font-weight:700;color:${parseInt(myRate)>=parseInt(avgRate)?'#2e7d32':'#e65100'};">${myRate}%</div><div style="font-size:11px;color:var(--text);">${myDone}건 / ${myTotal}건</div><div style="font-size:11px;font-weight:600;margin-top:4px;color:${parseInt(myRate)>=parseInt(avgRate)?'#2e7d32':'#e65100'};">${parseInt(myRate)>=parseInt(avgRate)?'✅ 평균 이상':'⚠️ 평균 이하'} (${parseInt(myRate)-parseInt(avgRate)>0?'+':''}${parseInt(myRate)-parseInt(avgRate)}%p)</div></div></div></div>`;}
 
-function renderRecentTransfers(s){const list=s.recentTransfers||[];const d10=new Date();d10.setDate(d10.getDate()-10);const since10=d10.getFullYear()+'.'+(d10.getMonth()+1).toString().padStart(2,'0')+'.'+d10.getDate().toString().padStart(2,'0');const sortedList=[...list].sort(function(a,b){var da=normalizeDate(a.transferDate||a.firstCall||'');var db=normalizeDate(b.transferDate||b.firstCall||'');return db.localeCompare(da);});return`<div class="sec"><div class="chd" onclick="toggleC('rt')"><span style="display:flex;align-items:center;gap:8px;"><span class="sh-g">🏆</span><span class="sh-g">최근 이관완료 전환 현황</span><span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:700;">${list.length}건</span><span style="font-size:11px;color:var(--text-muted);">${since10} 이후</span></span><span class="carr" id="rtA">▼</span></div><div class="cbody" id="rt">${!list.length?'<div style="text-align:center;color:var(--text-muted);padding:20px;">최근 10일 내 이관완료 전환 건이 없습니다</div>':`<div class="tbl-wrap"><table><thead><tr><th>업체명</th><th>담당자</th><th>팀</th><th>본부</th><th>예산</th><th>키워드</th><th>전화번호</th><th>컨택포인트</th><th>이관완료일</th><th>첫콜일</th></tr></thead><tbody>${sortedList.map(r=>`<tr><td><strong>${r.company}</strong>${r.url?`<span onclick="openUrl('${r.url}')" style="margin-left:6px;cursor:pointer;color:#3949ab;font-size:11px;">🔗</span>`:''}</td><td>${r.manager}</td><td>${r.team}</td><td>${buBadge(r.bu)}</td><td style="font-weight:600;color:#2e7d32;">${fmtB(r.budget)}</td><td>${r.keyword||'-'}</td><td style="white-space:nowrap;">${r.phone||'-'}</td><td>${r.contactPoint||'-'}</td><td style="white-space:nowrap;font-weight:600;color:#2e7d32;">${fmtDateDisp(r.transferDate)}</td><td style="white-space:nowrap;color:var(--text-sub);">${fmtDateDisp(r.firstCall)}</td></tr>`).join('')}</tbody></table></div>`}</div></div>`;}
+// ── 전역: 이관완료 전체 목록 저장 ──────────────────────────────
+window._transferAll = [];
+
+function renderRecentTransfers(s) {
+  const list = s.recentTransfers || [];
+  window._transferAll = list;
+
+  // BU/팀 목록
+  const buList   = [...new Set(list.map(r=>r.bu).filter(Boolean))].sort();
+  const teamList = [...new Set(list.map(r=>r.team).filter(Boolean))].sort();
+
+  // 기본값: 최근 7일
+  const todayD = new Date();
+  const d7     = new Date(todayD); d7.setDate(d7.getDate()-6);
+  const pad    = n => String(n).padStart(2,'0');
+  const fmt    = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const defFrom = fmt(d7);
+  const defTo   = fmt(todayD);
+
+  return `<div class="sec">
+    <div class="chd" onclick="toggleC('rt')">
+      <span style="display:flex;align-items:center;gap:8px;">
+        <span class="sh-g">🏆</span>
+        <span class="sh-g">이관완료 전환 현황</span>
+        <span id="rtBadge" style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:700;">-건</span>
+      </span>
+      <span class="carr" id="rtA">▼</span>
+    </div>
+    <div class="cbody" id="rt">
+
+      <!-- 필터 바 -->
+      <div style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+
+        <!-- 1행: 빠른 선택 + 날짜 직접 입력 -->
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;">
+          <span style="font-size:11px;font-weight:600;color:var(--text-sub);">📅</span>
+          <button class="nbtn" id="rtQ7"   onclick="rtQuick(7)"  style="font-size:11px;padding:4px 12px;">최근 7일</button>
+          <button class="nbtn" id="rtQMon" onclick="rtQuick('month')" style="font-size:11px;padding:4px 12px;">이번달</button>
+          <button class="nbtn" id="rtQ30"  onclick="rtQuick(30)" style="font-size:11px;padding:4px 12px;">최근 30일</button>
+          <button class="nbtn" id="rtQ90"  onclick="rtQuick(90)" style="font-size:11px;padding:4px 12px;">3개월</button>
+          <button class="nbtn" id="rtQAll" onclick="rtQuick('all')" style="font-size:11px;padding:4px 12px;">전체</button>
+          <span style="color:var(--border);">|</span>
+          <input type="date" id="rtFrom" value="${defFrom}" onchange="rtApplyFilter()"
+            style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+          <span style="font-size:12px;color:var(--text-sub);">~</span>
+          <input type="date" id="rtTo" value="${defTo}" onchange="rtApplyFilter()"
+            style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+        </div>
+
+        <!-- 2행: 본부/팀 필터 -->
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+          <span style="font-size:11px;font-weight:600;color:var(--text-sub);">🏢</span>
+          <select id="rtBU" onchange="rtChangeBU()" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+            <option value="">본부 전체</option>
+            ${buList.map(b=>`<option value="${b}">${b}</option>`).join('')}
+          </select>
+          <select id="rtTeam" onchange="rtApplyFilter()" style="padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+            <option value="">팀 전체</option>
+            ${teamList.map(t=>`<option value="${t}">${t}</option>`).join('')}
+          </select>
+          <button onclick="rtReset()" style="padding:4px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);font-size:11px;cursor:pointer;">↺ 초기화</button>
+          <span id="rtFilterInfo" style="font-size:11px;color:var(--text-muted);"></span>
+        </div>
+      </div>
+
+      <!-- 테이블 -->
+      <div id="rtTableWrap"></div>
+    </div>
+  </div>`;
+}
+
+// 퀵 버튼 클릭
+function rtQuick(range) {
+  const todayD = new Date();
+  const pad    = n => String(n).padStart(2,'0');
+  const fmt    = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  let from = '', to = fmt(todayD);
+
+  if (range === 'all') {
+    from = ''; to = '';
+  } else if (range === 'month') {
+    from = todayD.getFullYear()+'-'+pad(todayD.getMonth()+1)+'-01';
+  } else {
+    const d = new Date(todayD); d.setDate(d.getDate()-(range-1));
+    from = fmt(d);
+  }
+
+  const fromEl = document.getElementById('rtFrom');
+  const toEl   = document.getElementById('rtTo');
+  if (fromEl) fromEl.value = from;
+  if (toEl)   toEl.value   = to;
+
+  // 퀵버튼 활성화 표시
+  ['rtQ7','rtQMon','rtQ30','rtQ90','rtQAll'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const map = {rtQ7:7,rtQMon:'month',rtQ30:30,rtQ90:90,rtQAll:'all'};
+    el.classList.toggle('na', map[id]===range);
+  });
+
+  rtApplyFilter();
+}
+
+// 본부 변경 시 팀 드롭다운 업데이트
+function rtChangeBU() {
+  const bu      = document.getElementById('rtBU')?.value || '';
+  const teamSel = document.getElementById('rtTeam');
+  if (!teamSel) return;
+
+  const allTeams = [...new Set((window._transferAll||[]).map(r=>r.team).filter(Boolean))].sort();
+  const filtered = bu ? allTeams.filter(t => {
+    const row = (window._transferAll||[]).find(r=>r.team===t);
+    return row && row.bu===bu;
+  }) : allTeams;
+
+  teamSel.innerHTML = '<option value="">팀 전체</option>' +
+    filtered.map(t=>`<option value="${t}">${t}</option>`).join('');
+  rtApplyFilter();
+}
+
+// 필터 적용
+function rtApplyFilter() {
+  const from = document.getElementById('rtFrom')?.value || '';
+  const to   = document.getElementById('rtTo')?.value   || '';
+  const bu   = document.getElementById('rtBU')?.value   || '';
+  const team = document.getElementById('rtTeam')?.value || '';
+
+  let filtered = [...(window._transferAll||[])];
+
+  if (from) filtered = filtered.filter(r => (normalizeDate(r.transferDate||r.firstCall||'')) >= from);
+  if (to)   filtered = filtered.filter(r => (normalizeDate(r.transferDate||r.firstCall||'')) <= to);
+  if (bu)   filtered = filtered.filter(r => r.bu   === bu);
+  if (team) filtered = filtered.filter(r => r.team === team);
+
+  // 최신순 정렬
+  filtered.sort((a,b) =>
+    normalizeDate(b.transferDate||b.firstCall||'').localeCompare(
+    normalizeDate(a.transferDate||a.firstCall||''))
+  );
+
+  // 배지 업데이트
+  const badge = document.getElementById('rtBadge');
+  if (badge) badge.textContent = filtered.length + '건';
+
+  // 필터 정보
+  const info = document.getElementById('rtFilterInfo');
+  if (info) {
+    const parts = [];
+    if (from||to) parts.push((from||'시작')+' ~ '+(to||'현재'));
+    if (bu)   parts.push(bu);
+    if (team) parts.push(team);
+    info.textContent = parts.length ? parts.join(' · ') : '';
+  }
+
+  // 테이블 렌더
+  const wrap = document.getElementById('rtTableWrap');
+  if (!wrap) return;
+
+  if (!filtered.length) {
+    wrap.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:24px;">해당 기간 이관완료 건이 없습니다</div>';
+    return;
+  }
+
+  wrap.innerHTML = `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>업체명</th><th>담당자</th><th>팀</th><th>본부</th>
+      <th>예산</th><th>키워드</th><th>전화번호</th><th>컨택포인트</th>
+      <th>이관완료일</th><th>첫콜일</th>
+    </tr></thead>
+    <tbody>
+      ${filtered.map(r=>`<tr>
+        <td><strong>${r.company}</strong>${r.url?`<span onclick="openUrl('${r.url}')" style="margin-left:6px;cursor:pointer;color:#3949ab;font-size:11px;">🔗</span>`:''}</td>
+        <td>${r.manager}</td>
+        <td>${r.team}</td>
+        <td>${buBadge(r.bu)}</td>
+        <td style="font-weight:600;color:#2e7d32;">${fmtB(r.budget)}</td>
+        <td>${r.keyword||'-'}</td>
+        <td style="white-space:nowrap;">${r.phone||'-'}</td>
+        <td>${r.contactPoint||'-'}</td>
+        <td style="white-space:nowrap;font-weight:600;color:#2e7d32;">${fmtDateDisp(r.transferDate)}</td>
+        <td style="white-space:nowrap;color:var(--text-sub);">${fmtDateDisp(r.firstCall)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+// 필터 초기화
+function rtReset() {
+  const todayD = new Date();
+  const d7     = new Date(todayD); d7.setDate(d7.getDate()-6);
+  const pad    = n => String(n).padStart(2,'0');
+  const fmt    = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+
+  const fromEl = document.getElementById('rtFrom');
+  const toEl   = document.getElementById('rtTo');
+  const buEl   = document.getElementById('rtBU');
+  const teamEl = document.getElementById('rtTeam');
+  if (fromEl) fromEl.value = fmt(d7);
+  if (toEl)   toEl.value   = fmt(todayD);
+  if (buEl)   buEl.value   = '';
+  if (teamEl) teamEl.value = '';
+
+  ['rtQ7','rtQMon','rtQ30','rtQ90','rtQAll'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('na');
+  });
+  document.getElementById('rtQ7')?.classList.add('na');
+  rtApplyFilter();
+}
+
+
 
 function renderRecentGradeChanges(){const list=RECENT_GRADE_CHANGES||[];if(!list.length)return'';const d10=new Date();d10.setDate(d10.getDate()-10);const since10=`${d10.getFullYear()}.${d10.getMonth()+1}.${d10.getDate()}`;return`<div class="sec" style="border-left:3px solid #7b1fa2;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;"><span style="display:flex;align-items:center;gap:8px;"><span style="font-size:14px;font-weight:700;color:#7b1fa2;">🔄 최근 가망도 변경 이력</span><span style="background:#f3e5f5;color:#7b1fa2;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:700;">${list.length}건</span><span style="font-size:11px;color:var(--text-muted);">${since10} 이후</span></span></div><div class="tbl-wrap"><table><thead><tr><th>변경일</th><th>업체명</th><th>담당자</th><th>팀</th><th>본부</th><th>이전 가망도</th><th>→</th><th>변경 가망도</th></tr></thead><tbody>${list.map(h=>`<tr><td style="white-space:nowrap;font-size:12px;">${h.date}</td><td><strong style="font-size:12px;">${h.company}</strong></td><td style="white-space:nowrap;">${h.manager}</td><td style="white-space:nowrap;">${h.team}</td><td>${buBadge(h.bu)}</td><td>${gradeBadge(h.oldGrade||'-')}</td><td style="color:var(--text-muted);font-size:12px;">→</td><td>${gradeBadge(h.newGrade)}</td></tr>`).join('')}</tbody></table></div></div>`;}
 
