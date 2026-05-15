@@ -936,8 +936,6 @@ function renderRecentTransfers(s) {
         </div>
       </div>
 
-      <!-- 디버그 정보 -->
-      <div id="rtDebug" style="font-size:11px;color:var(--text-muted);padding:4px 2px;"></div>
       <!-- 테이블 -->
       <div id="rtTableWrap"></div>
     </div>
@@ -1001,12 +999,7 @@ function rtApplyFilter() {
   const team = document.getElementById('rtTeam')?.value || '';
 
   const all = window._transferAll||[];
-  // 디버그: 날짜 값 상세 표시
-  const dbgEl = document.getElementById('rtDebug');
-  if(dbgEl) {
-    const dbgInfo = all.map(r => r.company+'(transferDate:'+r.transferDate+' / firstCall:'+r.firstCall+' / normalized:'+normalizeDate(r.transferDate||r.firstCall||'')+')').join(' | ');
-    dbgEl.textContent = '서버 수신: '+all.length+'건 → '+dbgInfo;
-  }
+  // (debug removed)
 
   let filtered = [...all];
 
