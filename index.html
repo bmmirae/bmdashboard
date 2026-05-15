@@ -936,6 +936,8 @@ function renderRecentTransfers(s) {
         </div>
       </div>
 
+      <!-- 디버그 정보 -->
+      <div id="rtDebug" style="font-size:11px;color:var(--text-muted);padding:4px 2px;"></div>
       <!-- 테이블 -->
       <div id="rtTableWrap"></div>
     </div>
@@ -998,10 +1000,22 @@ function rtApplyFilter() {
   const bu   = document.getElementById('rtBU')?.value   || '';
   const team = document.getElementById('rtTeam')?.value || '';
 
-  let filtered = [...(window._transferAll||[])];
+  const all = window._transferAll||[];
+  // 디버그: 서브헤더에 전체 건수 표시
+  const dbgEl = document.getElementById('rtDebug');
+  if(dbgEl) dbgEl.textContent = '서버 수신: '+all.length+'건';
 
-  if (from) filtered = filtered.filter(r => (normalizeDate(r.transferDate||r.firstCall||'')) >= from);
-  if (to)   filtered = filtered.filter(r => (normalizeDate(r.transferDate||r.firstCall||'')) <= to);
+  let filtered = [...all];
+
+  // 날짜 비교: normalizeDate로 정규화 후 문자열 비교
+  if (from) filtered = filtered.filter(r => {
+    const d = normalizeDate(r.transferDate||'') || normalizeDate(r.firstCall||'') || '';
+    return d >= from;
+  });
+  if (to) filtered = filtered.filter(r => {
+    const d = normalizeDate(r.transferDate||'') || normalizeDate(r.firstCall||'') || '';
+    return d <= to;
+  });
   if (bu)   filtered = filtered.filter(r => r.bu   === bu);
   if (team) filtered = filtered.filter(r => r.team === team);
 
