@@ -516,6 +516,15 @@ function toast(msg,type='ok'){const t=document.getElementById('toast');t.textCon
 function loading(show,txt='불러오는 중...'){document.getElementById('ltxt').textContent=txt;document.getElementById('lov').classList.toggle('show',show);}
 function toggleC(id){const b=document.getElementById(id),a=document.getElementById(id+'A');const c=b.classList.toggle('collapsed');if(a)a.style.transform=c?'rotate(-90deg)':'rotate(0deg)';}
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function fmtDateDisp(d){
+  var n=normalizeDate(d||"");
+  if(!n||n==="-") return "-";
+  var m=n.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m) return m[1]+"."+m[2]+"."+m[3];
+  var m2=n.match(/^(\d{2})\.(\d{1,2})\.(\d{1,2})$/);
+  if(m2) return "20"+m2[1]+"."+String(m2[2]).padStart(2,"0")+"."+String(m2[3]).padStart(2,"0");
+  return n;
+}
 function normalizeDate(d){if(!d)return'';const s=String(d).trim();if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;const m1=s.match(/^(\d{4})[.\s\/](\d{1,2})[.\s\/](\d{1,2})$/);if(m1)return`${m1[1]}-${m1[2].padStart(2,'0')}-${m1[3].padStart(2,'0')}`;return s;}
 
 // ── 로그인 ────────────────────────────────────
