@@ -349,6 +349,46 @@ tr:hover td{background:var(--surface2);}
 let CURRENT_MAIN_TAB = 'db';
 let PERF_DATA = null;
 
+// ══ ⚡ 성과지표 localStorage 캐시 + 백그라운드 프리페치 ══════════
+const LS_PERF_TTL = 30 * 60 * 1000; // 30분 (서버 캐시와 동일)
+
+function _lsPerfKey(role, year, month) {
+  return 'perf_' + LS_VER + '_' + role + '_' + year + '_' + month;
+}
+function lsPerfSave(role, year, month, data) {
+  try { localStorage.setItem(_lsPerfKey(role,year,month), JSON.stringify({ts:Date.now(),data})); } catch(e) {}
+}
+function lsPerfLoad(role, year, month) {
+  try {
+    const r = localStorage.getItem(_lsPerfKey(role,year,month));
+    if (!r) return null;
+    const p = JSON.parse(r);
+    return (Date.now()-p.ts > LS_PERF_TTL) ? null : p.data;
+  } catch(e) { return null; }
+}
+function lsPerfClear(role, year, month) {
+  try { localStorage.removeItem(_lsPerfKey(role,year,month)); } catch(e) {}
+}
+
+// 백그라운드 프리페치 (광고주DB 로드 후 자동 호출)
+function prefetchPerformance() {
+  if (!SESSION) return;
+  // 이미 캐시 있으면 스킵
+  const cached = lsPerfLoad(SESSION.role, PERF_YEAR, PERF_MONTH);
+  if (cached) return;
+  // 서버에 미리 요청해서 서버 캐시 워밍
+  callServer('serverGetPerformance', {
+    role: SESSION.role, token: SESSION.token,
+    year: PERF_YEAR, month: PERF_MONTH
+  }).then(function(res) {
+    if (res && res.success) {
+      lsPerfSave(SESSION.role, PERF_YEAR, PERF_MONTH, res);
+    }
+  }).catch(function(){});
+}
+// ═══════════════════════════════════════════════════════════════
+
+
 function switchMainTab(tab) {
   CURRENT_MAIN_TAB = tab;
   ['db','perf','promo'].forEach(function(t) {
@@ -373,20 +413,52 @@ function switchMainTab(tab) {
 let PERF_YEAR  = new Date().getFullYear();
 let PERF_MONTH = new Date().getMonth() + 1;
 
-async function loadPerformance() {
+async function loadPerformance(forceRefresh) {
+  if (!SESSION) return;
   const area = document.getElementById('perfContent');
   if (!area) return;
-  area.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-sub);">📊 성과 데이터 불러오는 중...</div>';
+
+  if (forceRefresh) lsPerfClear(SESSION.role, PERF_YEAR, PERF_MONTH);
+
+  // ① localStorage 캐시 즉시 표시
+  const cached = lsPerfLoad(SESSION.role, PERF_YEAR, PERF_MONTH);
+  if (cached && cached.success && !forceRefresh) {
+    PERF_DATA = cached;
+    renderPerformance(cached);
+    // 백그라운드 갱신
+    callServer('serverGetPerformance', {
+      role: SESSION.role, token: SESSION.token,
+      year: PERF_YEAR, month: PERF_MONTH
+    }).then(function(res) {
+      if (res && res.success) {
+        lsPerfSave(SESSION.role, PERF_YEAR, PERF_MONTH, res);
+        PERF_DATA = res;
+      }
+    }).catch(function(){});
+    return;
+  }
+
+  // ② 캐시 없으면 서버에서 로드
+  area.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-sub);">📊 성과 데이터 불러오는 중...<br><small style="font-size:11px;color:var(--text-muted);">처음 로드 시 10~20초 소요될 수 있습니다</small></div>';
   try {
     const res = await callServer('serverGetPerformance', {
       role: SESSION.role, token: SESSION.token,
       year: PERF_YEAR, month: PERF_MONTH
     });
-    if (!res.success) { area.innerHTML = '<div style="padding:40px;color:#c62828;">오류: '+res.error+'</div>'; return; }
+    if (!res.success) {
+      if ((res.error||'').includes('fetch') ) {
+        setTimeout(()=>loadPerformance(), 2000);
+        area.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-sub);">🔄 재연결 중...</div>';
+        return;
+      }
+      area.innerHTML = '<div style="padding:40px;text-align:center;color:#c62828;">⚠️ '+res.error+'<br><button onclick="loadPerformance(true)" style="margin-top:12px;padding:8px 20px;border-radius:8px;border:1px solid #c62828;background:#fce4ec;color:#c62828;cursor:pointer;">🔄 다시 시도</button></div>';
+      return;
+    }
+    lsPerfSave(SESSION.role, PERF_YEAR, PERF_MONTH, res);
     PERF_DATA = res;
     renderPerformance(res);
   } catch(e) {
-    area.innerHTML = '<div style="padding:40px;color:#c62828;">오류: '+e.message+'</div>';
+    area.innerHTML = '<div style="padding:40px;text-align:center;color:#c62828;">⚠️ '+e.message+'<br><button onclick="loadPerformance(true)" style="margin-top:12px;padding:8px 20px;border-radius:8px;border:1px solid #c62828;background:#fce4ec;color:#c62828;cursor:pointer;">🔄 다시 시도</button></div>';
   }
 }
 
@@ -632,6 +704,8 @@ async function loadData(forceRefresh=false){
     _applyData(res);
     loadSalesData(SALES_MONTH||'');
     toast('✅ 데이터 로드 완료!'+(res._cached?' (서버캐시)':''));
+    // 성과지표 백그라운드 프리페치 (탭 클릭 전에 미리 준비)
+    setTimeout(prefetchPerformance, 3000);
   }catch(e){
     toast('❌ '+e.message,'err');
   }finally{ loading(false); }
