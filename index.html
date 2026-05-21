@@ -857,7 +857,10 @@ function renderDash(stats,roleInfo,filteredRows){
   html+=renderListSection(rows);
   document.getElementById('dashContent').innerHTML=html;
   // 이관완료 필터 초기화 (최근 7일 기본)
-  setTimeout(function(){ if(typeof rtReset==='function') rtReset(); }, 50);
+  setTimeout(function(){
+    if(typeof rtReset==='function') rtReset();
+    if(typeof gcApplyFilter==='function') gcApplyFilter();
+  }, 50);
   initCharts(stats);
   renderMemberTableBody(stats.memberStats||[]);
   buildMgrFilter(rows);curPage=1;renderListBody(rows);
@@ -1097,7 +1100,124 @@ function rtReset() {
 
 
 
-function renderRecentGradeChanges(){const list=RECENT_GRADE_CHANGES||[];if(!list.length)return'';const d10=new Date();d10.setDate(d10.getDate()-10);const since10=`${d10.getFullYear()}.${d10.getMonth()+1}.${d10.getDate()}`;return`<div class="sec" style="border-left:3px solid #7b1fa2;"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;"><span style="display:flex;align-items:center;gap:8px;"><span style="font-size:14px;font-weight:700;color:#7b1fa2;">🔄 최근 가망도 변경 이력</span><span style="background:#f3e5f5;color:#7b1fa2;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:700;">${list.length}건</span><span style="font-size:11px;color:var(--text-muted);">${since10} 이후</span></span></div><div class="tbl-wrap"><table><thead><tr><th>변경일</th><th>업체명</th><th>담당자</th><th>팀</th><th>본부</th><th>이전 가망도</th><th>→</th><th>변경 가망도</th></tr></thead><tbody>${list.map(h=>`<tr><td style="white-space:nowrap;font-size:12px;">${h.date}</td><td><strong style="font-size:12px;">${h.company}</strong></td><td style="white-space:nowrap;">${h.manager}</td><td style="white-space:nowrap;">${h.team}</td><td>${buBadge(h.bu)}</td><td>${gradeBadge(h.oldGrade||'-')}</td><td style="color:var(--text-muted);font-size:12px;">→</td><td>${gradeBadge(h.newGrade)}</td></tr>`).join('')}</tbody></table></div></div>`;}
+// 전역: 가망도 변경 이력 전체 저장
+window._gradeAll = [];
+
+function renderRecentGradeChanges(){
+  const list = RECENT_GRADE_CHANGES||[];
+  window._gradeAll = list;
+  if(!list.length) return '';
+
+  const today = new Date().toISOString().slice(0,10);
+
+  return `<div class="sec" style="border-left:3px solid #7b1fa2;">
+    <div class="chd" onclick="toggleC('gc')" style="margin-bottom:0;">
+      <span style="display:flex;align-items:center;gap:8px;">
+        <span style="font-size:14px;font-weight:700;color:#7b1fa2;">🔄 최근 가망도 변경 이력</span>
+        <span id="gcBadge" style="background:#f3e5f5;color:#7b1fa2;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:700;">-건</span>
+      </span>
+      <span class="carr" id="gcA" style="transform:rotate(-90deg);">▼</span>
+    </div>
+    <div class="cbody collapsed" id="gc">
+      <!-- 필터 바 -->
+      <div style="background:var(--surface2);border-radius:10px;padding:10px 14px;margin:14px 0 12px;">
+        <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+          <span style="font-size:11px;font-weight:600;color:var(--text-sub);">📅</span>
+          <button class="nbtn na" id="gcQToday" onclick="gcQuick('today')" style="font-size:11px;padding:4px 12px;">오늘</button>
+          <button class="nbtn" id="gcQYest"  onclick="gcQuick('yesterday')" style="font-size:11px;padding:4px 12px;">어제</button>
+          <button class="nbtn" id="gcQ7"     onclick="gcQuick(7)"  style="font-size:11px;padding:4px 12px;">최근 7일</button>
+          <button class="nbtn" id="gcQAll"   onclick="gcQuick('all')" style="font-size:11px;padding:4px 12px;">전체</button>
+          <span style="color:var(--border);">|</span>
+          <input type="date" id="gcFrom" value="${today}" onchange="gcApplyFilter()"
+            style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+          <span style="font-size:12px;color:var(--text-sub);">~</span>
+          <input type="date" id="gcTo" value="${today}" onchange="gcApplyFilter()"
+            style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+        </div>
+      </div>
+      <!-- 테이블 -->
+      <div id="gcTableWrap"></div>
+    </div>
+  </div>`;
+}
+
+// 퀵 버튼
+function gcQuick(range) {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  let from = '', to = fmt(now);
+
+  if (range === 'today') {
+    from = fmt(now);
+  } else if (range === 'yesterday') {
+    const y = new Date(now); y.setDate(y.getDate()-1);
+    from = fmt(y); to = fmt(y);
+  } else if (range === 'all') {
+    from = ''; to = '';
+  } else {
+    const d = new Date(now); d.setDate(d.getDate()-(range-1));
+    from = fmt(d);
+  }
+
+  const fromEl = document.getElementById('gcFrom');
+  const toEl   = document.getElementById('gcTo');
+  if (fromEl) fromEl.value = from;
+  if (toEl)   toEl.value   = to;
+
+  ['gcQToday','gcQYest','gcQ7','gcQAll'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const map = {gcQToday:'today', gcQYest:'yesterday', gcQ7:7, gcQAll:'all'};
+    el.classList.toggle('na', map[id]===range);
+  });
+  gcApplyFilter();
+}
+
+// 필터 적용
+function gcApplyFilter() {
+  const from = document.getElementById('gcFrom')?.value || '';
+  const to   = document.getElementById('gcTo')?.value   || '';
+  const all  = window._gradeAll || [];
+
+  let filtered = [...all];
+  if (from) filtered = filtered.filter(h => h.date >= from);
+  if (to)   filtered = filtered.filter(h => h.date <= to);
+
+  // 배지 업데이트
+  const badge = document.getElementById('gcBadge');
+  if (badge) badge.textContent = filtered.length+'건';
+
+  // 테이블 렌더
+  const wrap = document.getElementById('gcTableWrap');
+  if (!wrap) return;
+
+  if (!filtered.length) {
+    wrap.innerHTML = '<div style="text-align:center;color:var(--text-muted);padding:20px;">해당 기간 변경 이력이 없습니다</div>';
+    return;
+  }
+
+  wrap.innerHTML = `<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th>변경일</th><th>업체명</th><th>담당자</th><th>팀</th><th>본부</th>
+      <th>이전 가망도</th><th>→</th><th>변경 가망도</th>
+    </tr></thead>
+    <tbody>
+      ${filtered.map(h=>`<tr>
+        <td style="white-space:nowrap;font-size:12px;">${h.date}</td>
+        <td><strong style="font-size:12px;">${h.company}</strong></td>
+        <td style="white-space:nowrap;">${h.manager}</td>
+        <td style="white-space:nowrap;">${h.team}</td>
+        <td>${buBadge(h.bu)}</td>
+        <td>${gradeBadge(h.oldGrade||'-')}</td>
+        <td style="color:var(--text-muted);font-size:12px;">→</td>
+        <td>${gradeBadge(h.newGrade)}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+
 
 function renderGradeSection(s){const GRADES=[{g:'단기',color:'#e65100'},{g:'장기',color:'#c62828'},{g:'권한오픈',color:'#6a1b9a'},{g:'권한+브리핑',color:'#3949ab'},{g:'이관완료',color:'#2e7d32'}];return GRADES.map(({g,color})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">${gradeBadge(g)}<span style="font-size:15px;font-weight:700;color:${color};">${s.gradeMap[g]||0}건</span></div>`).join('')+`<div class="chart-box" style="margin-top:12px;"><canvas id="gradeChart"></canvas></div>`;}
 function renderBudgetSection(s){const bb=s.budgetBands;const keys=Object.keys(bb);const colors=['#3949ab','#2e7d32','#e65100','#6a1b9a','#c62828'];return`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;">${keys.map((k,i)=>`<div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text-sub);margin-bottom:4px;">${k}</div><div style="font-size:18px;font-weight:700;color:${colors[i]};">${bb[k].count}</div><div style="font-size:10px;color:var(--text-muted);">${fmtB(bb[k].total)}</div></div>`).join('')}</div><div class="chart-box"><canvas id="budgetChart"></canvas></div>`;}
