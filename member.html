@@ -301,6 +301,7 @@ tr:hover td{background:var(--surface2);}
     <div class="header-right">
       <span class="user-chip" id="userChip">-</span>
       <button id="changePwBtn" onclick="openChangePw()" style="display:none;padding:5px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;font-size:12px;cursor:pointer;">🔒 비밀번호</button>
+      <button onclick="showAISettingsGlobal()" style="padding:6px 12px;border-radius:8px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);cursor:pointer;font-size:12px;font-weight:600;">🤖 AI설정</button>
       <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 다크</button>
       <button class="logout-btn" onclick="doLogout()">로그아웃</button>
     </div>
@@ -2367,6 +2368,8 @@ function renderListBody(baseRows){
         ${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}
       </td>
     </tr>`;
+    // AI분석용 row 데이터 맵 저장
+    items.forEach(r=>{ if(!window._aiRowMap) window._aiRowMap={}; window._aiRowMap[r.company]=r; });
     items.forEach(r=>{
       const recallToday = r.nextRecallDate===td;
       const hasRecall   = r.recalls && r.recalls.length > 0;
@@ -2384,7 +2387,7 @@ function renderListBody(baseRows){
               ${r.url?`<br><span onclick="openUrl('${r.url}')" style="font-size:10px;color:#3949ab;cursor:pointer;text-decoration:underline;">${r.url.replace(/https?:\/\//,'').slice(0,24)} 🔗</span>`:''}
               ${hasRecall?`<br><span style="font-size:10px;color:#1565c0;">재콜 ${recallCount}회 진행중${latestRecall?' · 최근 '+fmtRecallDate(latestRecall):''}</span>`:''}
             </div>
-            <button onclick="openAIModal('${r.company.replace(/'/g,'\\&apos;')}','${(r.keyword||''  ).replace(/'/g,'\\&apos;')}','${(r.contactPoint||'').replace(/'/g,'\\&apos;')}','${(r.content||'').replace(/'/g,'\\&apos;')}','${(r.url||'').replace(/'/g,'\\&apos;')}','${r.grade||''}',${r.budget||0})" style="flex-shrink:0;padding:3px 7px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:10px;font-weight:700;white-space:nowrap;">🤖</button>
+            <button onclick="openAIByKey('${r.company}')" style="flex-shrink:0;padding:3px 7px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:10px;font-weight:700;white-space:nowrap;" title="AI 영업 분석">🤖</button>
           </div>
         </td>
         <td style="white-space:nowrap;">${r.manager}</td>
@@ -2951,6 +2954,13 @@ function _aiCacheSave(company, result, savedAt) {
   try { localStorage.setItem(_aiKey(company), JSON.stringify({result,savedAt,ts:Date.now()})); } catch(e) {}
 }
 
+// ── row 맵에서 데이터 꺼내서 모달 열기 ─────────────────────────
+function openAIByKey(company) {
+  const r = (window._aiRowMap||{})[company];
+  if (!r) { toast('⚠️ 데이터를 찾을 수 없습니다'); return; }
+  openAIModal(r.company||'', r.keyword||'', r.contactPoint||'', r.content||'', r.url||'', r.grade||'', r.budget||0);
+}
+
 // ── 모달 열기 ────────────────────────────────────────────────────
 function openAIModal(company, keyword, contactPoint, content, url, grade, budget) {
   _aiCompany = company;
@@ -2973,6 +2983,16 @@ function openAIModal(company, keyword, contactPoint, content, url, grade, budget
     _renderResult(cached.result);
     document.getElementById('aiSavedAt').textContent = '📦 캐시됨 · ' + cached.savedAt;
   }
+}
+
+function showAISettingsGlobal() {
+  // 모달 없이 API 키 입력받기
+  const existing = localStorage.getItem('gemini_api_key') || '';
+  const key = prompt('Gemini API 키를 입력하세요\n(aistudio.google.com에서 무료 발급)', existing);
+  if (key === null) return;
+  if (!key.trim()) { toast('⚠️ API 키를 입력해주세요'); return; }
+  localStorage.setItem('gemini_api_key', key.trim());
+  toast('✅ Gemini API 키 저장 완료');
 }
 
 function closeAIModal() {
