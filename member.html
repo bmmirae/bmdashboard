@@ -2303,6 +2303,7 @@ function getRecentBizDates(n){
 }
 
 function renderListBody(baseRows){
+  window._aiRows = []; // AI분석용 초기화
   const g  = document.getElementById('fGrade')?.value||'';
   const b  = document.getElementById('fBudget')?.value||'';
   const mg = document.getElementById('fMgr')?.value||'';
@@ -2368,8 +2369,8 @@ function renderListBody(baseRows){
         ${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}
       </td>
     </tr>`;
-    // AI분석용 row 데이터 맵 저장
-    items.forEach(r=>{ if(!window._aiRowMap) window._aiRowMap={}; window._aiRowMap[r.company]=r; });
+    // AI분석용 row 데이터 배열에 추가
+    items.forEach(r=>{ if(!window._aiRows) window._aiRows=[]; window._aiRows.push(r); });
     items.forEach(r=>{
       const recallToday = r.nextRecallDate===td;
       const hasRecall   = r.recalls && r.recalls.length > 0;
@@ -2387,7 +2388,7 @@ function renderListBody(baseRows){
               ${r.url?`<br><span onclick="openUrl('${r.url}')" style="font-size:10px;color:#3949ab;cursor:pointer;text-decoration:underline;">${r.url.replace(/https?:\/\//,'').slice(0,24)} 🔗</span>`:''}
               ${hasRecall?`<br><span style="font-size:10px;color:#1565c0;">재콜 ${recallCount}회 진행중${latestRecall?' · 최근 '+fmtRecallDate(latestRecall):''}</span>`:''}
             </div>
-            <button onclick="openAIByKey('${r.company}')" style="flex-shrink:0;padding:3px 7px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:10px;font-weight:700;white-space:nowrap;" title="AI 영업 분석">🤖</button>
+            <button class="ai-open-btn" data-company="${r.company}" style="flex-shrink:0;padding:3px 7px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:10px;font-weight:700;white-space:nowrap;" title="AI 영업 분석">🤖</button>
           </div>
         </td>
         <td style="white-space:nowrap;">${r.manager}</td>
@@ -2405,6 +2406,14 @@ function renderListBody(baseRows){
   });
   tbody.innerHTML=html||`<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:24px;">검색 결과가 없습니다</td></tr>`;
   tbody.dataset.groups = JSON.stringify(allGroupIds);
+  // AI 버튼 이벤트 위임
+  tbody.onclick = function(e) {
+    const btn = e.target.closest('.ai-open-btn');
+    if (btn) {
+      e.stopPropagation();
+      openAIByKey(btn.dataset.company);
+    }
+  };
   const pEl=document.getElementById('listPaging');
   if(pEl) pEl.innerHTML=`총 ${rows.length}건`;
 }
@@ -2956,8 +2965,9 @@ function _aiCacheSave(company, result, savedAt) {
 
 // ── row 맵에서 데이터 꺼내서 모달 열기 ─────────────────────────
 function openAIByKey(company) {
-  const r = (window._aiRowMap||{})[company];
-  if (!r) { toast('⚠️ 데이터를 찾을 수 없습니다'); return; }
+  const rows = window._aiRows || [];
+  const r = rows.find(function(x){ return x.company === company; });
+  if (!r) { toast('⚠️ 데이터를 찾을 수 없습니다 ('+company+')'); return; }
   openAIModal(r.company||'', r.keyword||'', r.contactPoint||'', r.content||'', r.url||'', r.grade||'', r.budget||0);
 }
 
