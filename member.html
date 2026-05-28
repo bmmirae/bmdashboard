@@ -2940,7 +2940,7 @@ function _promoLoad(promo){
 
 <script>
 // ── AI 분석 전역 상태 ────────────────────────────────────────────
-const GEMINI_MODEL  = 'gemini-2.0-flash';
+const GEMINI_MODEL  = 'gemini-1.5-flash';
 const AI_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000;
 let _aiCompany      = '';
 let _aiData         = {};
@@ -2996,13 +2996,110 @@ function openAIModal(company, keyword, contactPoint, content, url, grade, budget
 }
 
 function showAISettingsGlobal() {
-  // 모달 없이 API 키 입력받기
-  const existing = localStorage.getItem('gemini_api_key') || '';
-  const key = prompt('Gemini API 키를 입력하세요\n(aistudio.google.com에서 무료 발급)', existing);
-  if (key === null) return;
-  if (!key.trim()) { toast('⚠️ API 키를 입력해주세요'); return; }
-  localStorage.setItem('gemini_api_key', key.trim());
-  toast('✅ Gemini API 키 저장 완료');
+  // 기존 설정 모달 있으면 제거
+  const existing = document.getElementById('aiSettingsModal');
+  if (existing) { existing.remove(); return; }
+
+  const g  = localStorage.getItem('gemini_api_key')     || '';
+  const dl = localStorage.getItem('datalabs_api_key')    || '';
+  const cid= localStorage.getItem('searchad_customer_id')|| '';
+  const ak = localStorage.getItem('searchad_access_key') || '';
+  const sk = localStorage.getItem('searchad_secret_key') || '';
+
+  const modal = document.createElement('div');
+  modal.id = 'aiSettingsModal';
+  modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:99999;display:flex;align-items:center;justify-content:center;';
+  modal.innerHTML = `
+    <div style="background:var(--surface);border-radius:16px;padding:24px;width:90%;max-width:480px;box-shadow:0 12px 40px rgba(0,0,0,.25);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:700;color:var(--text);">⚙️ AI API 설정</div>
+        <button onclick="document.getElementById('aiSettingsModal').remove()" style="background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted);">✕</button>
+      </div>
+
+      <!-- Gemini -->
+      <div style="margin-bottom:16px;padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+          <span>🤖</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text);">Gemini API 키</span>
+          <span style="font-size:10px;background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 7px;">필수</span>
+        </div>
+        <input type="password" id="set_gemini" value="${g}" placeholder="AIza..."
+          style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;box-sizing:border-box;margin-bottom:6px;">
+        <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:10px;color:#3949ab;">Google AI Studio에서 무료 발급 →</a>
+      </div>
+
+      <!-- 데이터랩 -->
+      <div style="margin-bottom:16px;padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+          <span>📊</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text);">네이버 데이터랩 API 키</span>
+          <span style="font-size:10px;background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 7px;">선택</span>
+        </div>
+        <input type="password" id="set_datalabs" value="${dl}" placeholder="Client Secret..."
+          style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;box-sizing:border-box;margin-bottom:6px;">
+        <a href="https://developers.naver.com/apps/#/list" target="_blank" style="font-size:10px;color:#3949ab;">네이버 개발자센터에서 발급 →</a>
+      </div>
+
+      <!-- 검색광고 -->
+      <div style="margin-bottom:20px;padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+          <span>🔍</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text);">네이버 검색광고 API</span>
+          <span style="font-size:10px;background:#e3f2fd;color:#1565c0;border-radius:10px;padding:1px 7px;">선택</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div>
+            <div style="font-size:10px;color:var(--text-sub);margin-bottom:3px;">Customer ID</div>
+            <input type="text" id="set_cid" value="${cid}" placeholder="광고 계정 ID"
+              style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;box-sizing:border-box;">
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text-sub);margin-bottom:3px;">Access License</div>
+            <input type="password" id="set_ak" value="${ak}" placeholder="Access Key"
+              style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;box-sizing:border-box;">
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text-sub);margin-bottom:3px;">Secret Key</div>
+            <input type="password" id="set_sk" value="${sk}" placeholder="Secret Key"
+              style="width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;box-sizing:border-box;">
+          </div>
+        </div>
+        <a href="https://searchad.naver.com" target="_blank" style="font-size:10px;color:#3949ab;margin-top:6px;display:inline-block;">searchad.naver.com → 도구 → API 사용 관리 →</a>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button onclick="document.getElementById('aiSettingsModal').remove()"
+          style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;">취소</button>
+        <button onclick="saveAllAIKeys()"
+          style="flex:2;padding:10px;border-radius:8px;background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;">💾 저장</button>
+      </div>
+    </div>
+  `;
+
+  // 외부 클릭 시 닫기
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) modal.remove();
+  });
+  document.body.appendChild(modal);
+}
+
+function saveAllAIKeys() {
+  const g   = document.getElementById('set_gemini')?.value.trim()  || '';
+  const dl  = document.getElementById('set_datalabs')?.value.trim()|| '';
+  const cid = document.getElementById('set_cid')?.value.trim()     || '';
+  const ak  = document.getElementById('set_ak')?.value.trim()      || '';
+  const sk  = document.getElementById('set_sk')?.value.trim()      || '';
+
+  if (!g) { toast('⚠️ Gemini API 키는 필수입니다'); return; }
+
+  localStorage.setItem('gemini_api_key',          g);
+  if (dl)  localStorage.setItem('datalabs_api_key',    dl);
+  if (cid) localStorage.setItem('searchad_customer_id', cid);
+  if (ak)  localStorage.setItem('searchad_access_key',  ak);
+  if (sk)  localStorage.setItem('searchad_secret_key',  sk);
+
+  document.getElementById('aiSettingsModal')?.remove();
+  toast('✅ API 설정 저장 완료');
 }
 
 function closeAIModal() {
