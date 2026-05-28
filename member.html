@@ -2239,7 +2239,7 @@ function renderListSection(rows){
           <thead><tr>
             <th>가망도</th><th>업체명</th><th>담당자</th><th>팀</th>
             <th>전화번호</th><th>키워드</th><th>예산</th>
-            <th>컨택포인트</th><th>재콜예정일</th><th>재콜내역</th>
+            <th>컨택포인트</th><th>재콜예정일</th><th>재콜내역</th><th>AI</th>
           </tr></thead>
           <tbody id="listBody"></tbody>
         </table>
@@ -2392,6 +2392,7 @@ function renderListBody(baseRows){
           ${fmtRecallDate(r.nextRecallDate)}${recallToday?' 🔔':''}
         </td>
         <td style="max-width:160px;">${renderRecallChips(r.recalls)}</td>
+        <td style="white-space:nowrap;"><button onclick="openAIModal('${r.company.replace(/'/g,'\\&apos;')}','${(r.keyword||'').replace(/'/g,'\\&apos;')}','${(r.contactPoint||'').replace(/'/g,'\\&apos;')}','${(r.content||'').replace(/'/g,'\\&apos;')}','${(r.url||'').replace(/'/g,'\\&apos;')}','${r.grade||''}',${r.budget||0})" style="padding:3px 8px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:11px;font-weight:600;">🤖 AI</button></td>
       </tr>`;
     });
   });
@@ -2793,5 +2794,550 @@ function _promoLoad(promo){
     });
 }
 </script>
+
+<!-- ═══ AI 영업 분석 모달 v2.0 ══════════════════════════════════════ -->
+<div id="aiModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.55);z-index:9999;overflow:auto;backdrop-filter:blur(3px);">
+  <div style="background:var(--surface);margin:30px auto;max-width:700px;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.25);overflow:hidden;">
+
+    <!-- 헤더 -->
+    <div style="background:linear-gradient(135deg,#1a237e,#3949ab);padding:18px 24px;display:flex;align-items:center;gap:12px;">
+      <span style="font-size:22px;">🤖</span>
+      <div style="flex:1;">
+        <div id="aiModalTitle" style="font-size:15px;font-weight:700;color:#fff;"></div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);">AI 영업 분석 · Gemini 2.0 Flash · 미래아이엔씨 특화</div>
+      </div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="refreshAIAnalysis()" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:11px;">🔄 재분석</button>
+        <button onclick="showAISettings()" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:11px;">⚙️ API키</button>
+        <button onclick="closeAIModal()" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:16px;">✕</button>
+      </div>
+    </div>
+
+    <div style="padding:20px 24px;">
+
+      <!-- API 키 설정 -->
+      <div id="aiSettingsBox" style="display:none;background:var(--surface2);border-radius:10px;padding:14px;margin-bottom:16px;border:1px solid var(--border);">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px;">⚙️ API 키 설정</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <div style="flex:1;">
+            <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;">Gemini API 키 (필수)</div>
+            <input type="password" id="aiKeyInput" placeholder="AIza..." style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;box-sizing:border-box;">
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" style="font-size:10px;color:#3949ab;">Google AI Studio에서 무료 발급 →</a>
+          <button onclick="saveAIKey()" style="padding:6px 16px;border-radius:8px;background:#3949ab;color:#fff;border:none;cursor:pointer;font-size:12px;font-weight:600;">저장</button>
+        </div>
+      </div>
+
+      <!-- 녹취 드롭존 -->
+      <div id="aiDropZone"
+        ondragover="event.preventDefault();this.style.borderColor='#3949ab';this.style.background='#e8eaf6'"
+        ondragleave="this.style.borderColor='var(--border)';this.style.background='var(--surface2)'"
+        ondrop="handleAudioDrop(event)"
+        style="border:2px dashed var(--border);border-radius:10px;padding:14px;text-align:center;background:var(--surface2);cursor:pointer;margin-bottom:12px;transition:all .2s;">
+        <input type="file" id="aiAudioFile" accept=".mp3,.wav,.m4a,.ogg,.aac" style="display:none;" onchange="handleAudioSelect(event)">
+        <div id="aiDropText" onclick="document.getElementById('aiAudioFile').click()">
+          <span style="font-size:20px;">🎙️</span>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-top:4px;">녹취 파일 드래그 or 클릭</div>
+          <div style="font-size:10px;color:var(--text-muted);">mp3 · wav · m4a · 없으면 DB 데이터로만 분석</div>
+        </div>
+      </div>
+
+      <!-- 퀵태그 -->
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:600;color:var(--text-sub);margin-bottom:8px;">🏷️ 상황 태그 (다중선택)</div>
+        <div id="aiTagsWrap" style="display:flex;flex-wrap:wrap;gap:6px;">
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="단가부담">#단가부담</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="타대행사관리중">#타대행사관리중</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="무효클릭의심">#무효클릭의심</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="효율저하">#효율저하</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="직접관리중">#직접관리중</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="초보광고주">#초보광고주</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="광고OFF상태">#광고OFF상태</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="단순거절">#단순거절</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="예산증액가능">#예산증액가능</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="대표직접통화">#대표직접통화</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="GFA관심">#GFA관심</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="쇼핑검색관심">#쇼핑검색관심</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="재콜약속완료">#재콜약속완료</span>
+          <span class="ai-tag" onclick="toggleAITag(this)" data-tag="시즌이벤트">#시즌이벤트</span>
+        </div>
+      </div>
+
+      <!-- 분석 버튼 -->
+      <button onclick="startAIAnalysis()" id="aiStartBtn" style="width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:700;margin-bottom:16px;">
+        🤖 AI 분석 시작
+      </button>
+
+      <!-- 로딩 -->
+      <div id="aiLoading" style="display:none;text-align:center;padding:30px;">
+        <div style="width:40px;height:40px;border:3px solid var(--border);border-top:3px solid #3949ab;border-radius:50%;animation:aiSpin 1s linear infinite;margin:0 auto 16px;"></div>
+        <div id="aiLoadingText" style="font-size:13px;color:var(--text-sub);font-weight:600;"></div>
+        <div id="aiLoadingBar" style="width:200px;height:4px;background:var(--surface2);border-radius:4px;margin:12px auto 0;overflow:hidden;">
+          <div id="aiLoadingFill" style="height:100%;background:#3949ab;border-radius:4px;width:0%;transition:width .5s;"></div>
+        </div>
+      </div>
+
+      <!-- 결과 -->
+      <div id="aiResult" style="display:none;"></div>
+
+      <!-- 저장 정보 -->
+      <div id="aiSavedAt" style="font-size:10px;color:var(--text-muted);text-align:right;margin-top:8px;"></div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes aiSpin { to { transform:rotate(360deg); } }
+.ai-tag {
+  padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;
+  cursor:pointer;border:1px solid var(--border);background:var(--surface2);
+  color:var(--text-sub);transition:all .15s;user-select:none;
+}
+.ai-tag.active {
+  background:#e8eaf6;color:#3949ab;border-color:#3949ab;
+}
+.ai-section {
+  border-radius:10px;padding:14px 16px;margin-bottom:12px;
+}
+.ai-briefing { background:#fff3e0;border:1px solid #ffcc02; }
+.ai-briefing .ai-sec-title { color:#e65100; }
+.ai-points { background:#e8f5e9;border:1px solid #a5d6a7; }
+.ai-points .ai-sec-title { color:#2e7d32; }
+.ai-script { background:#e8eaf6;border:1px solid #9fa8da; }
+.ai-script .ai-sec-title { color:#1a237e; }
+.ai-action { background:var(--surface2);border:1px solid var(--border); }
+.ai-sec-title { font-size:12px;font-weight:700;margin-bottom:8px; }
+.ai-quote {
+  background:rgba(0,0,0,.04);border-left:3px solid #ff9800;
+  padding:8px 12px;border-radius:0 8px 8px 0;
+  font-size:12px;font-style:italic;color:var(--text);margin-top:8px;
+}
+.ai-badge {
+  display:inline-block;padding:2px 8px;border-radius:12px;
+  font-size:11px;font-weight:600;margin:2px;
+  background:#e8eaf6;color:#3949ab;
+}
+</style>
+
+<script>
+// ── AI 분석 전역 상태 ────────────────────────────────────────────
+const GEMINI_MODEL  = 'gemini-2.0-flash';
+const AI_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000;
+let _aiCompany      = '';
+let _aiData         = {};
+let _aiAudioB64     = null;
+let _aiAudioMime    = '';
+
+function _aiKey(company) {
+  return 'ai_v2_' + (SESSION?.role||'') + '_' + company;
+}
+function _aiCacheLoad(company) {
+  try {
+    const raw = localStorage.getItem(_aiKey(company));
+    if (!raw) return null;
+    const p = JSON.parse(raw);
+    if (Date.now() - p.ts > AI_CACHE_TTL) { localStorage.removeItem(_aiKey(company)); return null; }
+    return p;
+  } catch(e) { return null; }
+}
+function _aiCacheSave(company, result, savedAt) {
+  try { localStorage.setItem(_aiKey(company), JSON.stringify({result,savedAt,ts:Date.now()})); } catch(e) {}
+}
+
+// ── 모달 열기 ────────────────────────────────────────────────────
+function openAIModal(company, keyword, contactPoint, content, url, grade, budget) {
+  _aiCompany = company;
+  _aiData    = {company, keyword, contactPoint, content, url, grade, budget};
+  _aiAudioB64 = null;
+
+  document.getElementById('aiModal').style.display = 'block';
+  document.getElementById('aiModalTitle').textContent = '🏢 ' + company;
+  document.getElementById('aiSettingsBox').style.display = 'none';
+  document.getElementById('aiLoading').style.display = 'none';
+  document.getElementById('aiResult').style.display = 'none';
+  document.getElementById('aiResult').innerHTML = '';
+  document.getElementById('aiSavedAt').textContent = '';
+  document.getElementById('aiDropText').innerHTML = '<span style="font-size:20px;">🎙️</span><div style="font-size:12px;font-weight:600;color:var(--text);margin-top:4px;">녹취 파일 드래그 or 클릭</div><div style="font-size:10px;color:var(--text-muted);">mp3 · wav · m4a · 없으면 DB 데이터로만 분석</div>';
+  document.querySelectorAll('.ai-tag').forEach(t => t.classList.remove('active'));
+
+  // 캐시 확인
+  const cached = _aiCacheLoad(company);
+  if (cached) {
+    _renderResult(cached.result);
+    document.getElementById('aiSavedAt').textContent = '📦 캐시됨 · ' + cached.savedAt;
+  }
+}
+
+function closeAIModal() {
+  document.getElementById('aiModal').style.display = 'none';
+  _aiAudioB64 = null;
+}
+
+function refreshAIAnalysis() {
+  localStorage.removeItem(_aiKey(_aiCompany));
+  document.getElementById('aiResult').style.display = 'none';
+  document.getElementById('aiResult').innerHTML = '';
+  document.getElementById('aiSavedAt').textContent = '';
+}
+
+// ── 오디오 처리 ──────────────────────────────────────────────────
+function handleAudioDrop(e) {
+  e.preventDefault();
+  document.getElementById('aiDropZone').style.borderColor = 'var(--border)';
+  document.getElementById('aiDropZone').style.background = 'var(--surface2)';
+  const file = e.dataTransfer.files[0];
+  if (file) _loadAudio(file);
+}
+function handleAudioSelect(e) {
+  const file = e.target.files[0];
+  if (file) _loadAudio(file);
+}
+function _loadAudio(file) {
+  const allowed = ['audio/mpeg','audio/wav','audio/x-wav','audio/mp4','audio/ogg','audio/aac','audio/x-m4a'];
+  if (!allowed.includes(file.type) && !file.name.match(/\.(mp3|wav|m4a|ogg|aac)$/i)) {
+    toast('⚠️ 지원하지 않는 파일 형식입니다'); return;
+  }
+  if (file.size > 20 * 1024 * 1024) {
+    toast('⚠️ 20MB 이하 파일만 가능합니다'); return;
+  }
+  _aiAudioMime = file.type || 'audio/mpeg';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _aiAudioB64 = e.target.result.split(',')[1];
+    document.getElementById('aiDropText').innerHTML =
+      '<span style="font-size:18px;">✅</span><div style="font-size:12px;font-weight:600;color:#2e7d32;margin-top:4px;">' + file.name + '</div><div style="font-size:10px;color:var(--text-muted);">' + (file.size/1024/1024).toFixed(1) + 'MB · 클릭하여 변경</div>';
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── 태그 토글 ────────────────────────────────────────────────────
+function toggleAITag(el) { el.classList.toggle('active'); }
+function _getSelectedTags() {
+  return [...document.querySelectorAll('.ai-tag.active')].map(t => '#' + t.dataset.tag).join(' ') || '없음';
+}
+
+// ── 분석 시작 ────────────────────────────────────────────────────
+async function startAIAnalysis() {
+  const apiKey = localStorage.getItem('gemini_api_key') || '';
+  if (!apiKey) { showAISettings(); toast('⚠️ API 키를 먼저 설정해주세요'); return; }
+
+  document.getElementById('aiResult').style.display = 'none';
+  document.getElementById('aiLoading').style.display = 'block';
+  document.getElementById('aiSavedAt').textContent = '';
+
+  // 서버 캐시 먼저 확인
+  try {
+    const srv = await callServer('serverGetAIAnalysis', {role:SESSION.role,token:SESSION.token,company:_aiCompany});
+    if (srv.success && srv.analysis) {
+      const parsed = JSON.parse(srv.analysis);
+      _aiCacheSave(_aiCompany, parsed, srv.savedAt||'');
+      document.getElementById('aiLoading').style.display = 'none';
+      _renderResult(parsed);
+      document.getElementById('aiSavedAt').textContent = '💾 시트 저장본 · ' + (srv.savedAt||'');
+      return;
+    }
+  } catch(e) {}
+
+  // Gemini 호출
+  await _callGemini(apiKey);
+}
+
+// ── 로딩 애니메이션 ──────────────────────────────────────────────
+function _setLoading(text, pct) {
+  document.getElementById('aiLoadingText').textContent = text;
+  document.getElementById('aiLoadingFill').style.width = pct + '%';
+}
+
+// ── Gemini 호출 ──────────────────────────────────────────────────
+async function _callGemini(apiKey) {
+  const d = _aiData;
+  const tags = _getSelectedTags();
+  const hasAudio = !!_aiAudioB64;
+
+  const audioInstruction = hasAudio
+    ? '통화 녹취 파일: (첨부된 오디오 파일 참조 - 전체 통화 내용을 듣고 브리핑 섹션을 작성해라)'
+    : '통화 녹취 파일: 없음 - CRM 데이터와 선택 태그만으로 분석해라. has_audio는 false로 설정하고 call_briefing 섹션은 출력하지 마라.';
+
+  const prompt = `# AI 영업 분석 마스터 프롬프트 v2.0
+# 미래아이엔씨 네이버 검색광고 영업 특화
+
+# Role & Objective
+너는 미래아이엔씨 소속 10년 차 네이버 검색광고(SA) 및 GFA 전문 영업 총괄 본부장이다.
+반드시 한국어로만 답변해라.
+네 역할은: 통화 녹취가 있다면 영업사원이 다음 콜 전 3분 안에 상황을 완벽히 파악하도록 브리핑해줘라.
+스크립트는 보조 수단이다. 상황 파악과 전략이 먼저다.
+
+# 1. Input Data
+- 업체명/업종: ${d.company} / ${d.keyword||'미기재'}
+- 웹사이트 URL: ${d.url||'없음'}
+- 광고 현황/컨택포인트: ${d.contactPoint||'미기재'}
+- 통화메모: ${d.content||'없음'}
+- 예산: ${d.budget>0?Math.round(d.budget/10000)+'만원':'미기재'}
+- 현재 가망도: ${d.grade||'미기재'}
+- 선택 태그: ${tags}
+- ${audioInstruction}
+
+# 2. 미래아이엔씨 솔루션
+- 네이버 검색광고(SA), GFA(디스플레이), 무효클릭방지시스템, 로그분석기, 미래톡(채팅봇), 쇼핑검색광고
+- Sniper Rule: 1~2개만 선택해라. 나열 금지.
+
+# 3. URL 플랫폼 판별
+- smartstore/brand/shopping.naver 포함 → 스마트스토어 (랜딩페이지 소스코드 수정 제안 금지)
+- 그 외 → 자사몰
+
+# 4. 업종별 화법
+- 이커머스: ROAS, 장바구니이탈, 객단가 / "문의량 늘려드릴게요" 금지
+- 서비스/B2B: 진성고객, CPA, 무효클릭방어 / "결제율 보장" 금지
+
+# 5. 절대 금지
+- 스크립트 3줄 이상
+- 모든 솔루션 나열
+- 영어 답변
+- JSON 외 다른 텍스트 출력
+
+# 6. Output (반드시 아래 JSON만 출력, 다른 텍스트 없이)
+${hasAudio ? `{
+  "prompt_version": "v2.0",
+  "has_audio": true,
+  "call_briefing": {
+    "summary": "통화 전체 흐름 요약 3~5문장 (객관적 사실만)",
+    "customer_reaction": "고객 반응/감정 (관심·거절·망설임 포인트)",
+    "missed_opportunity": "영업사원이 더 파고들 수 있었던 순간",
+    "customer_quote": "고객이 한 말 중 가장 중요한 한 마디 (직접 인용)"
+  },
+  "sales_points": {
+    "core_opportunity": "다음 콜에서 뚫을 핵심 기회 1가지",
+    "selected_solutions": ["솔루션1"],
+    "why_now": "지금 연락해야 하는 이유"
+  },
+  "simple_script": {
+    "opening": "오프닝 1~2문장",
+    "key_message": "통화 중 반드시 꺼낼 핵심 메시지 1가지",
+    "objection_response": "거절 시 한 마디"
+  },
+  "next_action": {
+    "recommended_timing": "재콜 추천 타이밍",
+    "timing_reason": "이유",
+    "memo_summary": "구글시트 저장용 50자 이내 요약"
+  }
+}` : `{
+  "prompt_version": "v2.0",
+  "has_audio": false,
+  "sales_points": {
+    "situation_analysis": "DB+태그 기반 현재 상황 분석 2~3문장",
+    "core_opportunity": "다음 콜에서 뚫을 핵심 기회 1가지",
+    "selected_solutions": ["솔루션1"],
+    "why_now": "지금 연락해야 하는 이유"
+  },
+  "simple_script": {
+    "opening": "오프닝 1~2문장",
+    "key_message": "통화 중 반드시 꺼낼 핵심 메시지 1가지",
+    "objection_response": "거절 시 한 마디"
+  },
+  "next_action": {
+    "recommended_timing": "재콜 추천 타이밍",
+    "timing_reason": "이유",
+    "memo_summary": "구글시트 저장용 50자 이내 요약"
+  }
+}`}`;
+
+  // 로딩 시퀀스
+  _setLoading('📊 업체 정보 분석 중...', 20);
+  const loadingSteps = [
+    [1200, '📈 광고 현황 파악 중...', 40],
+    [2800, '🎙️ ' + (hasAudio ? '녹취 내용 분석 중...' : '영업 전략 수립 중...'), 65],
+    [4500, '🤖 맞춤형 전략 작성 중...', 85],
+  ];
+  const timers = loadingSteps.map(([ms, txt, pct]) => setTimeout(() => _setLoading(txt, pct), ms));
+
+  try {
+    const parts = [{ text: prompt }];
+    if (hasAudio && _aiAudioB64) {
+      parts.push({ inline_data: { mime_type: _aiAudioMime, data: _aiAudioB64 } });
+    }
+
+    const resp = await fetch(
+      'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + apiKey,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts }],
+          generationConfig: { maxOutputTokens: 2048, temperature: 0.6 }
+        })
+      }
+    );
+    timers.forEach(clearTimeout);
+
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+
+    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    raw = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const result = JSON.parse(raw);
+
+    const now = new Date().toLocaleString('ko-KR');
+    _aiCacheSave(_aiCompany, result, now);
+    document.getElementById('aiLoading').style.display = 'none';
+    _renderResult(result);
+    document.getElementById('aiSavedAt').textContent = '✨ 방금 분석됨 · ' + now;
+
+    // 백그라운드 시트 저장
+    callServer('serverSaveAIAnalysis', {
+      role:SESSION.role, token:SESSION.token,
+      company:_aiCompany, analysis:JSON.stringify(result)
+    }).catch(()=>{});
+
+  } catch(e) {
+    timers.forEach(clearTimeout);
+    document.getElementById('aiLoading').style.display = 'none';
+    document.getElementById('aiResult').style.display = 'block';
+    document.getElementById('aiResult').innerHTML =
+      '<div style="text-align:center;padding:30px;color:#c62828;">❌ ' + e.message +
+      '<br><small style="font-size:11px;margin-top:8px;display:block;">API 키를 확인하거나 잠시 후 다시 시도해주세요</small></div>';
+  }
+}
+
+// ── 결과 렌더링 ──────────────────────────────────────────────────
+function _renderResult(r) {
+  let html = '';
+
+  // ① 통화 브리핑 (녹취 있을 때)
+  if (r.has_audio && r.call_briefing) {
+    const b = r.call_briefing;
+    html += `<div class="ai-section ai-briefing">
+      <div class="ai-sec-title">📋 통화 브리핑</div>
+      <div style="font-size:12px;line-height:1.7;color:var(--text);">${b.summary||''}</div>
+      ${b.customer_quote ? `<div class="ai-quote">"${b.customer_quote}"</div>` : ''}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
+        <div style="background:rgba(0,0,0,.04);border-radius:8px;padding:8px;">
+          <div style="font-size:10px;font-weight:700;color:#e65100;margin-bottom:4px;">고객 반응</div>
+          <div style="font-size:11px;color:var(--text);">${b.customer_reaction||''}</div>
+        </div>
+        <div style="background:rgba(0,0,0,.04);border-radius:8px;padding:8px;">
+          <div style="font-size:10px;font-weight:700;color:#6a1b9a;margin-bottom:4px;">놓친 기회</div>
+          <div style="font-size:11px;color:var(--text);">${b.missed_opportunity||''}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ② 영업 포인트
+  const sp = r.sales_points;
+  if (sp) {
+    const sols = (sp.selected_solutions||[]).map(s => `<span class="ai-badge">${s}</span>`).join('');
+    html += `<div class="ai-section ai-points">
+      <div class="ai-sec-title">💡 영업 포인트</div>
+      ${!r.has_audio && sp.situation_analysis
+        ? `<div style="font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.6;">${sp.situation_analysis}</div>`
+        : ''}
+      <div style="font-size:12px;font-weight:600;color:#1b5e20;margin-bottom:6px;">🎯 ${sp.core_opportunity||''}</div>
+      <div style="margin-bottom:6px;">${sols}</div>
+      <div style="font-size:11px;color:var(--text-sub);">⏰ ${sp.why_now||''}</div>
+    </div>`;
+  }
+
+  // ③ 간단 스크립트
+  const sc = r.simple_script;
+  if (sc) {
+    html += `<div class="ai-section ai-script">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="ai-sec-title" style="margin-bottom:0;">💬 간단 스크립트</div>
+        <button onclick="copyScript()" style="padding:3px 10px;border-radius:6px;border:1px solid #9fa8da;background:var(--surface);color:#3949ab;cursor:pointer;font-size:10px;">📋 복사</button>
+      </div>
+      <div id="aiScriptContent">
+        <div style="background:rgba(255,255,255,.6);border-radius:8px;padding:10px;margin-bottom:6px;">
+          <div style="font-size:10px;font-weight:700;color:#1a237e;margin-bottom:4px;">오프닝</div>
+          <div style="font-size:13px;color:var(--text);line-height:1.6;">${sc.opening||''}</div>
+        </div>
+        <div style="font-size:11px;color:var(--text-sub);padding:4px 8px;">
+          💬 핵심: ${sc.key_message||''}
+        </div>
+        <div style="font-size:11px;color:#6a1b9a;padding:4px 8px;">
+          🛡️ 거절 대응: ${sc.objection_response||''}
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // ④ 다음 액션 + 재콜 예약
+  const na = r.next_action;
+  if (na) {
+    html += `<div class="ai-section ai-action">
+      <div class="ai-sec-title">📅 다음 액션</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
+        <span style="font-size:12px;font-weight:600;color:var(--text);">⏰ ${na.recommended_timing||''}</span>
+        <span style="font-size:11px;color:var(--text-sub);">· ${na.timing_reason||''}</span>
+      </div>
+      <div style="background:var(--surface);border-radius:8px;padding:10px;">
+        <div style="font-size:10px;font-weight:700;color:var(--text-sub);margin-bottom:6px;">📝 재콜 메모 저장</div>
+        <textarea id="aiMemoInput" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;resize:vertical;min-height:60px;box-sizing:border-box;">${na.memo_summary||''}</textarea>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+          <button onclick="setRecallDate(0)" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:11px;">오늘</button>
+          <button onclick="setRecallDate(1)" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:11px;">내일</button>
+          <button onclick="setRecallDate(3)" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:11px;">3일후</button>
+          <button onclick="setRecallDate(7)" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:11px;">1주일후</button>
+          <input type="date" id="aiRecallDate" style="padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:11px;">
+          <button onclick="saveRecallMemo()" style="padding:5px 14px;border-radius:6px;background:#3949ab;color:#fff;border:none;cursor:pointer;font-size:11px;font-weight:600;margin-left:auto;">💾 저장</button>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  document.getElementById('aiResult').innerHTML = html;
+  document.getElementById('aiResult').style.display = 'block';
+}
+
+// ── 유틸 함수 ────────────────────────────────────────────────────
+function copyScript() {
+  const el = document.getElementById('aiScriptContent');
+  if (!el) return;
+  navigator.clipboard.writeText(el.innerText).then(() => toast('📋 스크립트 복사됨'));
+}
+
+function setRecallDate(days) {
+  const d = new Date(); d.setDate(d.getDate()+days);
+  const s = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  document.getElementById('aiRecallDate').value = s;
+}
+
+async function saveRecallMemo() {
+  const date = document.getElementById('aiRecallDate')?.value || '';
+  const memo = document.getElementById('aiMemoInput')?.value || '';
+  if (!date) { toast('⚠️ 날짜를 선택해주세요'); return; }
+  try {
+    const res = await callServer('serverSaveRecallMemo', {
+      role:SESSION.role, token:SESSION.token,
+      company:_aiCompany, date, memo:'[AI분석] ' + memo
+    });
+    if (res.success) toast('✅ 재콜 메모 저장 완료');
+    else toast('❌ ' + res.error);
+  } catch(e) { toast('❌ 저장 실패'); }
+}
+
+function showAISettings() {
+  const box = document.getElementById('aiSettingsBox');
+  box.style.display = box.style.display==='none' ? 'block' : 'none';
+  const k = localStorage.getItem('gemini_api_key')||'';
+  if (k) document.getElementById('aiKeyInput').value = k;
+}
+
+function saveAIKey() {
+  const k = document.getElementById('aiKeyInput').value.trim();
+  if (!k) { toast('⚠️ API 키를 입력해주세요'); return; }
+  localStorage.setItem('gemini_api_key', k);
+  document.getElementById('aiSettingsBox').style.display = 'none';
+  toast('✅ API 키 저장 완료');
+}
+
+// 모달 외부 클릭 닫기
+document.getElementById('aiModal').addEventListener('click', function(e) {
+  if (e.target === this) closeAIModal();
+});
+</script>
+
+
 </body>
-</html>
