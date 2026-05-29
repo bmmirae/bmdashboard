@@ -3139,6 +3139,9 @@ function refreshAIAnalysis() {
   document.getElementById('aiResult').style.display = 'none';
   document.getElementById('aiResult').innerHTML = '';
   document.getElementById('aiSavedAt').textContent = '';
+  const nb = document.getElementById('aiNaverBadge');
+  if (nb) { nb.style.display='none'; nb.textContent=''; }
+  _loadOrCallGemini(true);
 }
 
 // ── 오디오 처리 ──────────────────────────────────────────────────
@@ -3254,17 +3257,32 @@ async function _callGemini(apiKey) {
   // 수집된 데이터 표시
   const naverBadge = document.getElementById('aiNaverBadge');
   if (naverBadge) {
-    naverBadge.style.display = naverDataStr ? 'inline-block' : 'none';
-    naverBadge.textContent = '📊 ' + naverDataStr;
+    if (naverDataStr) {
+      naverBadge.style.display = 'block';
+      naverBadge.style.background = '#e3f2fd';
+      naverBadge.style.color = '#1565c0';
+      naverBadge.textContent = '✅ 네이버 실데이터: ' + naverDataStr;
+    } else if (dlId || adCid) {
+      naverBadge.style.display = 'block';
+      naverBadge.style.background = '#fff3e0';
+      naverBadge.style.color = '#e65100';
+      naverBadge.textContent = '⚠️ 네이버 API 키 있으나 데이터 수집 실패 (F12 콘솔 확인)';
+    } else {
+      naverBadge.style.display = 'block';
+      naverBadge.style.background = '#f5f5f5';
+      naverBadge.style.color = '#757575';
+      naverBadge.textContent = 'ℹ️ 네이버 API 미설정 · Gemini 추론으로 업황 분석';
+    }
   }
-  console.log('[NaverData]', naverDataStr || '없음');
+  console.log('[NaverData]', naverDataStr || '없음', {dlId:!!dlId, adCid:!!adCid});
 
 
   const audioInstruction = hasAudio
     ? '통화 녹취 파일: (첨부된 오디오 파일 참조 - 전체 통화 내용을 듣고 브리핑 섹션을 작성해라)'
     : '통화 녹취 파일: 없음 - CRM 데이터와 선택 태그만으로 분석해라. has_audio는 false로 설정하고 call_briefing 섹션은 출력하지 마라.';
 
-  const prompt = `너는 미래아이엔씨 네이버 검색광고 영업 전문가야. 한국어로만 답해.
+  const prompt = `[분석시각: ${new Date().toLocaleString('ko-KR')}]
+너는 미래아이엔씨 네이버 검색광고 영업 전문가야. 한국어로만 답해.
 
 [업체 정보]
 업체명: ${d.company} / 업종/키워드: ${d.keyword||'미기재'}
@@ -3364,7 +3382,7 @@ ${hasAudio ? `[JSON만 출력]
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts }],
-            generationConfig: { maxOutputTokens: 8192, temperature: 0.6 }
+            generationConfig: { maxOutputTokens: 8192, temperature: 0.8 }
           })
         }
       );
