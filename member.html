@@ -417,7 +417,7 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9
 function callServer(fnName, params){
   const url = API_URL + '?action=' + encodeURIComponent(fnName)
     + '&params=' + encodeURIComponent(JSON.stringify(params || {}));
-  return fetch(url)
+  return fetch(url, { redirect: 'follow' })
     .then(function(r){ return r.json(); })
     .then(function(res){ return typeof res === 'string' ? JSON.parse(res) : res; })
     .catch(function(e){ return { success: false, error: e.message }; });
@@ -3005,7 +3005,7 @@ function openAIModal(company, keyword, contactPoint, content, url, grade, budget
   const cached = _aiCacheLoad(company);
   if (cached) {
     _renderResult(cached.result);
-    document.getElementById('aiSavedAt').textContent = '📦 캐시됨 · ' + cached.savedAt;
+    document.getElementById('aiSavedAt').textContent = '📦 저장된 분석 · ' + cached.savedAt + ' · 🔄 재분석 버튼으로 새로 분석';
   }
 }
 
@@ -3135,13 +3135,20 @@ function closeAIModal() {
 }
 
 function refreshAIAnalysis() {
+  // localStorage 초기화
   localStorage.removeItem(_aiKey(_aiCompany));
+  // 화면 초기화
   document.getElementById('aiResult').style.display = 'none';
   document.getElementById('aiResult').innerHTML = '';
-  document.getElementById('aiSavedAt').textContent = '';
+  document.getElementById('aiSavedAt').textContent = '🔄 새로 분석 중...';
   const nb = document.getElementById('aiNaverBadge');
   if (nb) { nb.style.display='none'; nb.textContent=''; }
-  _loadOrCallGemini(true);
+  // 서버 캐시도 삭제 후 Gemini 호출
+  callServer('serverSaveAIAnalysis', {
+    role:SESSION.role, token:SESSION.token,
+    company:_aiCompany, analysis:'{}'
+  }).catch(function(){});
+  _callGemini(localStorage.getItem('gemini_api_key')||'');
 }
 
 // ── 오디오 처리 ──────────────────────────────────────────────────
