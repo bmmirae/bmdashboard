@@ -3214,6 +3214,43 @@ async function _callGemini(apiKey) {
   const tags = _getSelectedTags();
   const hasAudio = !!_aiAudioB64;
 
+  // ── 네이버 API 데이터 수집 (키 있을 때만) ────────────────
+  let naverDataStr = '';
+  const dlId     = localStorage.getItem('datalabs_client_id')     || '';
+  const dlSecret = localStorage.getItem('datalabs_client_secret') || '';
+  const adCid    = localStorage.getItem('searchad_customer_id')   || '';
+  const adAk     = localStorage.getItem('searchad_access_key')    || '';
+  const adSk     = localStorage.getItem('searchad_secret_key')    || '';
+  const keyword  = (d.keyword||'').split('(')[0].trim();
+
+  if (keyword && (dlId || adCid)) {
+    _setLoading('📊 네이버 시장 데이터 수집 중...', 15);
+    try {
+      const nr = await callServer('serverGetNaverData', {
+        role:SESSION.role, token:SESSION.token,
+        keyword, dlId, dlSecret,
+        adCustomer:adCid, adAccess:adAk, adSecret:adSk
+      });
+      if (nr.success && nr.data) {
+        const nd = nr.data;
+        const parts = [];
+        if (nd.datalab) {
+          parts.push('검색트렌드: ' + nd.datalab.trend +
+            (nd.datalab.change_pct ? ' (' + (nd.datalab.change_pct>0?'+':'') + nd.datalab.change_pct + '%)' : ''));
+        }
+        if (nd.searchad) {
+          const sa = nd.searchad;
+          const total = (sa.monthly_pc||0) + (sa.monthly_mobile||0);
+          parts.push('월검색량: PC ' + (sa.monthly_pc||0).toLocaleString() +
+            '건 / 모바일 ' + (sa.monthly_mobile||0).toLocaleString() + '건 (합계 ' + total.toLocaleString() + '건)');
+          if (sa.competition) parts.push('경쟁강도: ' + sa.competition);
+        }
+        if (parts.length) naverDataStr = parts.join(' / ');
+      }
+    } catch(e) { console.log('Naver API 오류:', e.message); }
+  }
+
+
   const audioInstruction = hasAudio
     ? '통화 녹취 파일: (첨부된 오디오 파일 참조 - 전체 통화 내용을 듣고 브리핑 섹션을 작성해라)'
     : '통화 녹취 파일: 없음 - CRM 데이터와 선택 태그만으로 분석해라. has_audio는 false로 설정하고 call_briefing 섹션은 출력하지 마라.';
@@ -3229,6 +3266,9 @@ URL: ${d.url||'없음'} / 예산: ${d.budget>0?Math.round(d.budget/10000)+'만�
 통화이력/메모: ${d.content||'없음'}
 선택태그: ${tags}
 ${hasAudio ? '녹취: 첨부 오디오 참조' : '녹취: 없음'}
+
+[실시간 네이버 시장 데이터]
+${naverDataStr ? naverDataStr : '데이터 없음 (API 키 미설정 시 Gemini 추론 활용)'}
 
 [업황 분석 지시]
 위 URL(${d.url||'없음'})과 업종/키워드(${d.keyword||'미기재'})를 바탕으로
@@ -3287,9 +3327,9 @@ ${hasAudio ? `[JSON만 출력]
   // 로딩 시퀀스
   _setLoading('📊 업체 정보 분석 중...', 20);
   const loadingSteps = [
-    [1200, '📈 광고 현황 파악 중...', 40],
-    [2800, '🎙️ ' + (hasAudio ? '녹취 내용 분석 중...' : '영업 전략 수립 중...'), 65],
-    [4500, '🤖 맞춤형 전략 작성 중...', 85],
+    [1200, '📈 광고 현황 파악 중...', 35],
+    [2500, naverDataStr ? '✅ 시장 데이터 확보 · AI 분석 중...' : (hasAudio ? '🎙️ 녹취 내용 분석 중...' : '🤖 영업 전략 수립 중...'), 60],
+    [4000, '✍️ 맞춤형 전략 작성 중...', 85],
   ];
   const timers = loadingSteps.map(([ms, txt, pct]) => setTimeout(() => _setLoading(txt, pct), ms));
 
