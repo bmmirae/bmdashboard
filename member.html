@@ -3193,86 +3193,69 @@ async function _callGemini(apiKey) {
     ? '통화 녹취 파일: (첨부된 오디오 파일 참조 - 전체 통화 내용을 듣고 브리핑 섹션을 작성해라)'
     : '통화 녹취 파일: 없음 - CRM 데이터와 선택 태그만으로 분석해라. has_audio는 false로 설정하고 call_briefing 섹션은 출력하지 마라.';
 
-  const prompt = `# AI 영업 분석 마스터 프롬프트 v2.0
-# 미래아이엔씨 네이버 검색광고 영업 특화
+  const prompt = `너는 미래아이엔씨 네이버 검색광고 영업 전문가야. 한국어로만 답해.
 
-# Role & Objective
-너는 미래아이엔씨 소속 10년 차 네이버 검색광고(SA) 및 GFA 전문 영업 총괄 본부장이다.
-반드시 한국어로만 답변해라.
-네 역할은: 통화 녹취가 있다면 영업사원이 다음 콜 전 3분 안에 상황을 완벽히 파악하도록 브리핑해줘라.
-스크립트는 보조 수단이다. 상황 파악과 전략이 먼저다.
+[업체 정보]
+업체명: ${d.company} / 업종: ${d.keyword||'미기재'}
+URL: ${d.url||'없음'} / 예산: ${d.budget>0?Math.round(d.budget/10000)+'만원':'미기재'}
+광고현황: ${d.contactPoint||'미기재'} / 메모: ${d.content||'없음'}
+가망도: ${d.grade||'미기재'} / 선택태그: ${tags}
+${hasAudio ? '녹취: 첨부 오디오 파일 참조' : '녹취: 없음'}
 
-# 1. Input Data
-- 업체명/업종: ${d.company} / ${d.keyword||'미기재'}
-- 웹사이트 URL: ${d.url||'없음'}
-- 광고 현황/컨택포인트: ${d.contactPoint||'미기재'}
-- 통화메모: ${d.content||'없음'}
-- 예산: ${d.budget>0?Math.round(d.budget/10000)+'만원':'미기재'}
-- 현재 가망도: ${d.grade||'미기재'}
-- 선택 태그: ${tags}
-- ${audioInstruction}
+[미래아이엔씨 솔루션]
+SA검색광고, GFA디스플레이, 무효클릭방지, 쇼핑검색광고, 로그분석기, 미래톡
+※ 1~2개만 선택. 나열 금지.
 
-# 2. 미래아이엔씨 솔루션
-- 네이버 검색광고(SA), GFA(디스플레이), 무효클릭방지시스템, 로그분석기, 미래톡(채팅봇), 쇼핑검색광고
-- Sniper Rule: 1~2개만 선택해라. 나열 금지.
+[URL 규칙]
+smartstore/brand 포함 → 쇼핑몰 (랜딩페이지 소스 수정 제안 금지)
+그외 → 자사몰
 
-# 3. URL 플랫폼 판별
-- smartstore/brand/shopping.naver 포함 → 스마트스토어 (랜딩페이지 소스코드 수정 제안 금지)
-- 그 외 → 자사몰
+[업종별 금지어]
+이커머스: "문의량 늘려드릴게요" 금지
+서비스/B2B: "결제율 보장" 금지
 
-# 4. 업종별 화법
-- 이커머스: ROAS, 장바구니이탈, 객단가 / "문의량 늘려드릴게요" 금지
-- 서비스/B2B: 진성고객, CPA, 무효클릭방어 / "결제율 보장" 금지
-
-# 5. 절대 금지
-- 스크립트 3줄 이상
-- 모든 솔루션 나열
-- 영어 답변
-- JSON 외 다른 텍스트 출력
-
-# 6. Output (반드시 아래 JSON만 출력, 다른 텍스트 없이)
-${hasAudio ? `{
-  "prompt_version": "v2.0",
-  "has_audio": true,
-  "call_briefing": {
-    "summary": "통화 전체 흐름 요약 3~5문장 (객관적 사실만)",
-    "customer_reaction": "고객 반응/감정 (관심·거절·망설임 포인트)",
-    "missed_opportunity": "영업사원이 더 파고들 수 있었던 순간",
-    "customer_quote": "고객이 한 말 중 가장 중요한 한 마디 (직접 인용)"
+${hasAudio ? `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
+{
+  "prompt_version":"v2.1","has_audio":true,
+  "call_briefing":{
+    "summary":"통화 흐름 3~5문장 요약",
+    "customer_reaction":"고객 반응/감정",
+    "missed_opportunity":"더 파고들 수 있었던 포인트",
+    "customer_quote":"고객 핵심 발언 직접인용"
   },
-  "sales_points": {
-    "core_opportunity": "다음 콜에서 뚫을 핵심 기회 1가지",
-    "selected_solutions": ["솔루션1"],
-    "why_now": "지금 연락해야 하는 이유"
+  "sales_points":{
+    "core_opportunity":"다음콜 핵심 기회 1가지",
+    "selected_solutions":["솔루션1"],
+    "why_now":"지금 연락해야 하는 이유"
   },
-  "simple_script": {
-    "opening": "오프닝 1~2문장",
-    "key_message": "통화 중 반드시 꺼낼 핵심 메시지 1가지",
-    "objection_response": "거절 시 한 마디"
+  "simple_script":{
+    "opening":"오프닝 1~2문장",
+    "key_message":"핵심 메시지 1가지",
+    "objection_response":"거절 시 한마디"
   },
-  "next_action": {
-    "recommended_timing": "재콜 추천 타이밍",
-    "timing_reason": "이유",
-    "memo_summary": "구글시트 저장용 50자 이내 요약"
+  "next_action":{
+    "recommended_timing":"재콜 추천 타이밍",
+    "timing_reason":"이유",
+    "memo_summary":"50자 이내 요약"
   }
-}` : `{
-  "prompt_version": "v2.0",
-  "has_audio": false,
-  "sales_points": {
-    "situation_analysis": "DB+태그 기반 현재 상황 분석 2~3문장",
-    "core_opportunity": "다음 콜에서 뚫을 핵심 기회 1가지",
-    "selected_solutions": ["솔루션1"],
-    "why_now": "지금 연락해야 하는 이유"
+}` : `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
+{
+  "prompt_version":"v2.1","has_audio":false,
+  "sales_points":{
+    "situation_analysis":"DB+태그 기반 상황 분석 2~3문장",
+    "core_opportunity":"다음콜 핵심 기회 1가지",
+    "selected_solutions":["솔루션1"],
+    "why_now":"지금 연락해야 하는 이유"
   },
-  "simple_script": {
-    "opening": "오프닝 1~2문장",
-    "key_message": "통화 중 반드시 꺼낼 핵심 메시지 1가지",
-    "objection_response": "거절 시 한 마디"
+  "simple_script":{
+    "opening":"오프닝 1~2문장",
+    "key_message":"핵심 메시지 1가지",
+    "objection_response":"거절 시 한마디"
   },
-  "next_action": {
-    "recommended_timing": "재콜 추천 타이밍",
-    "timing_reason": "이유",
-    "memo_summary": "구글시트 저장용 50자 이내 요약"
+  "next_action":{
+    "recommended_timing":"재콜 추천 타이밍",
+    "timing_reason":"이유",
+    "memo_summary":"50자 이내 요약"
   }
 }`}`;
 
