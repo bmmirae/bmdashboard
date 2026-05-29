@@ -3307,8 +3307,25 @@ ${hasAudio ? `{
     if (data.error) throw new Error(data.error.message);
 
     let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    raw = raw.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-    const result = JSON.parse(raw);
+    // JSON 블록 추출 (마크다운 코드블록 제거)
+    raw = raw.replace(/```json[\s\S]*?```/g, function(m){ return m.replace(/```json\s*/,'').replace(/\s*```$/,''); });
+    raw = raw.replace(/```[\s\S]*?```/g, function(m){ return m.replace(/```\s*/,'').replace(/\s*```$/,''); });
+    // { } 사이 JSON만 추출
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd   = raw.lastIndexOf('}');
+    if (jsonStart === -1 || jsonEnd === -1) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다');
+    raw = raw.slice(jsonStart, jsonEnd + 1);
+    let result;
+    try {
+      result = JSON.parse(raw);
+    } catch(parseErr) {
+      // 줄바꿈/탭 등 제어문자 정리 후 재시도
+      const cleaned = raw.replace(/[\x00-\x1F\x7F]/g, function(c){
+        if (c==='\n'||c==='\r'||c==='\t') return c;
+        return ' ';
+      });
+      result = JSON.parse(cleaned);
+    }
 
     const now = new Date().toLocaleString('ko-KR');
     _aiCacheSave(_aiCompany, result, now);
