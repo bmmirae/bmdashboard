@@ -3281,8 +3281,7 @@ async function _callGemini(apiKey) {
     ? '통화 녹취 파일: (첨부된 오디오 파일 참조 - 전체 통화 내용을 듣고 브리핑 섹션을 작성해라)'
     : '통화 녹취 파일: 없음 - CRM 데이터와 선택 태그만으로 분석해라. has_audio는 false로 설정하고 call_briefing 섹션은 출력하지 마라.';
 
-  const prompt = `[분석시각: ${new Date().toLocaleString('ko-KR')}]
-너는 미래아이엔씨 네이버 검색광고 영업 전문가야. 한국어로만 답해.
+  const prompt = `너는 미래아이엔씨 네이버 검색광고 영업 전문가야. 한국어로만 답해.
 
 [업체 정보]
 업체명: ${d.company} / 업종/키워드: ${d.keyword||'미기재'}
@@ -3382,7 +3381,7 @@ ${hasAudio ? `[JSON만 출력]
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts }],
-            generationConfig: { maxOutputTokens: 8192, temperature: 0.8 }
+            generationConfig: { maxOutputTokens: 8192, temperature: 0.5 }
           })
         }
       );
@@ -3416,9 +3415,19 @@ ${hasAudio ? `[JSON만 출력]
     try {
       result = JSON.parse(raw);
     } catch(parseErr) {
-      // 제어문자 제거 후 재시도
-      const cleaned = raw.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,' ');
-      result = JSON.parse(cleaned);
+      // JSON 수리 시도
+      let fixed = raw
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,' ') // 제어문자
+        .replace(/,\s*}/g, '}')   // trailing comma
+        .replace(/,\s*]/g, ']');  // trailing comma in array
+      try {
+        result = JSON.parse(fixed);
+      } catch(e2) {
+        // 문자열 내 줄바꿈 제거
+        fixed = fixed.replace(/:\s*"((?:[^"\\]|\\.)*)"\s*([,}\]])/g,
+          function(m,v,end){ return ': "'+v.replace(/\n/g,' ').replace(/\r/g,'')+'"'+end; });
+        result = JSON.parse(fixed);
+      }
     }
 
     const now = new Date().toLocaleString('ko-KR');
