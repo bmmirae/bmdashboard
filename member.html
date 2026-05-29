@@ -3290,7 +3290,7 @@ ${hasAudio ? `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts }],
-            generationConfig: { maxOutputTokens: 2048, temperature: 0.6 }
+            generationConfig: { maxOutputTokens: 8192, temperature: 0.6 }
           })
         }
       );
@@ -3307,7 +3307,6 @@ ${hasAudio ? `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
     if (data2.error) throw new Error(data2.error.message);
     data = data2;
     let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    console.log('[AI RAW]', raw.slice(0,300)); // 디버그
     // 응답이 비어있으면 candidates 전체 확인
     if (!raw && data.candidates?.[0]?.content?.parts) {
       raw = data.candidates[0].content.parts.map(function(p){ return p.text||''; }).join('');
@@ -3318,7 +3317,6 @@ ${hasAudio ? `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
     const jsonStart = raw.indexOf('{');
     const jsonEnd   = raw.lastIndexOf('}');
     if (jsonStart === -1 || jsonEnd === -1) {
-      console.error('[AI RAW FULL]', raw);
       throw new Error('AI 응답에서 JSON을 찾을 수 없습니다. 잠시 후 재시도해주세요.');
     }
     raw = raw.slice(jsonStart, jsonEnd + 1);
@@ -3326,7 +3324,6 @@ ${hasAudio ? `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
     try {
       result = JSON.parse(raw);
     } catch(parseErr) {
-      console.error('[PARSE ERR]', parseErr.message, raw.slice(0,200));
       // 제어문자 제거 후 재시도
       const cleaned = raw.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,' ');
       result = JSON.parse(cleaned);
