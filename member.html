@@ -2820,7 +2820,7 @@ function _promoLoad(promo){
       <span style="font-size:22px;">🤖</span>
       <div style="flex:1;">
         <div id="aiModalTitle" style="font-size:15px;font-weight:700;color:#fff;"></div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);">AI 영업 분석 · Gemini 2.0 Flash · 미래아이엔씨 특화</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);">AI 영업 분석 · Gemini 2.5 Flash · 미래아이엔씨 특화</div>
       </div>
       <div style="display:flex;gap:6px;">
         <button onclick="refreshAIAnalysis()" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:11px;">🔄 재분석</button>
@@ -3226,6 +3226,11 @@ ${hasAudio ? `[JSON만 출력]
   },
   "impact":"기대효과 1문장 (**핵심어 볼드**)",
   "key_question":"다음 통화에서 꼭 물어볼 질문 1개",
+  "question_guide":[
+    {"answer":"예상 답변 유형1","response":"이 답변이 나왔을 때 영업 대응 1문장"},
+    {"answer":"예상 답변 유형2","response":"이 답변이 나왔을 때 영업 대응 1문장"},
+    {"answer":"모르겠다/무관심","response":"이런 반응일 때 대응 1문장"}
+  ],
   "next":{
     "timing":"재콜타이밍+이유 1문장",
     "memo":"30자이내 요약"
@@ -3243,6 +3248,11 @@ ${hasAudio ? `[JSON만 출력]
   },
   "impact":"기대효과 1문장 (**핵심어 볼드**)",
   "key_question":"다음 통화에서 꼭 물어볼 질문 1개",
+  "question_guide":[
+    {"answer":"예상 답변 유형1","response":"이 답변이 나왔을 때 영업 대응 1문장"},
+    {"answer":"예상 답변 유형2","response":"이 답변이 나왔을 때 영업 대응 1문장"},
+    {"answer":"모르겠다/무관심","response":"이런 반응일 때 대응 1문장"}
+  ],
   "next":{
     "timing":"재콜타이밍+이유 1문장",
     "memo":"30자이내 요약"
@@ -3418,15 +3428,32 @@ function _renderResult(r) {
     </div>`;
   }
 
-  // ⑤ 꼭 물어볼 질문
+  // ⑤ 꼭 물어볼 질문 + 답변 가이드
   if (r.key_question) {
+    const guides = r.question_guide || [];
+    const guideHtml = guides.length ? `
+      <div style="margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;">
+        <div style="font-size:11px;font-weight:700;color:#3949ab;margin-bottom:8px;">📌 답변별 대응 가이드</div>
+        ${guides.map(g => `
+          <div style="display:flex;gap:0;margin-bottom:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
+            <div style="background:#e8eaf6;color:#1a237e;font-size:11px;font-weight:700;padding:8px 10px;min-width:90px;display:flex;align-items:center;flex-shrink:0;">
+              💬 ${bold(g.answer||'')}
+            </div>
+            <div style="background:var(--surface);font-size:11px;line-height:1.6;padding:8px 10px;color:var(--text);">
+              → ${bold(g.response||'')}
+            </div>
+          </div>`).join('')}
+      </div>` : '';
     html += `<div class="ai-section ai-script">
-      <div class="ai-sec-title">❓ 다음 통화 핵심 질문</div>
-      <div id="aiScriptContent" style="background:rgba(255,255,255,.7);border-radius:8px;padding:12px;font-size:13px;line-height:1.7;font-style:italic;">
-        "${bold(r.key_question)}"
-      </div>
-      <div style="text-align:right;margin-top:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="ai-sec-title" style="margin-bottom:0;">❓ 다음 통화 핵심 질문</div>
         <button onclick="copyScript()" style="padding:3px 10px;border-radius:6px;border:1px solid #9fa8da;background:var(--surface);color:#3949ab;cursor:pointer;font-size:10px;">📋 복사</button>
+      </div>
+      <div id="aiScriptContent">
+        <div style="background:rgba(255,255,255,.7);border-radius:8px;padding:12px;font-size:13px;line-height:1.7;font-style:italic;">
+          "${bold(r.key_question)}"
+        </div>
+        ${guideHtml}
       </div>
     </div>`;
   }
