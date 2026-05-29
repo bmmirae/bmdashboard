@@ -3244,28 +3244,57 @@ async function _callGemini(apiKey) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyword, dlId, dlSecret,
-          adCustomer:adCid, adAccess:adAk, adSecret:adSk })
+          adCustomer:adCid, adAccess:adAk, adSecret:adSk,
+          siteUrl: d.url||'' })
       }).then(function(r){ return r.json(); });
       // 8초 타임아웃
       const timeoutPromise = new Promise(function(_, rej){
         setTimeout(function(){ rej(new Error('timeout')); }, 8000);
       });
       const nr = await Promise.race([naverPromise, timeoutPromise]);
+      console.log('[NaverWorker 응답]', JSON.stringify(nr));
       if (nr && nr.success && nr.data) {
         const nd = nr.data;
         const parts = [];
+        // 데이터랩: 월별 수치 포함
         if (nd.datalab) {
-          parts.push('검색트렌드: ' + nd.datalab.trend +
-            (nd.datalab.change_pct ? ' (' + (nd.datalab.change_pct>0?'+':'') + nd.datalab.change_pct + '%)' : ''));
+          const dl = nd.datalab;
+          let dlStr = '검색트렌드: ' + dl.trend;
+          if (dl.change_pct) dlStr += ' (' + (dl.change_pct>0?'+':'') + dl.change_pct + '%)';
+          if (dl.periods && dl.periods.length) {
+            const nums = dl.periods.map(function(p){
+              return p.period.slice(0,7) + '(' + p.ratio + ')';
+            });
+            dlStr += ' / 월별지수: ' + nums.join('→');
+          }
+          parts.push(dlStr);
         }
+        // 검색광고: 월검색량 + 경쟁강도 + CPC
         if (nd.searchad) {
           const sa = nd.searchad;
-          const total = (sa.monthly_pc||0) + (sa.monthly_mobile||0);
-          parts.push('월검색량: PC ' + (sa.monthly_pc||0).toLocaleString() +
-            '건 / 모바일 ' + (sa.monthly_mobile||0).toLocaleString() + '건');
-          if (sa.competition) parts.push('경쟁강도: ' + sa.competition);
+          const total = (Number(sa.monthly_pc)||0) + (Number(sa.monthly_mobile)||0);
+          let saStr = '월검색량: PC ' + (Number(sa.monthly_pc)||0).toLocaleString() +
+            '건+모바일 ' + (Number(sa.monthly_mobile)||0).toLocaleString() + '건(합계' + total.toLocaleString() + '건)';
+          if (sa.competition) saStr += ' / 경쟁강도:' + sa.competition;
+          if (sa.avg_cpc > 0) saStr += ' / 평균CPC:' + Number(sa.avg_cpc).toLocaleString() + '원';
+          parts.push(saStr);
+        } else {
+          console.log('[SearchAd] 데이터 없음, Worker 응답:', JSON.stringify(nd));
         }
-        if (parts.length) naverDataStr = parts.join(' / ');
+        // SEO 분석 데이터 추가
+        if (nd.seo && !nd.seo.error) {
+          const seo = nd.seo;
+          let seoStr = 'URL분석(' + seo.platform + ') SEO점수:' + seo.seo_score + '/100';
+          seoStr += ' / 로딩:' + seo.load_ms + 'ms';
+          if (seo.title) seoStr += ' / title:' + seo.title.slice(0,30);
+          if (seo.issues && seo.issues.length) seoStr += ' / 문제:' + seo.issues.slice(0,2).join(', ');
+          if (seo.goods  && seo.goods.length)  seoStr += ' / 강점:' + seo.goods.slice(0,2).join(', ');
+          parts.push(seoStr);
+          // SEO 데이터 저장 (렌더링용)
+          window._lastSeoData = seo;
+        }
+        if (parts.length) naverDataStr = parts.join(' | ');
+        console.log('[NaverData 최종]', naverDataStr);
       }
     } catch(e) {
       console.log('[NaverAPI] 건너뜀:', e.message);
@@ -3509,6 +3538,38 @@ function _renderResult(r) {
     html += `<div class="ai-section" style="background:#e3f2fd;border:1px solid #90caf9;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
       <div class="ai-sec-title" style="color:#0d47a1;">📊 업황 분석</div>
       <div style="font-size:12px;line-height:1.7;">${bold(r.industry_brief)}</div>
+    </div>`;
+  }
+
+  // ① SEO 분석 (URL 있을 때)
+  const seo = window._lastSeoData;
+  if (seo && !seo.error) {
+    const scoreColor = seo.seo_score >= 70 ? '#2e7d32' : seo.seo_score >= 40 ? '#e65100' : '#c62828';
+    const issueHtml  = (seo.issues||[]).map(i =>
+      `<div style='display:flex;gap:6px;margin-bottom:4px;'><span style='color:#c62828;flex-shrink:0;'>⚠</span><span style='font-size:11px;'>${i}</span></div>`
+    ).join('');
+    const goodHtml   = (seo.goods||[]).map(g =>
+      `<div style='display:flex;gap:6px;margin-bottom:4px;'><span style='color:#2e7d32;flex-shrink:0;'>✓</span><span style='font-size:11px;'>${g}</span></div>`
+    ).join('');
+    html += `<div class="ai-section" style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div class="ai-sec-title" style="color:#6a1b9a;margin-bottom:0;">🔎 홈페이지 SEO 분석</div>
+        <div style="font-size:18px;font-weight:700;color:${scoreColor};">${seo.seo_score}<span style='font-size:11px;'>/100</span></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-sub);margin-bottom:8px;">
+        ${seo.platform} · 로딩속도 ${seo.load_ms}ms · 이미지alt ${seo.img_alt_rate}%
+        ${seo.title ? '· "'+seo.title.slice(0,25)+'"' : ''}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:rgba(0,0,0,.04);border-radius:8px;padding:8px;">
+          <div style="font-size:10px;font-weight:700;color:#c62828;margin-bottom:4px;">⚠ 개선 필요</div>
+          ${issueHtml || '<div style="font-size:11px;color:var(--text-muted);">문제 없음</div>'}
+        </div>
+        <div style="background:rgba(0,0,0,.04);border-radius:8px;padding:8px;">
+          <div style="font-size:10px;font-weight:700;color:#2e7d32;margin-bottom:4px;">✓ 강점</div>
+          ${goodHtml || '<div style="font-size:11px;color:var(--text-muted);">-</div>'}
+        </div>
+      </div>
     </div>`;
   }
 
