@@ -2940,7 +2940,8 @@ function _promoLoad(promo){
 
 <script>
 // ── AI 분석 전역 상태 ────────────────────────────────────────────
-const GEMINI_MODEL  = 'gemini-2.5-flash'; // stable // deploy_20260528_2349
+const GEMINI_MODEL  = 'gemini-2.5-flash';
+const GEMINI_FALLBACK = 'gemini-2.5-flash-lite'; // 과부하 시 폴백 // stable // deploy_20260528_2349
 const AI_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000;
 let _aiCompany      = '';
 let _aiData         = {};
@@ -3290,22 +3291,38 @@ ${hasAudio ? `{
       parts.push({ inline_data: { mime_type: _aiAudioMime, data: _aiAudioB64 } });
     }
 
-    const resp = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL + ':generateContent?key=' + apiKey,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts }],
-          generationConfig: { maxOutputTokens: 2048, temperature: 0.6, response_mime_type: 'application/json' }
-        })
+    // 재시도 로직 (과부하 시 폴백 모델 사용)
+    const modelsToTry = [GEMINI_MODEL, GEMINI_FALLBACK];
+    let data = null;
+    for (let attempt = 0; attempt < modelsToTry.length; attempt++) {
+      const tryModel = modelsToTry[attempt];
+      if (attempt > 0) {
+        _setLoading('🔄 ' + tryModel + ' 로 재시도 중...', 50);
+        await new Promise(r => setTimeout(r, 3000));
       }
-    );
+      const resp = await fetch(
+        'https://generativelanguage.googleapis.com/v1beta/models/' + tryModel + ':generateContent?key=' + apiKey,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts }],
+            generationConfig: { maxOutputTokens: 2048, temperature: 0.6, response_mime_type: 'application/json' }
+          })
+        }
+      );
+      data = await resp.json();
+      // 과부하 에러면 다음 모델 시도
+      if (data.error && data.error.message && data.error.message.includes('high demand')) {
+        if (attempt < modelsToTry.length - 1) continue;
+      }
+      break;
+    }
     timers.forEach(clearTimeout);
 
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error.message);
-
+    const data2 = data; // alias
+    if (data2.error) throw new Error(data2.error.message);
+    data = data2;
     let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     // JSON 블록 추출 (마크다운 코드블록 제거)
     raw = raw.replace(/```json[\s\S]*?```/g, function(m){ return m.replace(/```json\s*/,'').replace(/\s*```$/,''); });
