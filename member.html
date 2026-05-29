@@ -3290,7 +3290,7 @@ ${hasAudio ? `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             contents: [{ parts }],
-            generationConfig: { maxOutputTokens: 2048, temperature: 0.6, response_mime_type: 'application/json' }
+            generationConfig: { maxOutputTokens: 2048, temperature: 0.6 }
           })
         }
       );
@@ -3307,23 +3307,28 @@ ${hasAudio ? `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
     if (data2.error) throw new Error(data2.error.message);
     data = data2;
     let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    // JSON 블록 추출 (마크다운 코드블록 제거)
-    raw = raw.replace(/```json[\s\S]*?```/g, function(m){ return m.replace(/```json\s*/,'').replace(/\s*```$/,''); });
-    raw = raw.replace(/```[\s\S]*?```/g, function(m){ return m.replace(/```\s*/,'').replace(/\s*```$/,''); });
-    // { } 사이 JSON만 추출
+    console.log('[AI RAW]', raw.slice(0,300)); // 디버그
+    // 응답이 비어있으면 candidates 전체 확인
+    if (!raw && data.candidates?.[0]?.content?.parts) {
+      raw = data.candidates[0].content.parts.map(function(p){ return p.text||''; }).join('');
+    }
+    // 마크다운 코드블록 제거
+    raw = raw.replace(/```json\s*/gi,'').replace(/```\s*/g,'').trim();
+    // { } 사이 JSON 추출
     const jsonStart = raw.indexOf('{');
     const jsonEnd   = raw.lastIndexOf('}');
-    if (jsonStart === -1 || jsonEnd === -1) throw new Error('AI 응답에서 JSON을 찾을 수 없습니다');
+    if (jsonStart === -1 || jsonEnd === -1) {
+      console.error('[AI RAW FULL]', raw);
+      throw new Error('AI 응답에서 JSON을 찾을 수 없습니다. 잠시 후 재시도해주세요.');
+    }
     raw = raw.slice(jsonStart, jsonEnd + 1);
     let result;
     try {
       result = JSON.parse(raw);
     } catch(parseErr) {
-      // 줄바꿈/탭 등 제어문자 정리 후 재시도
-      const cleaned = raw.replace(/[\x00-\x1F\x7F]/g, function(c){
-        if (c==='\n'||c==='\r'||c==='\t') return c;
-        return ' ';
-      });
+      console.error('[PARSE ERR]', parseErr.message, raw.slice(0,200));
+      // 제어문자 제거 후 재시도
+      const cleaned = raw.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g,' ');
       result = JSON.parse(cleaned);
     }
 
