@@ -3199,63 +3199,44 @@ async function _callGemini(apiKey) {
 업체명: ${d.company} / 업종: ${d.keyword||'미기재'}
 URL: ${d.url||'없음'} / 예산: ${d.budget>0?Math.round(d.budget/10000)+'만원':'미기재'}
 광고현황: ${d.contactPoint||'미기재'} / 메모: ${d.content||'없음'}
-가망도: ${d.grade||'미기재'} / 선택태그: ${tags}
-${hasAudio ? '녹취: 첨부 오디오 파일 참조' : '녹취: 없음'}
+가망도: ${d.grade||'미기재'} / 태그: ${tags}
+${hasAudio ? '녹취: 첨부 오디오 참조' : '녹취: 없음'}
 
-[미래아이엔씨 솔루션]
-SA검색광고, GFA디스플레이, 무효클릭방지, 쇼핑검색광고, 로그분석기, 미래톡
-※ 1~2개만 선택. 나열 금지.
+[솔루션] SA검색광고, GFA, 무효클릭방지, 쇼핑검색, 로그분석기, 미래톡 (1~2개만 선택)
+[URL규칙] smartstore/brand → 쇼핑몰(랜딩페이지 소스수정 제안금지) / 그외 → 자사몰
+[금지어] 이커머스:"문의량 늘려드릴게요" / 서비스:"결제율 보장"
 
-[URL 규칙]
-smartstore/brand 포함 → 쇼핑몰 (랜딩페이지 소스 수정 제안 금지)
-그외 → 자사몰
-
-[업종별 금지어]
-이커머스: "문의량 늘려드릴게요" 금지
-서비스/B2B: "결제율 보장" 금지
-
-${hasAudio ? `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
+${hasAudio ? `[JSON만 출력, 다른 텍스트 없이]
 {
-  "prompt_version":"v2.1","has_audio":true,
-  "call_briefing":{
-    "summary":"통화 흐름 3~5문장 요약",
-    "customer_reaction":"고객 반응/감정",
-    "missed_opportunity":"더 파고들 수 있었던 포인트",
-    "customer_quote":"고객 핵심 발언 직접인용"
+  "briefing":{
+    "summary":"통화흐름 2문장",
+    "customer_reaction":"고객반응 1문장",
+    "missed_opportunity":"놓친기회 1문장",
+    "customer_quote":"고객핵심발언 직접인용"
   },
-  "sales_points":{
-    "core_opportunity":"다음콜 핵심 기회 1가지",
-    "selected_solutions":["솔루션1"],
-    "why_now":"지금 연락해야 하는 이유"
-  },
-  "simple_script":{
+  "strategy":{
+    "analysis":"상황분석 2문장",
+    "opportunity":"핵심기회 1문장",
+    "solutions":["솔루션1"],
     "opening":"오프닝 1~2문장",
-    "key_message":"핵심 메시지 1가지",
-    "objection_response":"거절 시 한마디"
+    "objection":"거절대응 1문장"
   },
-  "next_action":{
-    "recommended_timing":"재콜 추천 타이밍",
-    "timing_reason":"이유",
-    "memo_summary":"50자 이내 요약"
+  "next":{
+    "timing":"재콜타이밍+이유 1문장",
+    "memo":"30자이내 요약"
   }
-}` : `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
+}` : `[JSON만 출력, 다른 텍스트 없이]
 {
-  "prompt_version":"v2.1","has_audio":false,
-  "sales_points":{
-    "situation_analysis":"DB+태그 기반 상황 분석 2~3문장",
-    "core_opportunity":"다음콜 핵심 기회 1가지",
-    "selected_solutions":["솔루션1"],
-    "why_now":"지금 연락해야 하는 이유"
-  },
-  "simple_script":{
+  "strategy":{
+    "analysis":"상황분석 2문장",
+    "opportunity":"핵심기회 1문장",
+    "solutions":["솔루션1"],
     "opening":"오프닝 1~2문장",
-    "key_message":"핵심 메시지 1가지",
-    "objection_response":"거절 시 한마디"
+    "objection":"거절대응 1문장"
   },
-  "next_action":{
-    "recommended_timing":"재콜 추천 타이밍",
-    "timing_reason":"이유",
-    "memo_summary":"50자 이내 요약"
+  "next":{
+    "timing":"재콜타이밍+이유 1문장",
+    "memo":"30자이내 요약"
   }
 }`}`;
 
@@ -3354,77 +3335,72 @@ ${hasAudio ? `[출력 - 반드시 아래 JSON만, 다른 텍스트 없이]
 // ── 결과 렌더링 ──────────────────────────────────────────────────
 function _renderResult(r) {
   let html = '';
+  const b  = r.briefing  || r.call_briefing || null;
+  const sp = r.strategy  || r.sales_points  || {};
+  const na = r.next      || r.next_action   || {};
 
   // ① 통화 브리핑 (녹취 있을 때)
-  if (r.has_audio && r.call_briefing) {
-    const b = r.call_briefing;
+  if (b) {
     html += `<div class="ai-section ai-briefing">
       <div class="ai-sec-title">📋 통화 브리핑</div>
       <div style="font-size:12px;line-height:1.7;color:var(--text);">${b.summary||''}</div>
-      ${b.customer_quote ? `<div class="ai-quote">"${b.customer_quote}"</div>` : ''}
+      ${b.customer_quote?`<div class="ai-quote">"${b.customer_quote}"</div>`:''}
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;">
         <div style="background:rgba(0,0,0,.04);border-radius:8px;padding:8px;">
-          <div style="font-size:10px;font-weight:700;color:#e65100;margin-bottom:4px;">고객 반응</div>
-          <div style="font-size:11px;color:var(--text);">${b.customer_reaction||''}</div>
+          <div style="font-size:10px;font-weight:700;color:#e65100;margin-bottom:3px;">고객 반응</div>
+          <div style="font-size:11px;">${b.customer_reaction||''}</div>
         </div>
         <div style="background:rgba(0,0,0,.04);border-radius:8px;padding:8px;">
-          <div style="font-size:10px;font-weight:700;color:#6a1b9a;margin-bottom:4px;">놓친 기회</div>
-          <div style="font-size:11px;color:var(--text);">${b.missed_opportunity||''}</div>
+          <div style="font-size:10px;font-weight:700;color:#6a1b9a;margin-bottom:3px;">놓친 기회</div>
+          <div style="font-size:11px;">${b.missed_opportunity||''}</div>
         </div>
       </div>
     </div>`;
   }
 
-  // ② 영업 포인트
-  const sp = r.sales_points;
+  // ② 영업 전략
   if (sp) {
-    const sols = (sp.selected_solutions||[]).map(s => `<span class="ai-badge">${s}</span>`).join('');
+    const sols = (sp.solutions||sp.selected_solutions||[]).map(s=>`<span class="ai-badge">${s}</span>`).join('');
     html += `<div class="ai-section ai-points">
       <div class="ai-sec-title">💡 영업 포인트</div>
-      ${!r.has_audio && sp.situation_analysis
-        ? `<div style="font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.6;">${sp.situation_analysis}</div>`
-        : ''}
-      <div style="font-size:12px;font-weight:600;color:#1b5e20;margin-bottom:6px;">🎯 ${sp.core_opportunity||''}</div>
+      ${sp.analysis||sp.situation_analysis
+        ?`<div style="font-size:12px;color:var(--text);margin-bottom:8px;line-height:1.6;">${sp.analysis||sp.situation_analysis}</div>`:''}
+      <div style="font-size:12px;font-weight:600;color:#1b5e20;margin-bottom:6px;">🎯 ${sp.opportunity||sp.core_opportunity||''}</div>
       <div style="margin-bottom:6px;">${sols}</div>
-      <div style="font-size:11px;color:var(--text-sub);">⏰ ${sp.why_now||''}</div>
     </div>`;
   }
 
-  // ③ 간단 스크립트
-  const sc = r.simple_script;
-  if (sc) {
+  // ③ 스크립트
+  if (sp.opening||sp.objection||sp.key_message||sp.objection_response) {
+    const opening   = sp.opening   || '';
+    const objection = sp.objection || sp.objection_response || '';
+    const keymsg    = sp.key_message || '';
     html += `<div class="ai-section ai-script">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <div class="ai-sec-title" style="margin-bottom:0;">💬 간단 스크립트</div>
+        <div class="ai-sec-title" style="margin-bottom:0;">💬 스크립트</div>
         <button onclick="copyScript()" style="padding:3px 10px;border-radius:6px;border:1px solid #9fa8da;background:var(--surface);color:#3949ab;cursor:pointer;font-size:10px;">📋 복사</button>
       </div>
       <div id="aiScriptContent">
         <div style="background:rgba(255,255,255,.6);border-radius:8px;padding:10px;margin-bottom:6px;">
           <div style="font-size:10px;font-weight:700;color:#1a237e;margin-bottom:4px;">오프닝</div>
-          <div style="font-size:13px;color:var(--text);line-height:1.6;">${sc.opening||''}</div>
+          <div style="font-size:13px;line-height:1.6;">${opening}</div>
         </div>
-        <div style="font-size:11px;color:var(--text-sub);padding:4px 8px;">
-          💬 핵심: ${sc.key_message||''}
-        </div>
-        <div style="font-size:11px;color:#6a1b9a;padding:4px 8px;">
-          🛡️ 거절 대응: ${sc.objection_response||''}
-        </div>
+        ${keymsg?`<div style="font-size:11px;color:var(--text-sub);padding:4px 8px;">💬 핵심: ${keymsg}</div>`:''}
+        ${objection?`<div style="font-size:11px;color:#6a1b9a;padding:4px 8px;">🛡️ 거절대응: ${objection}</div>`:''}
       </div>
     </div>`;
   }
 
-  // ④ 다음 액션 + 재콜 예약
-  const na = r.next_action;
+  // ④ 다음 액션
   if (na) {
+    const timing  = na.timing || (na.recommended_timing||'')+(na.timing_reason?' · '+na.timing_reason:'');
+    const memo    = na.memo   || na.memo_summary || '';
     html += `<div class="ai-section ai-action">
       <div class="ai-sec-title">📅 다음 액션</div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap;">
-        <span style="font-size:12px;font-weight:600;color:var(--text);">⏰ ${na.recommended_timing||''}</span>
-        <span style="font-size:11px;color:var(--text-sub);">· ${na.timing_reason||''}</span>
-      </div>
+      <div style="font-size:12px;color:var(--text);margin-bottom:10px;">⏰ ${timing}</div>
       <div style="background:var(--surface);border-radius:8px;padding:10px;">
         <div style="font-size:10px;font-weight:700;color:var(--text-sub);margin-bottom:6px;">📝 재콜 메모 저장</div>
-        <textarea id="aiMemoInput" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;resize:vertical;min-height:60px;box-sizing:border-box;">${na.memo_summary||''}</textarea>
+        <textarea id="aiMemoInput" style="width:100%;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;resize:vertical;min-height:50px;box-sizing:border-box;">${memo}</textarea>
         <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
           <button onclick="setRecallDate(0)" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:11px;">오늘</button>
           <button onclick="setRecallDate(1)" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:11px;">내일</button>
@@ -3440,6 +3416,7 @@ function _renderResult(r) {
   document.getElementById('aiResult').innerHTML = html;
   document.getElementById('aiResult').style.display = 'block';
 }
+
 
 // ── 유틸 함수 ────────────────────────────────────────────────────
 function copyScript() {
