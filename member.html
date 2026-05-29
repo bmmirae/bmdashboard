@@ -2882,6 +2882,7 @@ function _promoLoad(promo){
       </div>
 
       <!-- 분석 버튼 -->
+      <div id="aiNaverBadge" style="display:none;font-size:10px;color:#1565c0;background:#e3f2fd;border-radius:6px;padding:4px 8px;margin-bottom:8px;line-height:1.5;word-break:break-all;"></div>
       <button onclick="startAIAnalysis()" id="aiStartBtn" style="width:100%;padding:12px;border-radius:10px;background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;border:none;cursor:pointer;font-size:14px;font-weight:700;margin-bottom:16px;">
         🤖 AI 분석 시작
       </button>
@@ -3250,6 +3251,14 @@ async function _callGemini(apiKey) {
     } catch(e) { console.log('Naver API 오류:', e.message); }
   }
 
+  // 수집된 데이터 표시
+  const naverBadge = document.getElementById('aiNaverBadge');
+  if (naverBadge) {
+    naverBadge.style.display = naverDataStr ? 'inline-block' : 'none';
+    naverBadge.textContent = '📊 ' + naverDataStr;
+  }
+  console.log('[NaverData]', naverDataStr || '없음');
+
 
   const audioInstruction = hasAudio
     ? '통화 녹취 파일: (첨부된 오디오 파일 참조 - 전체 통화 내용을 듣고 브리핑 섹션을 작성해라)'
@@ -3267,8 +3276,8 @@ URL: ${d.url||'없음'} / 예산: ${d.budget>0?Math.round(d.budget/10000)+'만�
 선택태그: ${tags}
 ${hasAudio ? '녹취: 첨부 오디오 참조' : '녹취: 없음'}
 
-[실시간 네이버 시장 데이터]
-${naverDataStr ? naverDataStr : '데이터 없음 (API 키 미설정 시 Gemini 추론 활용)'}
+[실시간 네이버 시장 데이터 - 반드시 아래 데이터를 industry_brief에 직접 인용할 것]
+${naverDataStr || '없음 → 업종/키워드 기반으로 추론'}
 
 [업황 분석 지시]
 위 URL(${d.url||'없음'})과 업종/키워드(${d.keyword||'미기재'})를 바탕으로
