@@ -3093,12 +3093,13 @@ function showAISettingsGlobal() {
         <a href="https://searchad.naver.com" target="_blank" style="font-size:10px;color:#3949ab;margin-top:6px;display:inline-block;">searchad.naver.com → 도구 → API 사용 관리 →</a>
       </div>
 
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
         <button onclick="document.getElementById('aiSettingsModal').remove()"
           style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;">취소</button>
         <button onclick="saveAllAIKeys()"
           style="flex:2;padding:10px;border-radius:8px;background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:700;">💾 저장</button>
       </div>
+      <button onclick="clearAllAICache()" style="width:100%;padding:8px;border-radius:8px;border:1px solid #ffcdd2;background:#fff5f5;color:#c62828;cursor:pointer;font-size:12px;">🗑️ 전체 AI 분석 캐시 초기화</button>
     </div>
   `;
 
@@ -3107,6 +3108,16 @@ function showAISettingsGlobal() {
     if (e.target === modal) modal.remove();
   });
   document.body.appendChild(modal);
+}
+
+function clearAllAICache() {
+  const keys = Object.keys(localStorage).filter(function(k){ return k.startsWith('ai_v2_'); });
+  if (!keys.length) { toast('삭제할 캐시가 없습니다'); return; }
+  if (!confirm('AI 분석 캐시 ' + keys.length + '개를 모두 삭제할까요?\n(재분석 시 Gemini API를 새로 호출합니다)')) return;
+  keys.forEach(function(k){ localStorage.removeItem(k); });
+  // 시트 AI분석 탭은 개별 재분석 시 자동 갱신
+  document.getElementById('aiSettingsModal')?.remove();
+  toast('✅ AI 캐시 ' + keys.length + '개 삭제 완료');
 }
 
 function saveAllAIKeys() {
