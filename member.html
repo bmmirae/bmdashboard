@@ -3226,11 +3226,7 @@ ${hasAudio ? `[JSON만 출력]
   },
   "impact":"기대효과 1문장 (**핵심어 볼드**)",
   "key_question":"다음 통화에서 꼭 물어볼 질문 1개",
-  "question_guide":[
-    {"answer":"예상 답변 유형1","response":"이 답변이 나왔을 때 영업 대응 1문장"},
-    {"answer":"예상 답변 유형2","response":"이 답변이 나왔을 때 영업 대응 1문장"},
-    {"answer":"모르겠다/무관심","response":"이런 반응일 때 대응 1문장"}
-  ],
+  "follow_up_points":["질문 의도에 맞는 우리 영업 포인트1 (1문장)","영업 포인트2 (1문장)","영업 포인트3 (1문장)"],
   "next":{
     "timing":"재콜타이밍+이유 1문장",
     "memo":"30자이내 요약"
@@ -3248,11 +3244,7 @@ ${hasAudio ? `[JSON만 출력]
   },
   "impact":"기대효과 1문장 (**핵심어 볼드**)",
   "key_question":"다음 통화에서 꼭 물어볼 질문 1개",
-  "question_guide":[
-    {"answer":"예상 답변 유형1","response":"이 답변이 나왔을 때 영업 대응 1문장"},
-    {"answer":"예상 답변 유형2","response":"이 답변이 나왔을 때 영업 대응 1문장"},
-    {"answer":"모르겠다/무관심","response":"이런 반응일 때 대응 1문장"}
-  ],
+  "follow_up_points":["질문 의도에 맞는 우리 영업 포인트1 (1문장)","영업 포인트2 (1문장)","영업 포인트3 (1문장)"],
   "next":{
     "timing":"재콜타이밍+이유 1문장",
     "memo":"30자이내 요약"
@@ -3430,19 +3422,17 @@ function _renderResult(r) {
 
   // ⑤ 꼭 물어볼 질문 + 답변 가이드
   if (r.key_question) {
-    const guides = r.question_guide || [];
-    const guideHtml = guides.length ? `
-      <div style="margin-top:12px;border-top:1px dashed var(--border);padding-top:10px;">
-        <div style="font-size:11px;font-weight:700;color:#3949ab;margin-bottom:8px;">📌 답변별 대응 가이드</div>
-        ${guides.map(g => `
-          <div style="display:flex;gap:0;margin-bottom:8px;border-radius:8px;overflow:hidden;border:1px solid var(--border);">
-            <div style="background:#e8eaf6;color:#1a237e;font-size:11px;font-weight:700;padding:8px 10px;min-width:90px;display:flex;align-items:center;flex-shrink:0;">
-              💬 ${bold(g.answer||'')}
-            </div>
-            <div style="background:var(--surface);font-size:11px;line-height:1.6;padding:8px 10px;color:var(--text);">
-              → ${bold(g.response||'')}
-            </div>
-          </div>`).join('')}
+    const points = r.follow_up_points || r.question_guide || [];
+    const guideHtml = points.length ? `
+      <div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:10px;">
+        <div style="font-size:11px;font-weight:700;color:#3949ab;margin-bottom:8px;">💡 이어갈 영업 포인트</div>
+        ${points.map(p => {
+          const txt = typeof p === 'string' ? p : ((p.answer||'')+' → '+(p.response||''));
+          return `<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;">
+            <span style="flex-shrink:0;color:#3949ab;font-weight:700;margin-top:1px;">•</span>
+            <div style="font-size:12px;line-height:1.6;color:var(--text);">${bold(txt)}</div>
+          </div>`;
+        }).join('')}
       </div>` : '';
     html += `<div class="ai-section ai-script">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
