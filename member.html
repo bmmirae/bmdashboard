@@ -3304,6 +3304,10 @@ async function _callGemini(apiKey) {
           // SEO 데이터 저장 (렌더링용)
           window._lastSeoData = seo;
         }
+        // 키워드 테이블용 데이터 저장
+        if (nd.searchad && nd.searchad.keywords) {
+          window._lastKeywords = nd.searchad.keywords;
+        }
         if (parts.length) naverDataStr = parts.join(' | ');
         console.log('[NaverData 최종]', naverDataStr);
       }
@@ -3523,6 +3527,42 @@ function _renderResult(r) {
   }
 
   // ① SEO 분석 (URL 있을 때)
+  // ① 키워드 검색량 테이블 (searchad)
+  const kws = window._lastKeywords;
+  if (kws && kws.length > 0) {
+    const compColor = {'높음':'#c62828','중간':'#e65100','낮음':'#2e7d32'};
+    const rows = kws.map(function(k) {
+      const total = (k.total||0).toLocaleString();
+      const cpc   = k.avg_cpc > 0 ? k.avg_cpc.toLocaleString()+'원' : '-';
+      const cc    = compColor[k.competition] || '#555';
+      return `<tr style='border-bottom:1px solid var(--border);'>
+        <td style='padding:5px 8px;font-size:11px;font-weight:600;'>${k.keyword}</td>
+        <td style='padding:5px 8px;font-size:11px;text-align:right;'>${total}</td>
+        <td style='padding:5px 8px;font-size:11px;text-align:center;'>
+          <span style='color:${cc};font-weight:700;font-size:10px;'>${k.competition||'-'}</span>
+        </td>
+        <td style='padding:5px 8px;font-size:11px;text-align:right;color:#1a237e;'>${cpc}</td>
+      </tr>`;
+    }).join('');
+    html += `<div class='ai-section' style='background:#f9fbe7;border:1px solid #c5e1a5;border-radius:10px;padding:12px 16px;margin-bottom:12px;'>
+      <div class='ai-sec-title' style='color:#33691e;'>🔍 키워드 검색량 분석</div>
+      <div style='font-size:10px;color:var(--text-sub);margin-bottom:8px;'>월간 검색량 기준 상위 키워드 · 네이버 검색광고 API 실데이터</div>
+      <div style='overflow-x:auto;'>
+        <table style='width:100%;border-collapse:collapse;'>
+          <thead>
+            <tr style='background:rgba(0,0,0,.04);'>
+              <th style='padding:5px 8px;font-size:10px;text-align:left;color:var(--text-sub);'>키워드</th>
+              <th style='padding:5px 8px;font-size:10px;text-align:right;color:var(--text-sub);'>월검색량</th>
+              <th style='padding:5px 8px;font-size:10px;text-align:center;color:var(--text-sub);'>경쟁강도</th>
+              <th style='padding:5px 8px;font-size:10px;text-align:right;color:var(--text-sub);'>평균CPC</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+
   const seo = window._lastSeoData;
   if (seo && !seo.error) {
     const scoreColor = seo.seo_score >= 70 ? '#2e7d32' : seo.seo_score >= 40 ? '#e65100' : '#c62828';
