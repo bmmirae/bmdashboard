@@ -3340,74 +3340,21 @@ async function _callGemini(apiKey) {
     ? '통화 녹취 파일: (첨부된 오디오 파일 참조 - 전체 통화 내용을 듣고 브리핑 섹션을 작성해라)'
     : '통화 녹취 파일: 없음 - CRM 데이터와 선택 태그만으로 분석해라. has_audio는 false로 설정하고 call_briefing 섹션은 출력하지 마라.';
 
-  const prompt = `너는 미래아이엔씨 네이버 검색광고 영업 전문가야. 한국어로만 답해.
+  const prompt = `너는 네이버 검색광고 전문 영업직원이야. 한국어로만 답해.
 
-[업체 정보]
-업체명: ${d.company} / 업종/키워드: ${d.keyword||'미기재'}
-URL: ${d.url||'없음'} / 예산: ${d.budget>0?Math.round(d.budget/10000)+'만원':'미기재'}
-순위: ${d.rank||'미기재'} / 첫콜일: ${d.firstCall||'미기재'}
-광고현황: ${d.contactPoint||'미기재'} / 가망도: ${d.grade||'미기재'}
-팀: ${d.team||'미기재'} / 다음재콜: ${d.nextRecall||'없음'}
-통화이력/메모: ${d.content||'없음'}
-선택태그: ${tags}
-${hasAudio ? '녹취: 첨부 오디오 참조' : '녹취: 없음'}
+업체: ${d.company} / 업종: ${d.keyword||'미기재'} / URL: ${d.url||'없음'}
+예산: ${d.budget>0?Math.round(d.budget/10000)+'만원':'미기재'} / 순위: ${d.rank||'미기재'} / 가망도: ${d.grade||'미기재'}
+광고현황: ${d.contactPoint||'없음'} / 통화이력: ${d.content||'없음'}
+태그: ${tags}${hasAudio?' / 녹취: 첨부파일 참조':''}
 
-[실시간 네이버 시장 데이터 - 반드시 아래 데이터를 industry_brief에 직접 인용할 것]
-${naverDataStr || '없음 → 업종/키워드 기반으로 추론'}
+네이버 시장데이터: ${naverDataStr||'없음'}
 
-[업황 분석 지시]
-위 URL(${d.url||'없음'})과 업종/키워드(${d.keyword||'미기재'})를 바탕으로
-해당 업종의 네이버 검색광고 시장 현황을 1~2문장으로 간략히 파악해서
-industry_brief 필드에 넣어라. (경쟁강도, 광고 필요성, 업종 특성 등)
+솔루션: SA검색광고, GFA, 무효클릭방지, 쇼핑검색, 로그분석기, 미래톡
+${d.url&&(d.url.includes('smartstore')||d.url.includes('brand'))? '스마트스토어이므로 랜딩페이지 소스수정 제안 금지':''}
 
-[솔루션] SA검색광고, GFA, 무효클릭방지, 쇼핑검색, 로그분석기, 미래톡 (1~2개만)
-[URL규칙] smartstore/brand → 쇼핑몰(랜딩페이지 소스수정 제안금지) / 그외 → 자사몰
-[금지어] 이커머스:"문의량 늘려드릴게요" / 서비스:"결제율 보장"
-[볼드규칙] 핵심 키워드는 **굵게** 표시
-
-${hasAudio ? `[JSON만 출력]
-{
-  "briefing":{
-    "summary":"통화흐름 2문장",
-    "customer_reaction":"고객반응 1문장",
-    "missed_opportunity":"놓친기회 1문장",
-    "customer_quote":"고객핵심발언 직접인용"
-  },
-  "industry_brief":"업종 시장 현황 1~2문장 (경쟁강도/광고필요성)","diagnosis":{
-    "symptom":"현재 현상 1문장 (**핵심어 볼드**)",
-    "cause":"근본 원인 1문장 (**핵심어 볼드**)",
-    "damage":"고객이 받는 실제 타격 1문장 (**핵심어 볼드**)"
-  },
-  "solution":{
-    "solutions":["솔루션1"],
-    "details":["세부방안1 (**핵심어 볼드**)", "세부방안2"]
-  },
-  "impact":"기대효과 1문장 (**핵심어 볼드**)",
-  "key_question":"다음 통화에서 꼭 물어볼 질문 1개",
-  "follow_up_points":["질문 의도에 맞는 우리 영업 포인트1 (1문장)","영업 포인트2 (1문장)","영업 포인트3 (1문장)"],
-  "next":{
-    "timing":"재콜타이밍+이유 1문장",
-    "memo":"30자이내 요약"
-  }
-}` : `[JSON만 출력]
-{
-  "industry_brief":"업종 시장 현황 1~2문장 (경쟁강도/광고필요성)","diagnosis":{
-    "symptom":"현재 현상 1문장 (**핵심어 볼드**)",
-    "cause":"근본 원인 1문장 (**핵심어 볼드**)",
-    "damage":"고객이 받는 실제 타격 1문장 (**핵심어 볼드**)"
-  },
-  "solution":{
-    "solutions":["솔루션1"],
-    "details":["세부방안1 (**핵심어 볼드**)", "세부방안2"]
-  },
-  "impact":"기대효과 1문장 (**핵심어 볼드**)",
-  "key_question":"다음 통화에서 꼭 물어볼 질문 1개",
-  "follow_up_points":["질문 의도에 맞는 우리 영업 포인트1 (1문장)","영업 포인트2 (1문장)","영업 포인트3 (1문장)"],
-  "next":{
-    "timing":"재콜타이밍+이유 1문장",
-    "memo":"30자이내 요약"
-  }
-}`}`;
+${hasAudio ? `JSON만 출력:
+{"industry_brief":"업황1~2문장","briefing":{"summary":"통화요약2문장","customer_reaction":"고객반응","missed_opportunity":"놓친기회","customer_quote":"핵심발언"},"diagnosis":{"symptom":"현상(**볼드**)","cause":"원인(**볼드**)","damage":"타격(**볼드**)"},"solution":{"solutions":["솔루션"],"details":["방안1","방안2"]},"impact":"기대효과(**볼드**)","key_question":"핵심질문","follow_up_points":["포인트1","포인트2","포인트3"],"next":{"timing":"재콜타이밍","memo":"30자요약"}}` : `JSON만 출력:
+{"industry_brief":"업황1~2문장","diagnosis":{"symptom":"현상(**볼드**)","cause":"원인(**볼드**)","damage":"타격(**볼드**)"},"solution":{"solutions":["솔루션"],"details":["방안1","방안2"]},"impact":"기대효과(**볼드**)","key_question":"핵심질문","follow_up_points":["포인트1","포인트2","포인트3"],"next":{"timing":"재콜타이밍","memo":"30자요약"}}`}`;
 
   // 로딩 시퀀스
   _setLoading('📊 업체 정보 분석 중...', 20);
@@ -3425,13 +3372,13 @@ ${hasAudio ? `[JSON만 출력]
     }
 
     // 재시도 로직 (과부하 시 폴백 모델 사용)
-    const modelsToTry = [GEMINI_MODEL, GEMINI_FALLBACK];
+    const modelsToTry = [GEMINI_MODEL, GEMINI_FALLBACK, 'gemini-2.5-flash-lite', 'gemini-2.0-flash-001'];
     let data = null;
     for (let attempt = 0; attempt < modelsToTry.length; attempt++) {
       const tryModel = modelsToTry[attempt];
       if (attempt > 0) {
-        _setLoading('🔄 ' + tryModel + ' 로 재시도 중...', 50);
-        await new Promise(r => setTimeout(r, 3000));
+        _setLoading('🔄 ' + tryModel + ' (' + (attempt+1) + '/' + modelsToTry.length + ')...', 50);
+        await new Promise(r => setTimeout(r, 2000));
       }
       const resp = await fetch(
         'https://generativelanguage.googleapis.com/v1beta/models/' + tryModel + ':generateContent?key=' + apiKey,
@@ -3446,7 +3393,7 @@ ${hasAudio ? `[JSON만 출력]
       );
       data = await resp.json();
       // 과부하 에러면 다음 모델 시도
-      if (data.error && data.error.message && data.error.message.includes('high demand')) {
+      if (data.error && data.error.message && (data.error.message.includes('high demand') || data.error.message.includes('overloaded') || data.error.message.includes('RESOURCE_EXHAUSTED'))) {
         if (attempt < modelsToTry.length - 1) continue;
       }
       break;
@@ -3544,11 +3491,13 @@ function _renderResult(r) {
     </div>`;
   }
 
-  // ① 업황 분석
-  if (r.industry_brief) {
+  // ① 업황 분석 (market 또는 industry_brief)
+  const mkt = r.market || {};
+  if (mkt.data_summary || mkt.insight || r.industry_brief) {
     html += `<div class="ai-section" style="background:#e3f2fd;border:1px solid #90caf9;border-radius:10px;padding:12px 16px;margin-bottom:12px;">
       <div class="ai-sec-title" style="color:#0d47a1;">📊 업황 분석</div>
-      <div style="font-size:12px;line-height:1.7;">${bold(r.industry_brief)}</div>
+      ${mkt.data_summary ? `<div style="font-size:11px;background:#bbdefb;border-radius:6px;padding:6px 10px;margin-bottom:8px;color:#0d47a1;font-weight:600;">📈 ${mkt.data_summary}</div>` : ''}
+      <div style="font-size:12px;line-height:1.7;">${bold(mkt.insight || r.industry_brief || '')}</div>
     </div>`;
   }
 
@@ -3730,4 +3679,437 @@ document.getElementById('aiModal').addEventListener('click', function(e) {
 </script>
 
 
+</bodyconst prompt = `너는 미래아이엔씨 네이버 검색광고 시니어 영업전문가야. 한국어로만 답해.
+
+[업체 데이터]
+업체명: ${d.company} / 업종: ${d.keyword||'미기재'} / URL: ${d.url||'없음'}
+예산: ${d.budget>0?Math.round(d.budget/10000)+'만원':'미기재'} / 순위: ${d.rank||'미기재'} / 가망도: ${d.grade||'미기재'}
+광고현황: ${d.contactPoint||'없음'} / 통화이력: ${d.content||'없음'}
+태그: ${tags}${hasAudio?' / 녹취: 첨부파일 참조':''}
+
+[네이버 시장 데이터]
+${naverDataStr||'없음'}
+
+[미래아이엔씨 솔루션] SA검색광고 / GFA디스플레이 / 무효클릭방지 / 쇼핑검색 / 로그분석기 / 미래톡
+→ 이 업체에 가장 적합한 1~2개만 선택
+
+[플랫폼 규칙] URL에 smartstore·brand·shopping.naver 포함 시 소스코드 수정 제안 금지
+
+[업종별 KPI] 이커머스→ROAS·객단가 / 서비스→CPA·진성문의 / 전문직→신뢰도·상담전환
+
+${hasAudio ? `JSON만 출력:
+{
+  "briefing":{"summary":"통화흐름 2~3문장","customer_reaction":"고객반응 1문장","missed_opportunity":"놓친기회 1문장","customer_quote":"핵심발언 직접인용"},
+  "market":{"data_summary":"네이버 실데이터 수치 직접인용","insight":"업체상황과 연결한 시장해석 2문장"},
+  "strategy":{"solutions":["솔루션"],"direction":"맞춤 제안방향 2~3문장 (**핵심어 볼드**)"},
+  "impact":"기대효과 2문장 (**수치근거**)",
+  "key_question":"다음통화 핵심질문 1개",
+  "follow_up_points":["포인트1","포인트2","포인트3"],
+  "next":{"timing":"재콜타이밍+이유","memo":"30자이내요약"}
+}` : `JSON만 출력:
+{
+  "market":{"data_summary":"네이버 실데이터 수치 직접인용","insight":"업체상황과 연결한 시장해석 2문장"},
+  "strategy":{"solutions":["솔루션"],"direction":"맞춤 제안방향 2~3문장 (**핵심어 볼드**)"},
+  "impact":"기대효과 2문장 (**수치근거**)",
+  "key_question":"다음통화 핵심질문 1개",
+  "follow_up_points":["포인트1","포인트2","포인트3"],
+  "next":{"timing":"재콜타이밍+이유","memo":"30자이내요약"}
+}`}`;!DOCTYPE html>
+<html lang="ko" data-theme="light">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>미래아이엔씨 가망건 대시보드 v5.12</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+:root,[data-theme="light"]{
+  --bg:#f0f2f5;--surface:#fff;--surface2:#f5f7ff;--border:#e8eaf6;
+  --text:#333;--text-sub:#777;--text-muted:#aaa;
+  --header-bg:linear-gradient(135deg,#1a237e,#283593);
+  --card-shadow:0 2px 10px rgba(0,0,0,.07);
+  --th-bg:#e8eaf6;--th-color:#555;--td-border:#f0f0f0;
+  --rank1:#fff9c4;--rank2:#f1f8e9;--rank3:#e8f4fd;
+  --badge-bg:rgba(255,255,255,.15);
+  --toggle-bg:#ccc;--overlay-bg:rgba(0,0,0,.5);
+}
+[data-theme="dark"]{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1f2937;--border:#30363d;
+  --text:#e6edf3;--text-sub:#8b949e;--text-muted:#484f58;
+  --header-bg:linear-gradient(135deg,#0d1b4b,#091235);
+  --card-shadow:0 2px 14px rgba(0,0,0,.4);
+  --th-bg:#1f2937;--th-color:#8b949e;--td-border:#30363d;
+  --rank1:#3a3510;--rank2:#143014;--rank3:#102240;
+  --badge-bg:rgba(255,255,255,.08);
+  --toggle-bg:#4a6cf7;--overlay-bg:rgba(0,0,0,.7);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Pretendard,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ══ 로그인 화면 ══ */
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--header-bg);}
+.login-box{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
+[data-theme="dark"] .login-box{background:#161b22;border:1px solid #30363d;}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo h2{font-size:22px;font-weight:700;color:#1a237e;margin-top:8px;}
+[data-theme="dark"] .login-logo h2{color:#90caf9;}
+.login-logo p{font-size:13px;color:#888;margin-top:4px;}
+.login-field{margin-bottom:16px;}
+.login-field label{display:block;font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:6px;}
+.login-field select,
+.login-field input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--surface);color:var(--text);outline:none;transition:border .2s;}
+.login-field select:focus,
+.login-field input:focus{border-color:#3949ab;}
+.login-btn{width:100%;padding:13px;background:linear-gradient(135deg,#1a237e,#3949ab);color:#fff;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;transition:filter .2s;}
+.login-btn:hover{filter:brightness(1.1);}
+.login-btn:disabled{background:#ccc;cursor:not-allowed;}
+.login-error{background:#fce4ec;color:#c62828;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;display:none;}
+.login-error.show{display:block;}
+
+/* ══ 헤더 ══ */
+.header{background:var(--header-bg);color:#fff;padding:16px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;position:sticky;top:0;z-index:100;}
+.header-left h1{font-size:18px;font-weight:700;}
+.header-left .scope{font-size:12px;opacity:.75;margin-top:3px;}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.user-chip{background:var(--badge-bg);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:600;border:1px solid rgba(255,255,255,.2);}
+.logout-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;transition:background .2s;}
+.logout-btn:hover{background:rgba(255,255,255,.2);}
+.theme-btn{background:var(--badge-bg);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;}
+
+/* ══ 컨테이너 ══ */
+.container{max-width:1300px;margin:0 auto;padding:20px;}
+
+/* ══ 네비게이션 (센터·본부장용) ══ */
+.nav-wrap{background:var(--surface);border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--card-shadow);display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.nav-lbl{font-size:12px;color:var(--text-sub);font-weight:600;margin-right:4px;}
+.nbtn{padding:6px 14px;border-radius:18px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-sub);font-size:12px;cursor:pointer;transition:all .2s;font-weight:500;}
+.nbtn:hover{border-color:#3949ab;color:#3949ab;}
+.nbtn.na{background:#3949ab;color:#fff;border-color:#3949ab;}
+.nbtn.na-bm2{background:#1565c0;color:#fff;border-color:#1565c0;}
+.nbtn.na-bm3{background:#6a1b9a;color:#fff;border-color:#6a1b9a;}
+.nbtn.na-team{background:#00695c;color:#fff;border-color:#00695c;}
+.nbtn.na-member{background:#e65100;color:#fff;border-color:#e65100;}
+.nbtn.mbr-bm2{background:#e3f2fd;color:#1565c0;border-color:#90caf9;}
+.nbtn.mbr-bm2:hover{background:#1565c0;color:#fff;border-color:#1565c0;}
+.nbtn.mbr-bm3{background:#f3e5f5;color:#7b1fa2;border-color:#ce93d8;}
+.nbtn.mbr-bm3:hover{background:#7b1fa2;color:#fff;border-color:#7b1fa2;}
+
+/* ══ 그리드 ══ */
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px;}
+.g6{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:14px;}
+
+/* ══ 카드 ══ */
+.card{background:var(--surface);border-radius:12px;padding:16px 18px;box-shadow:var(--card-shadow);}
+.card-lbl{font-size:11px;color:var(--text-sub);font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
+.card-val{font-size:26px;font-weight:700;}
+.cv-blue{color:#3949ab;} .cv-green{color:#2e7d32;} .cv-orange{color:#e65100;}
+.cv-purple{color:#6a1b9a;} .cv-red{color:#c62828;} .cv-teal{color:#00695c;}
+.card-sub{font-size:11px;color:var(--text-muted);margin-top:3px;}
+.pbar{background:var(--border);border-radius:4px;height:5px;margin-top:8px;overflow:hidden;}
+.pb{height:100%;border-radius:4px;transition:width .6s;}
+.pb-b{background:linear-gradient(90deg,#3949ab,#42a5f5);}
+.pb-g{background:linear-gradient(90deg,#2e7d32,#66bb6a);}
+.pb-o{background:linear-gradient(90deg,#e65100,#ffa726);}
+.pb-p{background:linear-gradient(90deg,#6a1b9a,#ab47bc);}
+.pb-t{background:linear-gradient(90deg,#00695c,#26a69a);}
+
+/* ══ 섹션 ══ */
+.sec{background:var(--surface);border-radius:12px;padding:18px 20px;box-shadow:var(--card-shadow);margin-bottom:14px;}
+.sec-hd{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+.sh-b{color:#3949ab;} .sh-g{color:#2e7d32;} .sh-o{color:#e65100;}
+.sh-p{color:#6a1b9a;} .sh-r{color:#c62828;} .sh-t{color:#00695c;}
+
+/* 접기 */
+.chd{font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;cursor:pointer;margin-bottom:14px;user-select:none;}
+.carr{font-size:12px;color:var(--text-sub);transition:transform .3s;}
+.cbody{overflow:hidden;transition:max-height .35s,opacity .3s;max-height:6000px;opacity:1;}
+.cbody.col,.cbody.collapsed{max-height:0!important;opacity:0;}
+
+/* ══ 배지 ══ */
+.grade-badge{display:inline-block;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:700;}
+.gb-none    {background:#f5f5f5;color:#757575;}
+.gb-recall  {background:#e3f2fd;color:#1565c0;}
+.gb-short   {background:#fff3e0;color:#e65100;}
+.gb-long    {background:#fce4ec;color:#c62828;}
+.gb-open    {background:#f3e5f5;color:#6a1b9a;}
+.gb-briefing{background:#e8eaf6;color:#3949ab;}
+.gb-done    {background:#e8f5e9;color:#2e7d32;}
+[data-theme="dark"] .gb-none    {background:#2a2a2a;color:#9e9e9e;}
+[data-theme="dark"] .gb-recall  {background:#0d2b6b;color:#90caf9;}
+[data-theme="dark"] .gb-short   {background:#2a1500;color:#ffb74d;}
+[data-theme="dark"] .gb-long    {background:#2a0a0a;color:#ef9a9a;}
+[data-theme="dark"] .gb-open    {background:#2a0a4a;color:#ce93d8;}
+[data-theme="dark"] .gb-briefing{background:#1a1f4a;color:#9fa8da;}
+[data-theme="dark"] .gb-done    {background:#143014;color:#81c784;}
+
+.bu-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:11px;font-weight:700;}
+.bb-bm2{background:#e3f2fd;color:#1565c0;}
+.bb-bm3{background:#f3e5f5;color:#6a1b9a;}
+[data-theme="dark"] .bb-bm2{background:#0d2b6b;color:#90caf9;}
+[data-theme="dark"] .bb-bm3{background:#2a0a4a;color:#ce93d8;}
+
+/* ══ 테이블 ══ */
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{background:var(--th-bg);color:var(--th-color);padding:9px 10px;text-align:left;font-weight:600;white-space:nowrap;}
+td{padding:9px 10px;border-bottom:1px solid var(--td-border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr.r1{background:var(--rank1);}tr.r2{background:var(--rank2);}tr.r3{background:var(--rank3);}
+tr:hover td{background:var(--surface2);}
+.tbl-wrap{overflow-x:auto;}
+
+/* ══ 비교 카드 (센터/본부장) ══ */
+.compare-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:16px;border-top:4px solid #3949ab;cursor:pointer;transition:transform .15s,box-shadow .15s;}
+.compare-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1);}
+.compare-card.bm2{border-top-color:#1565c0;}
+.compare-card.bm3{border-top-color:#6a1b9a;}
+.compare-card.team{border-top-color:#00695c;}
+.cc-name{font-size:14px;font-weight:700;margin-bottom:10px;}
+.cc-row{display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px;}
+.cc-lbl{color:var(--text-sub);}
+.cc-val{font-weight:600;}
+
+/* ══ 재콜 카드 ══ */
+.recall-card{background:var(--surface2);border:1px solid var(--border);border-left:4px solid #c62828;border-radius:10px;padding:14px;}
+.rc-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:6px;}
+.rc-company{font-size:14px;font-weight:700;color:#3949ab;}
+.rc-meta{font-size:11px;color:var(--text-sub);margin-bottom:3px;}
+.rc-recalls{background:var(--bg);border-radius:7px;padding:8px 10px;margin-top:6px;font-size:11px;}
+.rc-item{padding:2px 0;border-bottom:1px solid var(--border);}
+.rc-item:last-child{border-bottom:none;}
+
+/* ══ 차트 ══ */
+.chart-box{position:relative;height:200px;}
+
+/* ══ 인라인 바 ══ */
+.ib-wrap{display:flex;align-items:center;gap:6px;}
+.ib{height:7px;border-radius:3px;min-width:2px;}
+
+/* ══ 컨택포인트 ══ */
+.cp-row{margin-bottom:7px;}
+.cp-lbl{display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px;}
+.cp-track{background:var(--border);border-radius:3px;height:7px;}
+.cp-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#3949ab,#42a5f5);transition:width .5s;}
+
+/* ══ 필터 ══ */
+.filter-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.fsel,.finput{padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;outline:none;}
+.finput{flex:1;min-width:120px;}
+
+/* ══ 액션바 ══ */
+.abar{display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px;}
+.rbtn{background:var(--surface);border:1px solid var(--border);color:var(--text-sub);padding:6px 14px;border-radius:16px;font-size:12px;cursor:pointer;}
+.dlbtn{background:linear-gradient(135deg,#2e7d32,#43a047);color:#fff;border:none;padding:7px 16px;border-radius:16px;font-size:12px;cursor:pointer;font-weight:600;}
+
+/* ══ 로딩/토스트 ══ */
+.lov{display:none;position:fixed;inset:0;background:var(--overlay-bg);z-index:999;justify-content:center;align-items:center;flex-direction:column;}
+.lov.show{display:flex;}
+.spinner{width:44px;height:44px;border:4px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+.ltxt{color:#fff;margin-top:14px;font-size:14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes spin-cmp{to{transform:rotate(360deg);transform-origin:65px 65px;}}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 22px;border-radius:20px;font-size:13px;z-index:2000;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}
+
+.no-cap{display:none!important;}
+@media(max-width:900px){.g4,.g6{grid-template-columns:repeat(2,1fr);}.g3{grid-template-columns:1fr 1fr;}}
+@media(max-width:580px){.g2,.g3,.g4,.g6{grid-template-columns:1fr;}}
+
+/* 재콜 툴팁 */
+.recall-tip{position:relative;display:inline-block;cursor:default;}
+.recall-tip .tip-content{
+  display:none;position:fixed;
+  background:#1e2130;color:#e0e4f0;font-size:13px;line-height:1.7;
+  padding:10px 14px;border-radius:8px;white-space:pre-wrap;min-width:200px;max-width:300px;
+  box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:9999;word-break:keep-all;
+  border:1px solid #2e3250;pointer-events:none;
+}
+.recall-tip:hover .tip-content{display:block;}
+.recall-tip .tip-content::after{
+  content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+  border:5px solid transparent;border-top-color:#1e2130;
+}</style>
+</head>
+<body>
+
+<div class="lov" id="lov"><div class="spinner"></div><div class="ltxt" id="ltxt">불러오는 중...</div></div>
+<div class="toast" id="toast"></div>
+
+<!-- ══ 로그인 화면 ══ -->
+<div id="loginScreen">
+  <div class="login-wrap">
+    <div class="login-box">
+      <div class="login-logo">
+        <div style="font-size:40px;">📋</div>
+        <h2>내 가망건 대시보드</h2>
+        <p>사원 ID와 초기 비밀번호를 입력하세요</p>
+      </div>
+      <div class="login-field">
+        <label>사원 ID</label>
+        <input type="text" id="roleSelect" placeholder="사원 ID 입력"
+          style="width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;"
+          onkeydown="if(event.key==='Enter')document.getElementById('pwInput').focus()"/>
+      </div>
+      <div class="login-field">
+        <label>비밀번호</label>
+        <input type="password" id="pwInput" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()"/>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin:4px 0 8px 0;">
+        <input type="checkbox" id="rememberMe" style="width:16px;height:16px;cursor:pointer;accent-color:#3949ab;">
+        <label for="rememberMe" style="font-size:13px;color:var(--text-sub);cursor:pointer;">ID / 비밀번호 기억하기</label>
+      </div>
+      <button class="login-btn" id="loginBtn" onclick="doLogin()">로그인</button>
+      <div class="login-error" id="loginError"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 인원 관리 모달 ══ -->
+<div id="memberMgmtModal" style="display:none;position:fixed;inset:0;background:var(--overlay-bg);z-index:500;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:680px;max-height:85vh;overflow-y:auto;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+      <h2 style="font-size:16px;font-weight:700;">⚙️ 인원 관리</h2>
+      <button onclick="closeMemberMgmt()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-sub);">✕</button>
+    </div>
+    <div style="background:var(--surface2);border-radius:12px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:#3949ab;">➕ 인원 추가</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-sub);display:block;margin-bottom:4px;">본부</label>
+          <select id="addBU" onchange="updateAddTeamOptions()" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;">
+            <option value="">본부 선택</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-sub);display:block;margin-bottom:4px;">팀</label>
+          <select id="addTeam" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;">
+            <option value="">팀 선택</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="font-size:11px;color:var(--text-sub);display:block;margin-bottom:4px;">이름</label>
+          <input id="addName" type="text" placeholder="홍길동" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;">
+        </div>
+        <div>
+          <label style="font-size:11px;color:var(--text-sub);display:block;margin-bottom:4px;">구글 시트 ID</label>
+          <input id="addSheetId" type="text" placeholder="스프레드시트 ID 붙여넣기" style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;">
+        </div>
+      </div>
+      <button onclick="addMember()" style="background:linear-gradient(135deg,#3949ab,#5c6bc0);color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;width:100%;">➕ 추가하기</button>
+      <div id="addMsg" style="font-size:12px;margin-top:8px;text-align:center;display:none;"></div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;color:#c62828;">👥 현재 인원 목록</div>
+      <div id="memberMgmtList" style="font-size:13px;color:var(--text-muted);text-align:center;padding:20px;">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<div id="dashScreen" style="display:none;">
+  <div class="header">
+    <div class="header-left">
+      <h1>📊 미래아이엔씨 가망건 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.12</span></h1>
+      <div class="scope" id="headerScope">-</div>
+    </div>
+    <div class="header-right">
+      <span class="user-chip" id="userChip">-</span>
+      <button id="changePwBtn" onclick="openChangePw()" style="display:none;padding:5px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.3);background:rgba(255,255,255,0.15);color:#fff;font-size:12px;cursor:pointer;">🔒 비밀번호</button>
+      <button onclick="showAISettingsGlobal()" style="padding:6px 12px;border-radius:8px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);cursor:pointer;font-size:12px;font-weight:600;">🤖 AI설정</button>
+      <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 다크</button>
+      <button class="logout-btn" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="container">
+    <div id="navWrap" style="display:none;">
+      <div class="nav-wrap" style="padding:12px 16px;">
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:0;" id="navRowTop"></div>
+        <div id="navDivider" style="display:none;height:1px;background:var(--border);margin:8px 0;"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;" id="navRowBottom"></div>
+        <div style="height:1px;background:var(--border);margin:10px 0;"></div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px;">
+          <span class="nav-lbl">📅</span>
+          <select id="selYear" onchange="applyYearMonth()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+            <option value="">연도</option>
+          </select>
+          <select id="selMonth" onchange="applyYearMonth()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+            <option value="">월 전체</option>
+            <option value="01">1월</option><option value="02">2월</option>
+            <option value="03">3월</option><option value="04">4월</option>
+            <option value="05">5월</option><option value="06">6월</option>
+            <option value="07">7월</option><option value="08">8월</option>
+            <option value="09">9월</option><option value="10">10월</option>
+            <option value="11">11월</option><option value="12">12월</option>
+          </select>
+          <span style="color:var(--border);font-size:13px;">|</span>
+          <button class="nbtn" id="qbToday"     onclick="setQuickDate('today')"     style="font-size:11px;padding:4px 10px;">오늘</button>
+          <button class="nbtn" id="qbYesterday" onclick="setQuickDate('yesterday')" style="font-size:11px;padding:4px 10px;">어제</button>
+          <button class="nbtn" id="qb7"         onclick="setQuickDate(7)"          style="font-size:11px;padding:4px 10px;">최근 7일</button>
+          <button class="nbtn" id="qb15"        onclick="setQuickDate(15)"         style="font-size:11px;padding:4px 10px;">최근 15일</button>
+          <button class="nbtn" id="qb30"        onclick="setQuickDate(30)"         style="font-size:11px;padding:4px 10px;">최근 30일</button>
+          <span style="color:var(--border);font-size:13px;">|</span>
+          <input type="date" id="dateFrom" onchange="applyDateFilter()"
+            style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+          <span style="font-size:12px;color:var(--text-sub);">~</span>
+          <input type="date" id="dateTo" onchange="applyDateFilter()"
+            style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+          <button class="nbtn" onclick="resetDateFilter()" style="font-size:11px;padding:4px 10px;">전체 기간</button>
+          <span id="dateFilterInfo" style="font-size:11px;color:var(--text-sub);"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 메인 탭 -->
+    <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border);">
+      <button id="mainTab_db" onclick="switchMainTab('db')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:700;color:#3949ab;border-bottom:3px solid #3949ab;cursor:pointer;margin-bottom:-2px;">📋 광고주DB</button>
+      <button id="mainTab_perf" onclick="switchMainTab('perf')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">📈 성과지표</button>
+      <button id="mainTab_promo" onclick="goPromo()" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">🎯 프로모션</button>
+    </div>
+
+    <!-- 광고주DB 탭 -->
+    <div id="tabContent_db">
+      <div id="memberDateWrap" style="display:none;">
+        <div class="nav-wrap" style="padding:12px 16px;">
+          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+            <span class="nav-lbl">📅</span>
+            <button class="nbtn" id="mqbToday"     onclick="setQuickDateM('today')"     style="font-size:11px;padding:4px 10px;">오늘</button>
+            <button class="nbtn" id="mqbYesterday" onclick="setQuickDateM('yesterday')" style="font-size:11px;padding:4px 10px;">어제</button>
+            <button class="nbtn" id="mqb7"         onclick="setQuickDateM(7)"           style="font-size:11px;padding:4px 10px;">최근 7일</button>
+            <button class="nbtn" id="mqb15"        onclick="setQuickDateM(15)"          style="font-size:11px;padding:4px 10px;">최근 15일</button>
+            <button class="nbtn" id="mqb30"        onclick="setQuickDateM(30)"          style="font-size:11px;padding:4px 10px;">최근 30일</button>
+            <span style="color:var(--border);font-size:13px;">|</span>
+            <input type="date" id="dateFromM" onchange="applyDateFilterM()"
+              style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+            <span style="font-size:12px;color:var(--text-sub);">~</span>
+            <input type="date" id="dateToM" onchange="applyDateFilterM()"
+              style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+            <button class="nbtn" onclick="resetDateFilterM()" style="font-size:11px;padding:4px 10px;">전체 기간</button>
+            <span id="dateFilterInfoM" style="font-size:11px;color:var(--text-sub);"></span>
+          </div>
+        </div>
+      </div>
+      <div class="abar no-cap">
+        <button class="rbtn" onclick="refreshData()">🔄 새로고침</button>
+        <button class="dlbtn" onclick="downloadPNG()">📥 PNG 저장</button>
+      </div>
+      <div id="dashContent"></div>
+    </div>
+
+    <!-- 성과지표 탭 -->
+    <div id="tabContent_perf" style="display:none;">
+      <div id="perfContent"></div>
+    </div>
+
+    <!-- 프로모션 탭 -->
+    <div id="tabContent_promo" style="display:none;">
+      <div id="promoInner" style="padding:4px 0;"></div>
+    </div>
+
+  </div>
+</div>
+
 </body>
+</html>
