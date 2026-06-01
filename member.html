@@ -2821,7 +2821,7 @@ function _promoLoad(promo){
       <span style="font-size:22px;">🤖</span>
       <div style="flex:1;">
         <div id="aiModalTitle" style="font-size:15px;font-weight:700;color:#fff;"></div>
-        <div style="font-size:11px;color:rgba(255,255,255,.7);">AI 영업 분석 · Gemini 2.5 Flash · 미래아이엔씨 특화</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.7);">AI 영업 분석 · Gemini 3.5 Flash · 미래아이엔씨 특화</div>
       </div>
       <div style="display:flex;gap:6px;">
         <button onclick="refreshAIAnalysis()" style="padding:5px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:#fff;cursor:pointer;font-size:11px;">🔄 재분석</button>
@@ -2942,8 +2942,8 @@ function _promoLoad(promo){
 
 <script>
 // ── AI 분석 전역 상태 ────────────────────────────────────────────
-const GEMINI_MODEL  = 'gemini-2.5-flash';
-const GEMINI_FALLBACK = 'gemini-2.5-flash-lite'; // 과부하 시 폴백 // stable // deploy_20260528_2349
+const GEMINI_MODEL  = 'gemini-3.5-flash';
+const GEMINI_FALLBACK = 'gemini-2.5-flash'; // 과부하 시 폴백 // stable // deploy_20260528_2349
 const AI_CACHE_TTL  = 7 * 24 * 60 * 60 * 1000;
 let _aiCompany      = '';
 let _aiData         = {};
