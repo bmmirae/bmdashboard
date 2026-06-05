@@ -3582,6 +3582,7 @@ function _renderResult(r) {
       <div style="font-size:11px;color:var(--text-sub);margin-bottom:8px;">
         ${seo.platform} · 로딩속도 ${seo.load_ms}ms · 이미지alt ${seo.img_alt_rate}%
         ${seo.title ? '· "'+seo.title.slice(0,25)+'"' : ''}
+        ${seo.has_mobile_site ? '· 별도모바일사이트있음' : ''}
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
         <div style="background:rgba(0,0,0,.04);border-radius:8px;padding:8px;">
