@@ -3539,7 +3539,7 @@ function _renderResult(r) {
     const compColor = {'높음':'#c62828','중간':'#e65100','낮음':'#2e7d32'};
     const rows = kws.map(function(k) {
       const total = (k.total||0).toLocaleString();
-      const cpc   = k.avg_cpc > 0 ? k.avg_cpc.toLocaleString()+'원' : '-';
+      const rank  = k.avg_rank > 0 ? k.avg_rank + '위' : '-';
       const cc    = compColor[k.competition] || '#555';
       return `<tr style='border-bottom:1px solid var(--border);'>
         <td style='padding:5px 8px;font-size:11px;font-weight:600;'>${k.keyword}</td>
@@ -3547,7 +3547,7 @@ function _renderResult(r) {
         <td style='padding:5px 8px;font-size:11px;text-align:center;'>
           <span style='color:${cc};font-weight:700;font-size:10px;'>${k.competition||'-'}</span>
         </td>
-        <td style='padding:5px 8px;font-size:11px;text-align:right;color:#1a237e;'>${cpc}</td>
+        <td style='padding:5px 8px;font-size:11px;text-align:center;color:#1a237e;'>${rank}</td>
       </tr>`;
     }).join('');
     html += `<div class='ai-section' style='background:#f9fbe7;border:1px solid #c5e1a5;border-radius:10px;padding:12px 16px;margin-bottom:12px;'>
@@ -3560,7 +3560,7 @@ function _renderResult(r) {
               <th style='padding:5px 8px;font-size:10px;text-align:left;color:var(--text-sub);'>키워드</th>
               <th style='padding:5px 8px;font-size:10px;text-align:right;color:var(--text-sub);'>월검색량</th>
               <th style='padding:5px 8px;font-size:10px;text-align:center;color:var(--text-sub);'>경쟁강도</th>
-              <th style='padding:5px 8px;font-size:10px;text-align:right;color:var(--text-sub);'>평균CPC</th>
+              <th style='padding:5px 8px;font-size:10px;text-align:center;color:var(--text-sub);'>노출순위</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
