@@ -3165,10 +3165,8 @@ function refreshAIAnalysis() {
   const nb = document.getElementById('aiNaverBadge');
   if (nb) { nb.style.display='none'; nb.textContent=''; }
   // 서버 캐시도 삭제 후 Gemini 호출
-  callServer('serverSaveAIAnalysis', {
-    role:SESSION.role, token:SESSION.token,
-    company:_aiCompany, analysis:'{}'
-  }).catch(function(){});
+  // 시트 저장 (실패해도 무시)
+  try { fetch(API_URL + '?action=serverSaveAIAnalysis&role=' + encodeURIComponent(SESSION.role||"") + '&token=' + encodeURIComponent(SESSION.token||"") + '&company=' + encodeURIComponent(_aiCompany) + '&analysis=' + encodeURIComponent('{}'), {mode:'no-cors'}).catch(function(){}); } catch(e) {}
   _callGemini(localStorage.getItem('gemini_api_key')||'');
 }
 
@@ -3478,11 +3476,8 @@ ${hasAudio ? `JSON만 출력:
     _renderResult(result);
     document.getElementById('aiSavedAt').textContent = '✨ 방금 분석됨 · ' + now;
 
-    // 백그라운드 시트 저장
-    callServer('serverSaveAIAnalysis', {
-      role:SESSION.role, token:SESSION.token,
-      company:_aiCompany, analysis:JSON.stringify(result)
-    }).catch(()=>{});
+    // 백그라운드 시트 저장 (실패해도 무시)
+    try { fetch(API_URL + '?action=serverSaveAIAnalysis&role=' + encodeURIComponent(SESSION.role||"") + '&token=' + encodeURIComponent(SESSION.token||"") + '&company=' + encodeURIComponent(_aiCompany) + '&analysis=' + encodeURIComponent(JSON.stringify(result)), {mode:'no-cors'}).catch(function(){}); } catch(e) {}
 
   } catch(e) {
     timers.forEach(clearTimeout);
