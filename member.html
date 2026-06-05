@@ -2963,7 +2963,13 @@ function _aiCacheLoad(company) {
   } catch(e) { return null; }
 }
 function _aiCacheSave(company, result, savedAt) {
-  try { localStorage.setItem(_aiKey(company), JSON.stringify({result,savedAt,ts:Date.now()})); } catch(e) {}
+  try {
+    localStorage.setItem(_aiKey(company), JSON.stringify({
+      result, savedAt, ts: Date.now(),
+      keywords: window._lastKeywords || null,
+      seoData:  window._lastSeoData  || null,
+    }));
+  } catch(e) {}
 }
 
 // ── row 맵에서 데이터 꺼내서 모달 열기 ─────────────────────────
@@ -3005,6 +3011,9 @@ function openAIModal(company, keyword, contactPoint, content, url, grade, budget
   // 캐시 확인
   const cached = _aiCacheLoad(company);
   if (cached) {
+    // 캐시에서 키워드/SEO 데이터 복원
+    if (cached.keywords) window._lastKeywords = cached.keywords;
+    if (cached.seoData)  window._lastSeoData  = cached.seoData;
     _renderResult(cached.result);
     document.getElementById('aiSavedAt').textContent = '📦 저장된 분석 · ' + cached.savedAt + ' · 🔄 재분석 버튼으로 새로 분석';
   }
