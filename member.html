@@ -3539,15 +3539,19 @@ function _renderResult(r) {
     const compColor = {'높음':'#c62828','중간':'#e65100','낮음':'#2e7d32'};
     const rows = kws.map(function(k) {
       const total = (k.total||0).toLocaleString();
-      const rank  = k.avg_rank > 0 ? k.avg_rank + '위' : '-';
-      const cc    = compColor[k.competition] || '#555';
+      const pc      = (k.pc||0).toLocaleString();
+      const mob     = (k.mobile||0).toLocaleString();
+      const clk     = (k.total_click||0).toLocaleString() + '건';
+      const bid     = k.bid_1st > 0 ? k.bid_1st.toLocaleString() + '원' : '-';
+      const cost    = k.est_cost > 0 ? Math.round(k.est_cost/10000) + '만원' : '-';
+      const costClr = k.est_cost > 500000 ? '#c62828' : k.est_cost > 100000 ? '#e65100' : '#2e7d32';
       return `<tr style='border-bottom:1px solid var(--border);'>
         <td style='padding:5px 8px;font-size:11px;font-weight:600;'>${k.keyword}</td>
-        <td style='padding:5px 8px;font-size:11px;text-align:right;'>${total}</td>
-        <td style='padding:5px 8px;font-size:11px;text-align:center;'>
-          <span style='color:${cc};font-weight:700;font-size:10px;'>${k.competition||'-'}</span>
-        </td>
-        <td style='padding:5px 8px;font-size:11px;text-align:center;color:#1a237e;'>${rank}</td>
+        <td style='padding:5px 8px;font-size:11px;text-align:right;color:#1565c0;'>${pc}</td>
+        <td style='padding:5px 8px;font-size:11px;text-align:right;color:#6a1b9a;'>${mob}</td>
+        <td style='padding:5px 8px;font-size:11px;text-align:right;'>${clk}</td>
+        <td style='padding:5px 8px;font-size:11px;text-align:right;color:#1a237e;'>${bid}</td>
+        <td style='padding:5px 8px;font-size:11px;text-align:right;font-weight:700;color:${costClr};'>${cost}</td>
       </tr>`;
     }).join('');
     html += `<div class='ai-section' style='background:#f9fbe7;border:1px solid #c5e1a5;border-radius:10px;padding:12px 16px;margin-bottom:12px;'>
@@ -3558,9 +3562,11 @@ function _renderResult(r) {
           <thead>
             <tr style='background:rgba(0,0,0,.04);'>
               <th style='padding:5px 8px;font-size:10px;text-align:left;color:var(--text-sub);'>키워드</th>
-              <th style='padding:5px 8px;font-size:10px;text-align:right;color:var(--text-sub);'>월검색량</th>
-              <th style='padding:5px 8px;font-size:10px;text-align:center;color:var(--text-sub);'>경쟁강도</th>
-              <th style='padding:5px 8px;font-size:10px;text-align:center;color:var(--text-sub);'>노출순위</th>
+              <th style='padding:5px 8px;font-size:10px;text-align:right;color:var(--text-sub);'>PC검색</th>
+              <th style='padding:5px 8px;font-size:10px;text-align:right;color:var(--text-sub);'>모바일</th>
+              <th style='padding:5px 8px;font-size:10px;text-align:right;color:var(--text-sub);'>예상클릭</th>
+              <th style='padding:5px 8px;font-size:10px;text-align:right;color:var(--text-sub);'>1위입찰가</th>
+              <th style='padding:5px 8px;font-size:10px;text-align:right;color:var(--text-sub);'>예상광고비/월</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
