@@ -331,7 +331,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v2.4';
+const DASHBOARD_VERSION = 'v2.5';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -786,10 +786,11 @@ function computeAgentDataForRange(rangeStart, rangeEnd) {
     const weekGoalMin = Math.max(0, dailyGoal * goalDays - customDeductMin);
 
     const myCalls = weekCalls.filter(c => c['상담원'] === name);
-    const totalSec = computeCallTimeSec(myCalls); // 중복번호 최장통화만 + 20분 캡 적용
+    const myOutCalls = myCalls.filter(c => c['유형'] === 'out');
+    const totalSec = computeCallTimeSec(myOutCalls); // 아웃콜만 집계, 중복번호 최장통화만 + 20분 캡 적용
     const totalMin = totalSec / 60;
     const callCount = myCalls.length;
-    const outCount = myCalls.filter(c => c['유형'] === 'out').length;
+    const outCount = myOutCalls.length;
 
     const mySales = weekSales.filter(s => s['상담원'] === name);
     const totalSalesAmt = mySales.reduce((sum, s) => sum + (Number(s['금액']) || 0), 0);
