@@ -372,7 +372,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v3.3';
+const DASHBOARD_VERSION = 'v3.4';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -881,11 +881,35 @@ function computeWeekRangeForOffset(offset) {
   return { start: mon, end: fri };
 }
 
+// 현재 주 이전(offset-1)부터 거슬러 올라가며 연속으로 미달성(콜·이관 둘 다 실패)한 주 수를 셈.
+// 목표 예외 인원(dailyGoal=0)이거나 데이터가 없으면 거기서 멈춤. 최대 8주까지만 확인.
+function computeMissStreak(name, currentOffset) {
+  if (currentOffset <= 0) return 0;
+  let streak = 0;
+  const lookbackLimit = Math.min(currentOffset, 8);
+  for (let i = 1; i <= lookbackLimit; i++) {
+    const offset = currentOffset - i;
+    const range = computeWeekRangeForOffset(offset);
+    const data = computeAgentDataForRange(range.start, range.end);
+    const d = data[name];
+    if (!d || d.dailyGoal === 0) break;
+    const missed = !(d.callAchieved || d.salesAchieved);
+    if (missed) streak++; else break;
+  }
+  return streak;
+}
+
 // ══════════════════════════════════════
 // DASHBOARD RENDERING
 // ══════════════════════════════════════
 function renderDashboard() {
   const agentData = computeAgentDataForRange(STATE.weekStart, STATE.weekEnd);
+
+  // 지난주부터 거슬러 올라가며 연속 미달성 주 수 계산 (예외 인원 제외)
+  Object.keys(agentData).forEach(name => {
+    const d = agentData[name];
+    d.missStreak = (d.dailyGoal > 0) ? computeMissStreak(name, STATE.weekOffset) : 0;
+  });
 
   const teams = {};
   STATE.settings.forEach(s => {
@@ -1035,6 +1059,9 @@ function renderPersonCard(name, d) {
   }
   if (d.penaltyMin > 0) {
     badge += `<span class="person-badge badge-leave">⚠️ 패널티 +${d.penaltyMin}분</span> `;
+  }
+  if (d.missStreak > 0) {
+    badge += `<span class="person-badge badge-half">🚨 ${d.missStreak}회차 패널티</span> `;
   }
   if (d.leaveDays.length > 0) {
     const types = d.leaveDays.map(l => l.type);
