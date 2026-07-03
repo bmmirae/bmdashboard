@@ -1,8 +1,15 @@
 {
-  "통합": [],
+  "통합": [
+    {
+      "id": "2026-07-call",
+      "label": "2026년 7월 CALL 분석",
+      "file": "promo/call-analytics-2507.html",
+      "active": true
+    }
+  ],
   "BM2": {
     "전체": [
-            {
+      {
         "id": "2026-05-1",
         "label": "2026년 5월 1회차",
         "file": "promo/bm2/2026-05.html",
