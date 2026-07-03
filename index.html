@@ -453,24 +453,6 @@ function _applyData(res){
   buildNav(calcClientStats(CURRENT_ROWS));
   renderDash(calcClientStats(CURRENT_ROWS),res.roleInfo);
 
-  // ── COMPARE_DATA 비동기 로드 (나의 가망건 비교 차트용) ──
-  if(!res.compareData){
-    window.COMPARE_DATA=null;
-    window.COMPARE_DATA_LOADING=true;
-    callServer('serverGetCompareData',{role:SESSION.role,token:SESSION.token})
-      .then(d=>{
-        window.COMPARE_DATA_LOADING=false;
-        if(d&&d.success&&d.compareData){
-          window.COMPARE_DATA=d.compareData;
-          const dc=document.getElementById('dashContent');
-          if(dc){const fs=dc.querySelector('.sec');if(fs){const tmp=document.createElement('div');tmp.innerHTML=renderMemberCompareCharts();if(tmp.firstElementChild)fs.replaceWith(tmp.firstElementChild);}}
-        }
-      })
-      .catch(()=>{window.COMPARE_DATA_LOADING=false;});
-  }else{
-    window.COMPARE_DATA=res.compareData;
-    window.COMPARE_DATA_LOADING=false;
-  }
 }
 
 async function loadData(forceRefresh=false){
@@ -654,32 +636,58 @@ function renderSalesCharts(){
 // ── 나의 가망건 비교 차트 ─────────────────────
 function renderMemberCompareCharts(){
   if(!SESSION||!SESSION.roleInfo)return'';
-  const ri=SESSION.roleInfo;const myName=ri.name||'';const myTitle=ri.title||'사원';
-  const allRows=CURRENT_ROWS;const activeAll=allRows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
-  const myBU=(activeAll.find(r=>r.manager===myName)||{}).bu||ri.bu||(()=>{for(const bu in ORG_MAP)for(const team in ORG_MAP[bu])if((ORG_MAP[bu][team]||[]).includes(myName))return bu;return'';})();
-  const isIntern=myTitle==='인턴';
+  const ri=SESSION.roleInfo;const myName=ri.name||'';
   const GRADE_KEYS=['단기','장기','권한오픈','권한+브리핑','이관완료'];
   const GRADE_COLORS={'단기':'#e65100','장기':'#c62828','권한오픈':'#6a1b9a','권한+브리핑':'#1565c0','이관완료':'#2e7d32','미분류':'#9e9e9e'};
-  const isLoading=window.COMPARE_DATA_LOADING===true;
-  const cd=window.COMPARE_DATA||[];
-  const allData=isIntern?cd.filter(d=>d.title==='인턴'):cd;
-  const allCount=allData.reduce((s,d)=>s+d.managerCount,0);
-  const allTotal=allData.reduce((s,d)=>s+d.total,0);
-  const avgGradeAll={};allData.forEach(d=>Object.entries(d.grades).forEach(([g,cnt])=>{avgGradeAll[g]=(avgGradeAll[g]||0)+cnt;}));
+
+  // ── CURRENT_ROWS 기반 클라이언트 계산 (날짜 필터 반영) ──
+  let filteredRows=CURRENT_ROWS;
+  if(DATE_FROM||DATE_TO){
+    filteredRows=CURRENT_ROWS.filter(r=>{
+      const norm=normalizeDate(r.firstCall)||'';let maxD=norm;
+      if(r.recalls&&r.recalls.length){r.recalls.forEach(rc=>{const d=typeof rc==='object'?normalizeDate(rc.date)||'':normalizeDate(String(rc).slice(0,10))||'';if(d&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&d>maxD)maxD=d;});}
+      const latestDate=maxD||norm;
+      if(DATE_FROM&&latestDate<DATE_FROM)return false;
+      if(DATE_TO&&latestDate>DATE_TO)return false;
+      return true;
+    });
+  }
+  const active=filteredRows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
+
+  // 전체 인원 평균 (담당자별 집계)
+  const memberMap={};
+  active.forEach(r=>{
+    if(!memberMap[r.manager])memberMap[r.manager]={bu:r.bu,grades:{}};
+    const g=r.grade||'미분류';memberMap[r.manager].grades[g]=(memberMap[r.manager].grades[g]||0)+1;
+  });
+  const allMembers=Object.values(memberMap);const allCount=allMembers.length;
+  const avgGradeAll={};
+  allMembers.forEach(m=>Object.entries(m.grades).forEach(([g,cnt])=>{avgGradeAll[g]=(avgGradeAll[g]||0)+cnt;}));
   if(allCount>0)Object.keys(avgGradeAll).forEach(g=>{avgGradeAll[g]=Math.round(avgGradeAll[g]/allCount*10)/10;});
-  const avgTotalAll=allCount>0?Math.round(allTotal/allCount*10)/10:0;
-  const allLabel=isIntern?'전체 인턴 평균':'전체 인원 평균';const allSub=allCount+'명 기준 · 평균 '+avgTotalAll+'건';
-  const buData=isIntern?cd.filter(d=>d.title==='인턴'&&d.bu===myBU):cd.filter(d=>d.bu===myBU);
-  const buCount=buData.reduce((s,d)=>s+d.managerCount,0);const buTotal=buData.reduce((s,d)=>s+d.total,0);
-  const avgGradeBU={};buData.forEach(d=>Object.entries(d.grades).forEach(([g,cnt])=>{avgGradeBU[g]=(avgGradeBU[g]||0)+cnt;}));
+  const avgTotalAll=allCount>0?Math.round(active.length/allCount*10)/10:0;
+  const allLabel='전체 인원 평균';const allSub=allCount+'명 기준 · 평균 '+avgTotalAll+'건';
+
+  // 본부 평균
+  const myBU=(active.find(r=>r.manager===myName)||{}).bu||ri.bu||(()=>{for(const bu in ORG_MAP)for(const team in ORG_MAP[bu])if((ORG_MAP[bu][team]||[]).includes(myName))return bu;return'';})();
+  const buMembers=allMembers.filter(m=>m.bu===myBU);const buActive=active.filter(r=>r.bu===myBU);
+  const buCount=buMembers.length;
+  const avgGradeBU={};
+  buMembers.forEach(m=>Object.entries(m.grades).forEach(([g,cnt])=>{avgGradeBU[g]=(avgGradeBU[g]||0)+cnt;}));
   if(buCount>0)Object.keys(avgGradeBU).forEach(g=>{avgGradeBU[g]=Math.round(avgGradeBU[g]/buCount*10)/10;});
-  const avgTotalBU=buCount>0?Math.round(buTotal/buCount*10)/10:0;
-  const buLabel=isIntern?(myBU||'본부')+' 인턴 평균':(myBU||'본부')+' 전체 평균';const buSub=buCount+'명 기준 · 평균 '+avgTotalBU+'건';
-  const myRows=activeAll.filter(r=>r.manager===myName);const myGrades={};myRows.forEach(r=>{const g=r.grade||'미분류';myGrades[g]=(myGrades[g]||0)+1;});
-  const myTotal=myRows.length;const myDone=allRows.filter(r=>r.manager===myName&&r.grade==='이관완료');
+  const avgTotalBU=buCount>0?Math.round(buActive.length/buCount*10)/10:0;
+  const buLabel=(myBU||'본부')+' 전체 평균';const buSub=buCount+'명 기준 · 평균 '+avgTotalBU+'건';
+
+  // 날짜 라벨
+  const dateLabel=DATE_FROM||DATE_TO?' ('+(DATE_FROM||'시작')+' ~ '+(DATE_TO||'현재')+')':'';
+
+  // 나의 가망건
+  const myRows=active.filter(r=>r.manager===myName);
+  const myGrades={};myRows.forEach(r=>{const g=r.grade||'미분류';myGrades[g]=(myGrades[g]||0)+1;});
+  const myTotal=myRows.length;const myDone=filteredRows.filter(r=>r.manager===myName&&r.grade==='이관완료');
+
   const makeDonut=(gradeMap,total,label,sub,extra)=>{
     extra=extra||'';const totalNum=typeof total==='number'?total:Object.values(gradeMap).reduce((a,b)=>a+b,0);
-    if(totalNum===0){const inner=isLoading?'<svg width="130" height="130" viewBox="0 0 130 130" style="display:block;margin:0 auto;animation:spin-cmp .9s linear infinite"><circle cx="65" cy="65" r="50" fill="none" stroke="var(--surface2)" stroke-width="16"/><circle cx="65" cy="65" r="50" fill="none" stroke="#3949ab" stroke-width="16" stroke-dasharray="80 235" stroke-dashoffset="0" stroke-linecap="round"/></svg><div style="font-size:11px;color:var(--text-muted);margin-top:6px;">불러오는 중...</div>':'<svg width="130" height="130" viewBox="0 0 130 130" style="display:block;margin:0 auto;"><circle cx="65" cy="65" r="50" fill="none" stroke="var(--surface2)" stroke-width="16"/><text x="65" y="70" text-anchor="middle" font-size="12" fill="var(--text-sub)">데이터 없음</text></svg>';return'<div style="text-align:center;flex:1;min-width:160px;">'+inner+'<div style="font-size:13px;font-weight:700;margin-top:6px;">'+label+'</div><div style="font-size:11px;color:var(--text-sub);">'+sub+'</div></div>';}
+    if(totalNum===0){return'<div style="text-align:center;flex:1;min-width:160px;"><svg width="130" height="130" viewBox="0 0 130 130" style="display:block;margin:0 auto;"><circle cx="65" cy="65" r="50" fill="none" stroke="var(--surface2)" stroke-width="16"/><text x="65" y="70" text-anchor="middle" font-size="12" fill="var(--text-sub)">데이터 없음</text></svg><div style="font-size:13px;font-weight:700;margin-top:6px;">'+label+'</div><div style="font-size:11px;color:var(--text-sub);">'+sub+'</div></div>';}
     const r=50,circ=2*Math.PI*r;let offset=0;const slices=[];
     GRADE_KEYS.forEach(g=>{const cnt=gradeMap[g]||0;if(!cnt)return;const pct=cnt/totalNum;slices.push({g,cnt,dash:(pct*circ).toFixed(2),offset:offset*circ});offset+=pct;});
     const svgSlices=slices.map(sl=>'<circle cx="65" cy="65" r="'+r+'" fill="none" stroke="'+(GRADE_COLORS[sl.g]||'#9e9e9e')+'" stroke-width="16" stroke-dasharray="'+sl.dash+' '+circ+'" stroke-dashoffset="'+(-(sl.offset-circ/4))+'" stroke-linecap="butt"/>').join('');
@@ -687,8 +695,9 @@ function renderMemberCompareCharts(){
     return'<div style="text-align:center;flex:1;min-width:160px;"><svg width="130" height="130" viewBox="0 0 130 130" style="display:block;margin:0 auto;"><circle cx="65" cy="65" r="'+r+'" fill="none" stroke="var(--surface2)" stroke-width="16"/>'+svgSlices+'<text x="65" y="60" text-anchor="middle" font-size="20" font-weight="700" fill="var(--text)">'+totalNum+'</text><text x="65" y="76" text-anchor="middle" font-size="10" fill="var(--text-sub)">건</text></svg><div style="font-size:13px;font-weight:700;margin-top:4px;">'+label+'</div><div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;">'+sub+'</div><div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;">'+legend+'</div>'+extra+'</div>';
   };
   const evalText=()=>{let txt='';if(avgTotalAll>0){const diff=Math.round((myTotal-avgTotalAll)*10)/10;const sign=diff>=0?'+':'';txt+='<div style="font-size:10px;margin-top:4px;color:'+(diff>=0?'#2e7d32':'#c62828')+';">전체 대비 '+sign+diff+'건 · '+(diff>=0?'👍 전체 평균 이상!':'👎 전체 평균 이하')+'</div>';}if(avgTotalBU>0){const diff=Math.round((myTotal-avgTotalBU)*10)/10;const sign=diff>=0?'+':'';txt+='<div style="font-size:10px;margin-top:2px;color:'+(diff>=0?'#2e7d32':'#c62828')+';">본부 대비 '+sign+diff+'건 · '+(diff>=0?'👍 본부 평균 이상!':'👎 본부 평균 이하')+'</div>';}return txt;};
-  const doneDonut=()=>{const cnt=myDone.length;if(cnt===0)return'<div style="text-align:center;flex:1;min-width:160px;"><svg width="130" height="130" viewBox="0 0 130 130" style="display:block;margin:0 auto;"><circle cx="65" cy="65" r="50" fill="none" stroke="var(--surface2)" stroke-width="16"/><text x="65" y="70" text-anchor="middle" font-size="12" fill="var(--text-sub)">0건</text></svg><div style="font-size:13px;font-weight:700;margin-top:6px;">이관완료</div><div style="font-size:11px;color:var(--text-sub);">'+myName+' 누적 0건</div></div>';return'<div style="text-align:center;flex:1;min-width:160px;"><svg width="130" height="130" viewBox="0 0 130 130" style="display:block;margin:0 auto;"><circle cx="65" cy="65" r="50" fill="none" stroke="#2e7d32" stroke-width="16"/><text x="65" y="60" text-anchor="middle" font-size="20" font-weight="700" fill="#2e7d32">'+cnt+'</text><text x="65" y="76" text-anchor="middle" font-size="10" fill="var(--text-sub)">건</text></svg><div style="font-size:13px;font-weight:700;margin-top:4px;">이관완료</div><div style="font-size:11px;color:var(--text-sub);">'+myName+' 누적 '+cnt+'건</div></div>';};
-  return'<div class="sec"><div class="sec-hd sh-b" style="margin-bottom:16px;">📊 나의 가망건 비교 현황</div><div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:space-around;padding:8px 0;">'+makeDonut(avgGradeAll,avgTotalAll,allLabel,allSub)+makeDonut(avgGradeBU,avgTotalBU,buLabel,buSub)+makeDonut(myGrades,myTotal,'나의 가망건',myName+' · 활성 '+myTotal+'건',evalText())+doneDonut()+'</div></div>';
+  const doneDonut=()=>{const cnt=myDone.length;if(cnt===0)return'<div style="text-align:center;flex:1;min-width:160px;"><svg width="130" height="130" viewBox="0 0 130 130" style="display:block;margin:0 auto;"><circle cx="65" cy="65" r="50" fill="none" stroke="var(--surface2)" stroke-width="16"/><text x="65" y="70" text-anchor="middle" font-size="12" fill="var(--text-sub)">0건</text></svg><div style="font-size:13px;font-weight:700;margin-top:6px;">이관완료</div><div style="font-size:11px;color:var(--text-sub);">기간 내 0건</div></div>';return'<div style="text-align:center;flex:1;min-width:160px;"><svg width="130" height="130" viewBox="0 0 130 130" style="display:block;margin:0 auto;"><circle cx="65" cy="65" r="50" fill="none" stroke="#2e7d32" stroke-width="16"/><text x="65" y="60" text-anchor="middle" font-size="20" font-weight="700" fill="#2e7d32">'+cnt+'</text><text x="65" y="76" text-anchor="middle" font-size="10" fill="var(--text-sub)">건</text></svg><div style="font-size:13px;font-weight:700;margin-top:4px;">이관완료</div><div style="font-size:11px;color:var(--text-sub);">기간 내 '+cnt+'건</div></div>';};
+  const title='📊 가망건 현황 비교'+dateLabel;
+  return'<div class="sec"><div class="sec-hd sh-b" style="margin-bottom:16px;">'+title+'</div><div style="display:flex;gap:16px;flex-wrap:wrap;justify-content:space-around;padding:8px 0;">'+makeDonut(avgGradeAll,avgTotalAll,allLabel,allSub)+makeDonut(avgGradeBU,avgTotalBU,buLabel,buSub)+makeDonut(myGrades,myTotal,'나의 가망건',myName+' · 활성 '+myTotal+'건',evalText())+doneDonut()+'</div></div>';
 }
 
 // ── 메인 렌더링 (member.html 순서 기준) ─────────
