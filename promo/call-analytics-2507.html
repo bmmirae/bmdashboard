@@ -249,7 +249,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 <div class="tab-bar">
   <button class="tab-btn active" data-tab="dashboard">📊 현황 대시보드</button>
   <button class="tab-btn" data-tab="upload">📤 데이터 업로드</button>
-  <button class="tab-btn" data-tab="input">✏️ 근태 · 이관매출</button>
+  <button class="tab-btn" data-tab="input">✏️ 근태 · 이관매출 · 패널티</button>
   <button class="tab-btn" data-tab="roster">👥 인원관리</button>
 </div>
 
@@ -326,6 +326,19 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
       <div id="salesStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
       <div id="salesList" style="margin-top:12px;"></div>
     </div>
+
+    <div class="form-section">
+      <div class="form-title">⚠️ 패널티 입력 (목표분 증가)</div>
+      <div class="form-row">
+        <input type="date" id="penaltyDate">
+        <select id="penaltyTeamFilter" onchange="filterAgentSelect('penalty')"></select>
+        <select id="penaltyAgent"></select>
+        <input type="number" id="penaltyMin" placeholder="추가분" style="width:90px;" min="0"><span style="font-size:12px;color:var(--text-dim)">분</span>
+        <button class="save-btn" onclick="savePenaltyEntry()">저장</button>
+      </div>
+      <div id="penaltyStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
+      <div id="penaltyList" style="margin-top:12px;"></div>
+    </div>
   </div>
 </div>
 
@@ -359,7 +372,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v3.2';
+const DASHBOARD_VERSION = 'v3.3';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -378,6 +391,7 @@ let STATE = {
   calls: [],
   attendance: [],
   sales: [],
+  penalty: [],
   weekOffset: 0,     // 0 = 첫 주(7/1~7/3), 1 = 7/6~7/10, -1 등
   weekStart: null,
   weekEnd: null,
@@ -528,6 +542,7 @@ function changeWeek(delta) {
   renderDashboard();
   renderAttendanceList();
   renderSalesList();
+  renderPenaltyList();
 }
 
 document.getElementById('prevWeek').addEventListener('click', () => changeWeek(-1));
@@ -547,6 +562,7 @@ async function loadAllData() {
     STATE.calls = data.calls || [];
     STATE.attendance = data.attendance || [];
     STATE.sales = data.sales || [];
+    STATE.penalty = data.penalty || [];
 
     document.getElementById('lastSync').textContent = '동기화: ' + new Date().toLocaleTimeString('ko');
     if (data.lastUpload) {
@@ -558,6 +574,7 @@ async function loadAllData() {
     try { renderDashboard(); } catch (e) { console.error('renderDashboard 오류:', e); }
     try { renderAttendanceList(); } catch (e) { console.error('renderAttendanceList 오류:', e); }
     try { renderSalesList(); } catch (e) { console.error('renderSalesList 오류:', e); }
+    try { renderPenaltyList(); } catch (e) { console.error('renderPenaltyList 오류:', e); }
   } catch (err) {
     document.getElementById('teamCards').innerHTML =
       `<div class="loading" style="color:var(--red)">데이터 로드 실패: ${err.message}</div>`;
@@ -781,6 +798,10 @@ function computeAgentDataForRange(rangeStart, rangeEnd) {
     const d = String(s['날짜']).substring(0, 10);
     return d >= wsStr && d <= weStr;
   });
+  const weekPenalty = STATE.penalty.filter(p => {
+    const d = String(p['날짜']).substring(0, 10);
+    return d >= wsStr && d <= weStr;
+  });
 
   const monthStart = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
   const monthEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 0);
@@ -816,7 +837,10 @@ function computeAgentDataForRange(rangeStart, rangeEnd) {
       } else goalDays += 1;
     });
 
-    const weekGoalMin = Math.max(0, dailyGoal * goalDays - customDeductMin);
+    const myPenalty = weekPenalty.filter(p => p['상담원'] === name);
+    const penaltyMin = myPenalty.reduce((sum, p) => sum + (Number(p['추가분']) || 0), 0);
+
+    const weekGoalMin = Math.max(0, dailyGoal * goalDays - customDeductMin + penaltyMin);
 
     const myCalls = weekCalls.filter(c => c['상담원'] === name);
     const myOutCalls = myCalls.filter(c => c['유형'] === 'out');
@@ -838,7 +862,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd) {
 
     agentData[name] = {
       dailyGoal, weekGoalMin, totalMin, totalSec, callCount, outCount,
-      weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt,
+      weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt, penaltyMin,
       hasCallGoal, callPct, salesPct,
       callAchieved: hasCallGoal && callPct >= 100,
       salesAchieved: monthlyExempt || salesPct >= 100
@@ -1009,6 +1033,9 @@ function renderPersonCard(name, d) {
   if (d.dailyGoal === 0) {
     badge += `<span class="person-badge badge-sparkle">✨ 1억 이상 매출 달성자</span> `;
   }
+  if (d.penaltyMin > 0) {
+    badge += `<span class="person-badge badge-leave">⚠️ 패널티 +${d.penaltyMin}분</span> `;
+  }
   if (d.leaveDays.length > 0) {
     const types = d.leaveDays.map(l => l.type);
     if (types.includes('연차')) badge += `<span class="person-badge badge-leave">연차 ${d.leaveDays.filter(l=>l.type==='연차').length}일</span> `;
@@ -1101,7 +1128,7 @@ let _dateDefaultsSet = false;
 function populateAgentSelects() {
   // 팀 필터 드롭다운 채우기 (전체 + 팀 목록)
   const teamOrder = getTeamOrder();
-  ['attTeamFilter', 'salesTeamFilter'].forEach(id => {
+  ['attTeamFilter', 'salesTeamFilter', 'penaltyTeamFilter'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const prevValue = sel.value;
@@ -1111,6 +1138,7 @@ function populateAgentSelects() {
 
   filterAgentSelect('att');
   filterAgentSelect('sales');
+  filterAgentSelect('penalty');
 
   const teamListEl = document.getElementById('teamList');
   if (teamListEl) {
@@ -1121,13 +1149,15 @@ function populateAgentSelects() {
     const today = new Date().toISOString().substring(0, 10);
     const attDate = document.getElementById('attDate');
     const salesDate = document.getElementById('salesDate');
+    const penaltyDate = document.getElementById('penaltyDate');
     if (attDate) attDate.value = today;
     if (salesDate) salesDate.value = today;
+    if (penaltyDate) penaltyDate.value = today;
     _dateDefaultsSet = true;
   }
 }
 
-// 팀 필터 선택에 따라 상담원 드롭다운 옵션을 좁혀줌 (zone: 'att' | 'sales')
+// 팀 필터 선택에 따라 상담원 드롭다운 옵션을 좁혀줌 (zone: 'att' | 'sales' | 'penalty')
 function filterAgentSelect(zone) {
   const teamFilterEl = document.getElementById(zone + 'TeamFilter');
   const agentSelEl = document.getElementById(zone + 'Agent');
@@ -1256,6 +1286,94 @@ async function deleteAttendance(row) {
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
     showToast('근태 삭제 완료');
+    await loadAllData();
+  } catch (err) {
+    alert('삭제 실패: ' + err.message);
+  }
+}
+
+// ══════════════════════════════════════
+// PENALTY (패널티 — 목표분 증가)
+// ══════════════════════════════════════
+async function savePenaltyEntry() {
+  const date = document.getElementById('penaltyDate').value;
+  const agent = document.getElementById('penaltyAgent').value;
+  const min = Number(document.getElementById('penaltyMin').value) || 0;
+  const status = document.getElementById('penaltyStatus');
+  if (!date || !agent) return;
+  if (min <= 0) { status.textContent = '❌ 추가할 분을 입력해주세요'; return; }
+
+  status.textContent = '저장 중...';
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'savePenalty', data: [{ '날짜': date, '상담원': agent, '추가분': min }], password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    status.textContent = `✅ ${agent} ${date} 패널티 +${min}분 저장 완료`;
+    document.getElementById('penaltyMin').value = '';
+    showToast('패널티 저장 완료');
+    await loadAllData();
+  } catch (err) {
+    status.textContent = '❌ 실패: ' + err.message;
+  }
+}
+
+function renderPenaltyList() {
+  const el = document.getElementById('penaltyList');
+  if (!el) return;
+  const dateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const wsStr = dateStr(STATE.weekStart), weStr = dateStr(STATE.weekEnd);
+  const weekPenalty = STATE.penalty.filter(p => {
+    const d = String(p['날짜']).substring(0,10);
+    return d >= wsStr && d <= weStr;
+  });
+  if (weekPenalty.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-dim)">이번 주 패널티 기록 없음</div>';
+    return;
+  }
+  el.innerHTML = weekPenalty.map(p => `
+    <div class="record-row">
+      <span class="record-date">${String(p['날짜']).substring(0,10)}</span>
+      <span class="record-name">${p['상담원']}</span>
+      <div style="display:flex;gap:4px;align-items:center;">
+        <input type="number" id="penaltyMin_${p['_row']}" value="${Number(p['추가분'])||0}" min="0" style="width:60px;"><span style="font-size:11px;color:var(--text-dim)">분</span>
+        <button class="save-btn" style="padding:5px 8px;font-size:11px;" onclick="updatePenaltyMin(${p['_row']}, document.getElementById('penaltyMin_${p['_row']}').value)">적용</button>
+      </div>
+      <button class="roster-del" onclick="deletePenalty(${p['_row']})" title="삭제">✕</button>
+    </div>`
+  ).join('');
+}
+
+async function updatePenaltyMin(row, value) {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'updatePenaltyMin', row, value, password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    showToast('패널티 수정 완료');
+    await loadAllData();
+  } catch (err) {
+    alert('수정 실패: ' + err.message);
+  }
+}
+
+async function deletePenalty(row) {
+  if (!confirm('이 패널티 기록을 삭제하시겠습니까?')) return;
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'deletePenalty', row, password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    showToast('패널티 삭제 완료');
     await loadAllData();
   } catch (err) {
     alert('삭제 실패: ' + err.message);
