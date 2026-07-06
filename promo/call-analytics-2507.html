@@ -372,7 +372,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v3.4';
+const DASHBOARD_VERSION = 'v3.5';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -1129,6 +1129,7 @@ function renderPersonCard(name, d) {
         <div class="metric-label"><span>💰 이관매출</span><span class="pct">${Math.round(d.salesPct)}%${sIcon}</span></div>
         <div class="progress-bar"><div class="progress-fill ${sCls}" style="width:${sPct}%"></div></div>
         <div class="metric-detail sales-amount"><strong>${formatWon(d.totalSalesAmt)}</strong> / ${formatWon(d.weekSalesGoal)}</div>
+        <div class="metric-detail">월간 누적 <strong style="color:var(--text)">${formatWon(d.monthlyTotal)}</strong></div>
       </div>`;
   }
 
