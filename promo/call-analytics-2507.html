@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BM본부 미션 대시보드</title>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
 :root {
   /* ── LIGHT (기본) ── */
@@ -259,12 +261,15 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
     <button id="prevWeek">‹</button>
     <span class="week-label" id="weekLabel"></span>
     <button id="nextWeek">›</button>
+    <button class="save-btn" style="margin-left:auto;" id="pdfDownloadBtn" onclick="downloadDashboardPDF()">📄 PDF 다운로드</button>
   </div>
 
-  <div class="achiever-bar" id="achieverBar"></div>
-  <div id="weekHistory"></div>
+  <div id="dashboardCaptureArea">
+    <div class="achiever-bar" id="achieverBar"></div>
+    <div id="weekHistory"></div>
 
-  <div id="teamCards"></div>
+    <div id="teamCards"></div>
+  </div>
 </div>
 
 <!-- ═══ 데이터 업로드 (잠금) ═══ -->
@@ -372,7 +377,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v3.5';
+const DASHBOARD_VERSION = 'v3.6';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -1511,6 +1516,47 @@ async function deleteSales(row) {
 // ══════════════════════════════════════
 // TOAST
 // ══════════════════════════════════════
+// ══════════════════════════════════════
+// PDF 다운로드 (현재 화면 1페이지 PDF, 저용량)
+// ══════════════════════════════════════
+async function downloadDashboardPDF() {
+  const btn = document.getElementById('pdfDownloadBtn');
+  const target = document.getElementById('dashboardCaptureArea');
+  const originalText = btn.textContent;
+  btn.textContent = '생성 중...';
+  btn.disabled = true;
+
+  try {
+    const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
+    const canvas = await html2canvas(target, {
+      scale: 1.3,           // 해상도와 용량의 균형점
+      useCORS: true,
+      backgroundColor: bgColor
+    });
+
+    // JPEG 저압축으로 저용량화 (PNG 대비 파일 크기 대폭 감소)
+    const imgData = canvas.toDataURL('image/jpeg', 0.5);
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({
+      orientation: canvas.width >= canvas.height ? 'landscape' : 'portrait',
+      unit: 'px',
+      format: [canvas.width, canvas.height],
+      compress: true
+    });
+    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+
+    const labelText = document.getElementById('weekLabel').innerText.trim().replace(/\s+/g, '_').replace(/[()]/g, '');
+    pdf.save(`BM본부_미션대시보드_${labelText}.pdf`);
+    showToast('PDF 다운로드 완료');
+  } catch (err) {
+    alert('PDF 생성 실패: ' + err.message);
+  }
+
+  btn.textContent = originalText;
+  btn.disabled = false;
+}
+
 function showToast(msg) {
   const t = document.getElementById('toast');
   t.textContent = msg;
