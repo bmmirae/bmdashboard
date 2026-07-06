@@ -377,7 +377,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v3.6';
+const DASHBOARD_VERSION = 'v3.7';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -387,6 +387,16 @@ const FIRST_WEEK_START = new Date(2026, 6, 1);
 const FIRST_WEEK_END = new Date(2026, 6, 3);
 // 이후 주는 이 월요일 기준 +7일 단위로 이동 (2026-07-06이 두 번째 주 월요일)
 const SECOND_WEEK_MONDAY = new Date(2026, 6, 6);
+
+// 오늘 날짜가 속한 주간의 offset을 계산 (최초 접속 시 자동으로 그 주를 보여주기 위함)
+function computeOffsetForToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (today <= FIRST_WEEK_END) return 0; // 오늘이 첫 주(7/1~7/3) 이내(혹은 그 이전)면 첫 주
+  if (today < SECOND_WEEK_MONDAY) return 0; // 주말(7/4~7/5) 등 애매한 구간은 첫 주로 고정
+  const diffDays = Math.floor((today - SECOND_WEEK_MONDAY) / 86400000);
+  return Math.max(0, Math.floor(diffDays / 7) + 1);
+}
 
 // ══════════════════════════════════════
 // STATE
@@ -420,6 +430,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   initUpload();
   STATE.authed = sessionStorage.getItem('ca_authed') === 'yes';
   if (STATE.authed) _pwCache = sessionStorage.getItem('ca_pw') || '';
+  STATE.weekOffset = computeOffsetForToday();
   computeWeekRange();
   await loadAllData();
 });
