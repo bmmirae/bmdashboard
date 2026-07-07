@@ -95,6 +95,13 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 .ag-exempt .ag-title { color:var(--gold); font-weight:800; }
 .ag-exempt { border-color:var(--gold); box-shadow:0 0 0 1px var(--gold-bg); }
 
+/* ── 이번달 300만원 이상 이관 달성자 (주간 이동과 무관하게 고정 표시) ── */
+.monthly-exempt-bar { background:var(--gold-bg); border:1.5px solid var(--gold); border-radius:10px; padding:12px 16px; margin-bottom:16px; }
+.monthly-exempt-bar .me-title { font-size:12px; font-weight:800; color:var(--gold); margin-bottom:8px; }
+.monthly-exempt-bar .me-names { display:flex; flex-wrap:wrap; gap:6px; }
+.monthly-exempt-bar .me-chip { font-size:12px; font-weight:700; padding:4px 10px; border-radius:12px; background:var(--card); color:var(--gold); border:1px solid var(--gold); }
+.monthly-exempt-bar .me-empty { font-size:12px; color:var(--text-dim); }
+
 /* ── Week history ── */
 .history-title { font-size:12px; font-weight:700; color:var(--text-dim); margin:4px 0 8px; }
 .history-row { display:flex; justify-content:space-between; align-items:center; background:var(--card); border:1px solid var(--border); border-radius:8px; padding:8px 14px; font-size:12px; box-shadow:var(--shadow); cursor:pointer; }
@@ -265,6 +272,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
   </div>
 
   <div id="dashboardCaptureArea">
+    <div id="monthlyExemptBar"></div>
     <div class="achiever-bar" id="achieverBar"></div>
     <div id="weekHistory"></div>
 
@@ -377,7 +385,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v3.7';
+const DASHBOARD_VERSION = 'v3.8';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -888,6 +896,41 @@ function computeAgentDataForRange(rangeStart, rangeEnd) {
   return agentData;
 }
 
+// 실제 오늘 날짜가 속한 달 기준 300만원 이상 이관 달성자 — 주간 이동과 무관하게 항상 동일하게 표시
+function renderMonthlyExemptBar() {
+  const el = document.getElementById('monthlyExemptBar');
+  if (!el) return;
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const dateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const msStr = dateStr(monthStart), meStr = dateStr(monthEnd);
+
+  const totals = {};
+  STATE.sales.forEach(s => {
+    const d = String(s['날짜']).substring(0, 10);
+    if (d < msStr || d > meStr) return;
+    const name = s['상담원'];
+    totals[name] = (totals[name] || 0) + (Number(s['금액']) || 0);
+  });
+
+  const achievers = Object.entries(totals)
+    .filter(([, amt]) => amt >= MONTHLY_EXEMPT_AMOUNT)
+    .sort((a, b) => b[1] - a[1]);
+
+  const monthLabel = `${now.getMonth()+1}월`;
+  const namesHtml = achievers.length
+    ? achievers.map(([name, amt]) => `<span class="me-chip">${name} (${formatWon(amt)})</span>`).join('')
+    : `<span class="me-empty">없음</span>`;
+
+  el.innerHTML = `
+    <div class="monthly-exempt-bar">
+      <div class="me-title">🌟 ${monthLabel} 300만원 이상 이관 달성자 (${achievers.length}명) — 주간 이동과 무관하게 고정 표시</div>
+      <div class="me-names">${namesHtml}</div>
+    </div>`;
+}
+
 function computeWeekRangeForOffset(offset) {
   if (offset === 0) return { start: new Date(FIRST_WEEK_START), end: new Date(FIRST_WEEK_END) };
   const mon = new Date(SECOND_WEEK_MONDAY);
@@ -934,6 +977,7 @@ function renderDashboard() {
     teams[team].push(s);
   });
 
+  renderMonthlyExemptBar();
   renderAchieverBar(agentData);
   renderWeekHistory();
 
