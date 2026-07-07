@@ -169,6 +169,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 .fill-red { background:var(--red); }
 .fill-blue { background:var(--blue); }
 .fill-purple { background:var(--purple); }
+.fill-gold { background:var(--gold); }
 .metric-detail { font-size:11px; color:var(--text-dim); margin-top:3px; }
 .sales-amount strong { font-size:13px; font-weight:800; color:var(--text); }
 
@@ -388,7 +389,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v4.2';
+const DASHBOARD_VERSION = 'v4.3';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -1180,10 +1181,13 @@ function renderPersonCard(name, d) {
         <div class="metric-detail">목표 미설정</div>
       </div>`;
   } else if (d.callGoalExempt) {
+    const pct = Math.min(d.callPct, 100);
+    const icon = d.callPct >= 100 ? ' ✅' : '';
     callBar = `
       <div class="metric-row">
-        <div class="metric-label"><span>📞 통화시간</span><span class="pct" style="color:var(--gold)">면제 ✅</span></div>
-        <div class="metric-detail">${Math.round(d.totalMin)}분 (참고용, 이관 200만 달성으로 콜미션 면제)</div>
+        <div class="metric-label"><span>📞 통화시간</span><span class="pct" style="color:var(--gold)">${Math.round(d.callPct)}%${icon} (면제)</span></div>
+        <div class="progress-bar"><div class="progress-fill fill-gold" style="width:${pct}%"></div></div>
+        <div class="metric-detail">${Math.round(d.totalMin)}분 / ${Math.round(d.weekGoalMin)}분 (${d.outCount}건 아웃콜) — 이관 200만 달성으로 콜미션 면제</div>
       </div>`;
   } else if (d.weekGoalMin === 0) {
     callBar = `
