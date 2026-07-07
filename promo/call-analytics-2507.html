@@ -390,18 +390,20 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
   <div id="revenue-lock"></div>
   <div id="revenue-content" style="display:none">
     <div class="form-section">
-      <div class="form-title">📈 주간 네이버+GFA 매출 입력</div>
+      <div class="form-title">📈 주간 네이버+GFA 매출 입력 (전사원)</div>
       <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">날짜는 해당 주의 아무 날이나 선택하면 자동으로 그 주(월~일)로 집계됩니다. 1주차: 6/29~7/5, 2주차: 7/6~7/12 …</div>
       <div class="form-row">
-        <input type="date" id="revenueDate">
-        <select id="revenueTeamFilter" onchange="filterAgentSelect('revenue')"></select>
-        <select id="revenueAgent"></select>
-        <input type="number" id="revenueNaver" placeholder="네이버매출(원)" step="10000">
-        <input type="number" id="revenueGfa" placeholder="GFA매출(원)" step="10000">
-        <button class="save-btn" onclick="saveWeeklyRevenueEntry()">저장</button>
+        <input type="date" id="revenueDate" onchange="renderWeeklyRevenueEntryTable()">
+        <span id="revenueWeekLabel" style="font-size:12px;color:var(--text-dim);font-weight:600;"></span>
       </div>
+      <div id="revenueEntryTable" style="margin-top:12px;"></div>
+      <button class="upload-btn" style="margin-top:14px;" onclick="saveAllWeeklyRevenue()">💾 전체 저장</button>
       <div id="revenueStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
-      <div id="revenueList" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="form-section">
+      <div class="form-title">📋 등록된 주간매출 기록 (개별 수정·삭제)</div>
+      <div id="revenueList" style="margin-top:4px;"></div>
     </div>
   </div>
 </div>
@@ -411,7 +413,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v4.6';
+const DASHBOARD_VERSION = 'v4.7';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -514,7 +516,7 @@ function renderLockOrContent(zone) {
     lockEl.innerHTML = '';
     contentEl.style.display = 'block';
     if (zone === 'roster') renderRosterTable();
-    if (zone === 'revenue') renderWeeklyRevenueList();
+    if (zone === 'revenue') { renderWeeklyRevenueList(); renderWeeklyRevenueEntryTable(); }
   } else {
     contentEl.style.display = 'none';
     lockEl.innerHTML = `
@@ -1289,29 +1291,90 @@ function getMondayStr(dateStr) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-async function saveWeeklyRevenueEntry() {
-  const rawDate = document.getElementById('revenueDate').value;
-  const agent = document.getElementById('revenueAgent').value;
-  const naver = Number(document.getElementById('revenueNaver').value) || 0;
-  const gfa = Number(document.getElementById('revenueGfa').value) || 0;
-  const status = document.getElementById('revenueStatus');
-  if (!rawDate || !agent) return;
+function renderWeeklyRevenueEntryTable() {
+  const dateInput = document.getElementById('revenueDate');
+  const tableEl = document.getElementById('revenueEntryTable');
+  const labelEl = document.getElementById('revenueWeekLabel');
+  if (!dateInput || !dateInput.value || !tableEl) { if (tableEl) tableEl.innerHTML = ''; return; }
 
-  const weekStart = getMondayStr(rawDate);
+  const weekStart = getMondayStr(dateInput.value);
+  const endDate = new Date(weekStart + 'T00:00:00');
+  endDate.setDate(endDate.getDate() + 6);
+  const weekEndStr = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}`;
+  if (labelEl) labelEl.textContent = `${weekStart} ~ ${weekEndStr} 주`;
+
+  // 이 주에 이미 입력된 값 매핑
+  const existing = {};
+  STATE.weeklyRevenue.forEach(r => {
+    if (String(r['날짜']).substring(0, 10) === weekStart) {
+      existing[r['사원명']] = { naver: Number(r['네이버매출']) || 0, gfa: Number(r['GFA매출']) || 0 };
+    }
+  });
+
+  const teamOrder = getTeamOrder();
+  const teams = {};
+  STATE.settings.forEach(s => {
+    const t = s['소속팀'];
+    if (!teams[t]) teams[t] = [];
+    teams[t].push(s);
+  });
+
+  let html = `
+    <div class="record-row head" style="grid-template-columns:1.2fr 1fr 1fr;">
+      <div>사원명</div><div>네이버매출(원)</div><div>GFA매출(원)</div>
+    </div>`;
+  teamOrder.forEach(team => {
+    html += `<div style="font-size:12px;font-weight:700;color:var(--accent);margin:10px 0 4px;">${team}</div>`;
+    teams[team].forEach(s => {
+      const name = s['사원명'];
+      const ex = existing[name] || { naver: '', gfa: '' };
+      const safeId = name.replace(/[^a-zA-Z0-9가-힣]/g, '_');
+      html += `
+        <div class="record-row" style="grid-template-columns:1.2fr 1fr 1fr;">
+          <span class="record-name">${name}</span>
+          <input type="number" id="entryNaver_${safeId}" value="${ex.naver}" placeholder="0" step="10000">
+          <input type="number" id="entryGfa_${safeId}" value="${ex.gfa}" placeholder="0" step="10000">
+        </div>`;
+    });
+  });
+  tableEl.innerHTML = html;
+}
+
+async function saveAllWeeklyRevenue() {
+  const dateInput = document.getElementById('revenueDate');
+  const status = document.getElementById('revenueStatus');
+  if (!dateInput.value) { status.textContent = '❌ 날짜(주)를 먼저 선택해주세요'; return; }
+
+  const weekStart = getMondayStr(dateInput.value);
+  const rows = [];
+  STATE.settings.forEach(s => {
+    const name = s['사원명'];
+    const safeId = name.replace(/[^a-zA-Z0-9가-힣]/g, '_');
+    const naverEl = document.getElementById(`entryNaver_${safeId}`);
+    const gfaEl = document.getElementById(`entryGfa_${safeId}`);
+    if (!naverEl || !gfaEl) return;
+    const naver = Number(naverEl.value) || 0;
+    const gfa = Number(gfaEl.value) || 0;
+    if (naver > 0 || gfa > 0) {
+      rows.push({ '날짜': weekStart, '사원명': name, '네이버매출': naver, 'GFA매출': gfa });
+    }
+  });
+
+  if (rows.length === 0) { status.textContent = '❌ 입력된 값이 없습니다'; return; }
+
   status.textContent = '저장 중...';
   try {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'saveWeeklyRevenue', data: [{ '날짜': weekStart, '사원명': agent, '네이버매출': naver, 'GFA매출': gfa }], password: getStoredPassword() })
+      body: JSON.stringify({ action: 'saveWeeklyRevenue', data: rows, password: getStoredPassword() })
     });
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
-    status.textContent = `✅ ${agent} (${weekStart} 주) 네이버 ${formatWon(naver)} + GFA ${formatWon(gfa)} 저장 완료`;
-    document.getElementById('revenueNaver').value = '';
-    document.getElementById('revenueGfa').value = '';
-    showToast('주간매출 저장 완료');
+    status.textContent = `✅ ${weekStart} 주 매출 ${rows.length}명분 저장 완료`;
+    showToast('주간매출 일괄 저장 완료');
     await loadAllData();
+    renderWeeklyRevenueEntryTable();
   } catch (err) {
     status.textContent = '❌ 실패: ' + err.message;
   }
