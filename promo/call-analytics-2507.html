@@ -413,7 +413,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v4.7';
+const DASHBOARD_VERSION = 'v4.8';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -449,6 +449,7 @@ let STATE = {
   weekEnd: null,
   files: [],
   authed: false,
+  revenueAuthed: false,
   rosterDraft: null  // 인원관리 작업용 임시 배열 (저장 전까지)
 };
 
@@ -467,6 +468,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   initUpload();
   STATE.authed = sessionStorage.getItem('ca_authed') === 'yes';
   if (STATE.authed) _pwCache = sessionStorage.getItem('ca_pw') || '';
+  STATE.revenueAuthed = sessionStorage.getItem('ca_revenue_authed') === 'yes';
+  if (STATE.revenueAuthed) _revenuePwCache = sessionStorage.getItem('ca_revenue_pw') || '';
   STATE.weekOffset = computeOffsetForToday();
   computeWeekRange();
   await loadAllData();
@@ -512,7 +515,8 @@ function initTabs() {
 function renderLockOrContent(zone) {
   const lockEl = document.getElementById(zone + '-lock');
   const contentEl = document.getElementById(zone + '-content');
-  if (STATE.authed) {
+  const isAuthed = (zone === 'revenue') ? STATE.revenueAuthed : STATE.authed;
+  if (isAuthed) {
     lockEl.innerHTML = '';
     contentEl.style.display = 'block';
     if (zone === 'roster') renderRosterTable();
@@ -534,18 +538,26 @@ async function checkPassword(zone) {
   const pw = document.getElementById('pwInput-' + zone).value;
   const errEl = document.getElementById('pwError-' + zone);
   errEl.textContent = '확인 중...';
+  const scope = (zone === 'revenue') ? 'revenue' : 'default';
   try {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'verifyPassword', password: pw })
+      body: JSON.stringify({ action: 'verifyPassword', password: pw, scope })
     });
     const result = await res.json();
     if (result.status === 'ok') {
-      STATE.authed = true;
-      _pwCache = pw;
-      sessionStorage.setItem('ca_authed', 'yes');
-      sessionStorage.setItem('ca_pw', pw);
+      if (zone === 'revenue') {
+        STATE.revenueAuthed = true;
+        _revenuePwCache = pw;
+        sessionStorage.setItem('ca_revenue_authed', 'yes');
+        sessionStorage.setItem('ca_revenue_pw', pw);
+      } else {
+        STATE.authed = true;
+        _pwCache = pw;
+        sessionStorage.setItem('ca_authed', 'yes');
+        sessionStorage.setItem('ca_pw', pw);
+      }
       renderLockOrContent(zone);
     } else {
       errEl.textContent = '❌ 비밀번호가 올바르지 않습니다';
@@ -777,6 +789,10 @@ async function processUpload() {
 // 세션 내에서만 사용할 비밀번호 캐시 (인증 성공 시 저장)
 let _pwCache = '';
 function getStoredPassword() { return _pwCache; }
+
+// 주간매출관리 전용 비밀번호 캐시 (기본 비밀번호와 완전히 분리)
+let _revenuePwCache = '';
+function getRevenuePassword() { return _revenuePwCache; }
 
 function parseExcelFile(file) {
   return new Promise((resolve, reject) => {
@@ -1367,7 +1383,7 @@ async function saveAllWeeklyRevenue() {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'saveWeeklyRevenue', data: rows, password: getStoredPassword() })
+      body: JSON.stringify({ action: 'saveWeeklyRevenue', data: rows, password: getRevenuePassword() })
     });
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
@@ -1408,7 +1424,7 @@ async function updateWeeklyRevenueField(row, field, value) {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'updateWeeklyRevenue', row, field, value, password: getStoredPassword() })
+      body: JSON.stringify({ action: 'updateWeeklyRevenue', row, field, value, password: getRevenuePassword() })
     });
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
@@ -1425,7 +1441,7 @@ async function deleteWeeklyRevenueEntry(row) {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'deleteWeeklyRevenue', row, password: getStoredPassword() })
+      body: JSON.stringify({ action: 'deleteWeeklyRevenue', row, password: getRevenuePassword() })
     });
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
