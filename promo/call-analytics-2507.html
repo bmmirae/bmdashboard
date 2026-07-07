@@ -261,6 +261,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
   <button class="tab-btn" data-tab="upload">📤 데이터 업로드</button>
   <button class="tab-btn" data-tab="input">✏️ 근태·기타·이관매출·패널티</button>
   <button class="tab-btn" data-tab="roster">👥 인원관리</button>
+  <button class="tab-btn" data-tab="revenue">📈 주간매출관리</button>
 </div>
 
 <!-- ═══ 현황 대시보드 ═══ -->
@@ -384,12 +385,33 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
   </div>
 </div>
 
+<!-- ═══ 주간매출관리 (잠금) ═══ -->
+<div id="panel-revenue" class="panel">
+  <div id="revenue-lock"></div>
+  <div id="revenue-content" style="display:none">
+    <div class="form-section">
+      <div class="form-title">📈 주간 네이버+GFA 매출 입력</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">날짜는 해당 주의 아무 날이나 선택하면 자동으로 그 주(월~일)로 집계됩니다. 1주차: 6/29~7/5, 2주차: 7/6~7/12 …</div>
+      <div class="form-row">
+        <input type="date" id="revenueDate">
+        <select id="revenueTeamFilter" onchange="filterAgentSelect('revenue')"></select>
+        <select id="revenueAgent"></select>
+        <input type="number" id="revenueNaver" placeholder="네이버매출(원)" step="10000">
+        <input type="number" id="revenueGfa" placeholder="GFA매출(원)" step="10000">
+        <button class="save-btn" onclick="saveWeeklyRevenueEntry()">저장</button>
+      </div>
+      <div id="revenueStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
+      <div id="revenueList" style="margin-top:12px;"></div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v4.3';
+const DASHBOARD_VERSION = 'v4.6';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -419,6 +441,7 @@ let STATE = {
   attendance: [],
   sales: [],
   penalty: [],
+  weeklyRevenue: [],
   weekOffset: 0,     // 0 = 첫 주(7/1~7/3), 1 = 7/6~7/10, -1 등
   weekStart: null,
   weekEnd: null,
@@ -479,6 +502,7 @@ function initTabs() {
       if (btn.dataset.tab === 'upload') renderLockOrContent('upload');
       if (btn.dataset.tab === 'input') renderLockOrContent('input');
       if (btn.dataset.tab === 'roster') renderLockOrContent('roster');
+      if (btn.dataset.tab === 'revenue') renderLockOrContent('revenue');
     });
   });
 }
@@ -490,6 +514,7 @@ function renderLockOrContent(zone) {
     lockEl.innerHTML = '';
     contentEl.style.display = 'block';
     if (zone === 'roster') renderRosterTable();
+    if (zone === 'revenue') renderWeeklyRevenueList();
   } else {
     contentEl.style.display = 'none';
     lockEl.innerHTML = `
@@ -591,6 +616,7 @@ async function loadAllData() {
     STATE.attendance = data.attendance || [];
     STATE.sales = data.sales || [];
     STATE.penalty = data.penalty || [];
+    STATE.weeklyRevenue = data.weeklyRevenue || [];
 
     document.getElementById('lastSync').textContent = '동기화: ' + new Date().toLocaleTimeString('ko');
     if (data.lastUpload) {
@@ -603,6 +629,7 @@ async function loadAllData() {
     try { renderAttendanceList(); } catch (e) { console.error('renderAttendanceList 오류:', e); }
     try { renderSalesList(); } catch (e) { console.error('renderSalesList 오류:', e); }
     try { renderPenaltyList(); } catch (e) { console.error('renderPenaltyList 오류:', e); }
+    try { renderWeeklyRevenueList(); } catch (e) { console.error('renderWeeklyRevenueList 오류:', e); }
   } catch (err) {
     document.getElementById('teamCards').innerHTML =
       `<div class="loading" style="color:var(--red)">데이터 로드 실패: ${err.message}</div>`;
@@ -783,7 +810,7 @@ function parseExcelFile(file) {
           if (!r || !r[dateCol]) continue;
           rows.push({
             '날짜': normalizeDate(r[dateCol]),
-            '상담원': String(r[agentCol]||'').trim(),
+            '사원명': String(r[agentCol]||'').trim(),
             '부서': normalizeDept(r[deptCol]),
             '유형': String(r[typeCol]||'').trim().toLowerCase() === 'in' ? 'in' : 'out',
             '통화시간': normalizeDuration(r[durCol]),
@@ -798,7 +825,7 @@ function parseExcelFile(file) {
   });
 }
 
-// ── 임의 기간(start~end)에 대한 상담원별 집계 (현재 주 / 히스토리 공용) ──
+// ── 임의 기간(start~end)에 대한 사원명별 집계 (현재 주 / 히스토리 공용) ──
 function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) {
   const dateStr = d => {
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
@@ -850,7 +877,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
 
   const agentData = {};
   STATE.settings.forEach(s => {
-    const name = s['상담원'];
+    const name = s['사원명'];
     const dailyGoal = Number(s['일목표분']) || 0;
     const weekSalesGoal = Number(s['주간이관목표']) || WEEKLY_SALES_GOAL_DEFAULT;
 
@@ -859,7 +886,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     let leaveDays = [];
     rangeDates.forEach(d => {
       const ds = dateStr(d);
-      const att = weekAtt.find(a => String(a['날짜']).substring(0,10) === ds && a['상담원'] === name);
+      const att = weekAtt.find(a => String(a['날짜']).substring(0,10) === ds && a['사원명'] === name);
       if (att) {
         if (att['구분'] === '연차') { goalDays += 0; leaveDays.push({ date: ds, type: '연차' }); }
         else if (att['구분'] === '반차') { goalDays += 0.5; leaveDays.push({ date: ds, type: '반차' }); }
@@ -873,23 +900,23 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
       } else goalDays += 1;
     });
 
-    const myPenalty = weekPenalty.filter(p => p['상담원'] === name);
+    const myPenalty = weekPenalty.filter(p => p['사원명'] === name);
     const penaltyMin = myPenalty.reduce((sum, p) => sum + (Number(p['추가분']) || 0), 0);
     const penaltyRows = myPenalty.map(p => p['_row']);
 
     const weekGoalMin = Math.max(0, dailyGoal * goalDays - customDeductMin + penaltyMin);
 
-    const myCalls = weekCalls.filter(c => c['상담원'] === name);
+    const myCalls = weekCalls.filter(c => c['사원명'] === name);
     const myOutCalls = myCalls.filter(c => c['유형'] === 'out');
     const totalSec = computeCallTimeSec(myOutCalls); // 아웃콜만 집계, 중복번호 최장통화만 + 20분 캡 적용
     const totalMin = totalSec / 60;
     const callCount = myCalls.length;
     const outCount = myOutCalls.length;
 
-    const mySales = weekSales.filter(s => s['상담원'] === name);
+    const mySales = weekSales.filter(s => s['사원명'] === name);
     const totalSalesAmt = mySales.reduce((sum, s) => sum + (Number(s['금액']) || 0), 0);
 
-    const myMonthSales = monthSales.filter(s => s['상담원'] === name);
+    const myMonthSales = monthSales.filter(s => s['사원명'] === name);
     const monthlyTotal = myMonthSales.reduce((sum, s) => sum + (Number(s['금액']) || 0), 0);
     const monthlyExempt = monthlyTotal >= MONTHLY_EXEMPT_AMOUNT;
 
@@ -929,7 +956,7 @@ function renderMonthlyExemptBar() {
   STATE.sales.forEach(s => {
     const d = String(s['날짜']).substring(0, 10);
     if (d < msStr || d > meStr) return;
-    const name = s['상담원'];
+    const name = s['사원명'];
     totals[name] = (totals[name] || 0) + (Number(s['금액']) || 0);
   });
 
@@ -1008,7 +1035,7 @@ function renderDashboard() {
     if (!members) continue;
     let teamWeekSales = 0, teamMonthSales = 0;
     members.forEach(m => {
-      const d = agentData[m['상담원']];
+      const d = agentData[m['사원명']];
       if (d) { teamWeekSales += d.totalSalesAmt; teamMonthSales += d.monthlyTotal; }
     });
     html += `<div class="team-section">
@@ -1019,7 +1046,7 @@ function renderDashboard() {
       </div>
       <div class="card-grid">`;
     for (const m of members) {
-      const name = m['상담원'];
+      const name = m['사원명'];
       const d = agentData[name];
       if (!d) continue;
       html += renderPersonCard(name, d);
@@ -1228,6 +1255,11 @@ function renderPersonCard(name, d) {
       </div>`;
   }
 
+  const growth = computeRevenueGrowth(name);
+  const growthHtml = growth
+    ? `<div style="text-align:right;font-size:12px;font-weight:800;margin-top:8px;color:${growth.isUp ? 'var(--green)' : 'var(--red)'}">${growth.isUp ? '🔺' : '🔻'} ${Math.abs(Math.round(growth.pct))}% ${growth.isUp ? '캡업' : '캡다운'}</div>`
+    : '';
+
   return `
     <div class="person-card ${achClass}">
       <div class="person-header">
@@ -1236,6 +1268,7 @@ function renderPersonCard(name, d) {
       </div>
       ${callBar}
       ${salesBar}
+      ${growthHtml}
     </div>`;
 }
 
@@ -1245,13 +1278,122 @@ function formatWon(n) {
 }
 
 // ══════════════════════════════════════
+// WEEKLY REVENUE (네이버+GFA 주간매출관리)
+// ══════════════════════════════════════
+// 임의 날짜가 속한 주의 월요일 날짜(yyyy-mm-dd)로 정규화
+function getMondayStr(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay(); // 0=일 ... 6=토
+  const diff = day === 0 ? -6 : 1 - day;
+  d.setDate(d.getDate() + diff);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+async function saveWeeklyRevenueEntry() {
+  const rawDate = document.getElementById('revenueDate').value;
+  const agent = document.getElementById('revenueAgent').value;
+  const naver = Number(document.getElementById('revenueNaver').value) || 0;
+  const gfa = Number(document.getElementById('revenueGfa').value) || 0;
+  const status = document.getElementById('revenueStatus');
+  if (!rawDate || !agent) return;
+
+  const weekStart = getMondayStr(rawDate);
+  status.textContent = '저장 중...';
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'saveWeeklyRevenue', data: [{ '날짜': weekStart, '사원명': agent, '네이버매출': naver, 'GFA매출': gfa }], password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    status.textContent = `✅ ${agent} (${weekStart} 주) 네이버 ${formatWon(naver)} + GFA ${formatWon(gfa)} 저장 완료`;
+    document.getElementById('revenueNaver').value = '';
+    document.getElementById('revenueGfa').value = '';
+    showToast('주간매출 저장 완료');
+    await loadAllData();
+  } catch (err) {
+    status.textContent = '❌ 실패: ' + err.message;
+  }
+}
+
+function renderWeeklyRevenueList() {
+  const el = document.getElementById('revenueList');
+  if (!el) return;
+  const sorted = [...STATE.weeklyRevenue].sort((a, b) =>
+    String(b['날짜']).localeCompare(String(a['날짜'])) || String(a['사원명']).localeCompare(String(b['사원명']))
+  );
+  if (sorted.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-dim)">등록된 주간매출 없음</div>';
+    return;
+  }
+  el.innerHTML = sorted.map(r => {
+    const naver = Number(r['네이버매출']) || 0, gfa = Number(r['GFA매출']) || 0;
+    return `
+    <div class="record-row" style="grid-template-columns:95px 70px 1fr 1fr auto;">
+      <span class="record-date">${String(r['날짜']).substring(0,10)}주</span>
+      <span class="record-name">${r['사원명']}</span>
+      <input type="number" value="${naver}" style="width:100%;" onchange="updateWeeklyRevenueField(${r['_row']}, '네이버매출', this.value)">
+      <input type="number" value="${gfa}" style="width:100%;" onchange="updateWeeklyRevenueField(${r['_row']}, 'GFA매출', this.value)">
+      <button class="roster-del" onclick="deleteWeeklyRevenueEntry(${r['_row']})" title="삭제">✕</button>
+    </div>`;
+  }).join('');
+}
+
+async function updateWeeklyRevenueField(row, field, value) {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'updateWeeklyRevenue', row, field, value, password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    showToast('주간매출 수정 완료');
+    await loadAllData();
+  } catch (err) {
+    alert('수정 실패: ' + err.message);
+  }
+}
+
+async function deleteWeeklyRevenueEntry(row) {
+  if (!confirm('이 주간매출 기록을 삭제하시겠습니까?')) return;
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'deleteWeeklyRevenue', row, password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    showToast('주간매출 삭제 완료');
+    await loadAllData();
+  } catch (err) {
+    alert('삭제 실패: ' + err.message);
+  }
+}
+
+// 최근 두 주(연속 입력 기준) 매출 증감률 계산 — 지난 데이터 없으면 null
+function computeRevenueGrowth(name) {
+  const entries = STATE.weeklyRevenue
+    .filter(r => r['사원명'] === name)
+    .map(r => ({ date: String(r['날짜']).substring(0, 10), total: (Number(r['네이버매출']) || 0) + (Number(r['GFA매출']) || 0) }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+  if (entries.length < 2) return null;
+  const [latest, prev] = entries;
+  if (!prev || prev.total <= 0) return null;
+  const pct = ((latest.total - prev.total) / prev.total) * 100;
+  return { pct, isUp: pct >= 0 };
+}
+
+// ══════════════════════════════════════
 // ATTENDANCE / SALES INPUT
 // ══════════════════════════════════════
 let _dateDefaultsSet = false;
 function populateAgentSelects() {
   // 팀 필터 드롭다운 채우기 (전체 + 팀 목록)
   const teamOrder = getTeamOrder();
-  ['attTeamFilter', 'salesTeamFilter', 'penaltyTeamFilter'].forEach(id => {
+  ['attTeamFilter', 'salesTeamFilter', 'penaltyTeamFilter', 'revenueTeamFilter'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const prevValue = sel.value;
@@ -1262,6 +1404,7 @@ function populateAgentSelects() {
   filterAgentSelect('att');
   filterAgentSelect('sales');
   filterAgentSelect('penalty');
+  filterAgentSelect('revenue');
 
   const teamListEl = document.getElementById('teamList');
   if (teamListEl) {
@@ -1273,14 +1416,16 @@ function populateAgentSelects() {
     const attDate = document.getElementById('attDate');
     const salesDate = document.getElementById('salesDate');
     const penaltyDate = document.getElementById('penaltyDate');
+    const revenueDate = document.getElementById('revenueDate');
     if (attDate) attDate.value = today;
     if (salesDate) salesDate.value = today;
     if (penaltyDate) penaltyDate.value = today;
+    if (revenueDate) revenueDate.value = today;
     _dateDefaultsSet = true;
   }
 }
 
-// 팀 필터 선택에 따라 상담원 드롭다운 옵션을 좁혀줌 (zone: 'att' | 'sales' | 'penalty')
+// 팀 필터 선택에 따라 사원명 드롭다운 옵션을 좁혀줌 (zone: 'att' | 'sales' | 'penalty')
 function filterAgentSelect(zone) {
   const teamFilterEl = document.getElementById(zone + 'TeamFilter');
   const agentSelEl = document.getElementById(zone + 'Agent');
@@ -1292,8 +1437,8 @@ function filterAgentSelect(zone) {
     ? STATE.settings.filter(s => s['소속팀'] === selectedTeam)
     : STATE.settings;
 
-  agentSelEl.innerHTML = filtered.map(s => `<option value="${s['상담원']}">${s['상담원']}</option>`).join('');
-  const names = filtered.map(s => s['상담원']);
+  agentSelEl.innerHTML = filtered.map(s => `<option value="${s['사원명']}">${s['사원명']}</option>`).join('');
+  const names = filtered.map(s => s['사원명']);
   if (names.includes(prevValue)) agentSelEl.value = prevValue;
 }
 
@@ -1320,7 +1465,7 @@ async function saveAttendance() {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'saveAttendance', data: [{ '날짜': date, '상담원': agent, '구분': type, '차감분': customMin, '메모': memo }], password: getStoredPassword() })
+      body: JSON.stringify({ action: 'saveAttendance', data: [{ '날짜': date, '사원명': agent, '구분': type, '차감분': customMin, '메모': memo }], password: getStoredPassword() })
     });
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
@@ -1352,7 +1497,7 @@ function renderAttendanceList() {
     <div style="border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:6px;">
     <div class="record-row" style="border-bottom:none;padding-bottom:0;margin-bottom:0;">
       <span class="record-date">${String(a['날짜']).substring(0,10)}</span>
-      <span class="record-name">${a['상담원']}</span>
+      <span class="record-name">${a['사원명']}</span>
       <select onchange="updateAttendanceType(${a['_row']}, this.value)">
         <option value="연차" ${a['구분']==='연차'?'selected':''}>연차</option>
         <option value="반차" ${a['구분']==='반차'?'selected':''}>반차</option>
@@ -1455,7 +1600,7 @@ async function savePenaltyEntry() {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'savePenalty', data: [{ '날짜': date, '상담원': agent, '추가분': min }], password: getStoredPassword() })
+      body: JSON.stringify({ action: 'savePenalty', data: [{ '날짜': date, '사원명': agent, '추가분': min }], password: getStoredPassword() })
     });
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
@@ -1484,7 +1629,7 @@ function renderPenaltyList() {
   el.innerHTML = weekPenalty.map(p => `
     <div class="record-row">
       <span class="record-date">${String(p['날짜']).substring(0,10)}</span>
-      <span class="record-name">${p['상담원']}</span>
+      <span class="record-name">${p['사원명']}</span>
       <div style="display:flex;gap:4px;align-items:center;">
         <input type="number" id="penaltyMin_${p['_row']}" value="${Number(p['추가분'])||0}" min="0" style="width:60px;"><span style="font-size:11px;color:var(--text-dim)">분</span>
         <button class="save-btn" style="padding:5px 8px;font-size:11px;" onclick="updatePenaltyMin(${p['_row']}, document.getElementById('penaltyMin_${p['_row']}').value)">적용</button>
@@ -1562,7 +1707,7 @@ async function saveSales() {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'saveSales', data: [{ '날짜': date, '상담원': agent, '금액': amount, '업체명': company }], password: getStoredPassword() })
+      body: JSON.stringify({ action: 'saveSales', data: [{ '날짜': date, '사원명': agent, '금액': amount, '업체명': company }], password: getStoredPassword() })
     });
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
@@ -1592,7 +1737,7 @@ function renderSalesList() {
   salesEl.innerHTML = weekSales.map(s => `
     <div class="record-row">
       <span class="record-date">${String(s['날짜']).substring(0,10)}</span>
-      <span class="record-name">${s['상담원']}</span>
+      <span class="record-name">${s['사원명']}</span>
       <input type="text" value="${s['업체명']||''}" placeholder="업체명" onchange="updateSalesCompany(${s['_row']}, this.value)">
       <input type="number" value="${Number(s['금액'])}" step="10000" onchange="updateSalesAmount(${s['_row']}, this.value)">
       <button class="roster-del" onclick="deleteSales(${s['_row']})" title="삭제">✕</button>
@@ -1722,7 +1867,7 @@ function renderRosterTable() {
   STATE.rosterDraft.forEach((a, idx) => {
     html += `
       <div class="roster-row">
-        <div class="roster-name">${a['상담원']}</div>
+        <div class="roster-name">${a['사원명']}</div>
         <input type="text" value="${a['소속팀']}" onchange="updateRosterField(${idx},'소속팀',this.value)">
         <input type="number" value="${a['일목표분']}" onchange="updateRosterField(${idx},'일목표분',this.value)">
         <input type="number" value="${a['주간이관목표']}" onchange="updateRosterField(${idx},'주간이관목표',this.value)">
@@ -1755,9 +1900,9 @@ function addAgent() {
   const status = document.getElementById('rosterStatus');
 
   if (!name || !team) { status.className = 'upload-status error'; status.textContent = '❌ 이름과 소속팀을 입력해주세요'; return; }
-  if (STATE.rosterDraft.some(a => a['상담원'] === name)) { status.className = 'upload-status error'; status.textContent = '❌ 이미 존재하는 이름입니다'; return; }
+  if (STATE.rosterDraft.some(a => a['사원명'] === name)) { status.className = 'upload-status error'; status.textContent = '❌ 이미 존재하는 이름입니다'; return; }
 
-  STATE.rosterDraft.push({ '상담원': name, '소속팀': team, '일목표분': daily, '주간이관목표': weekly });
+  STATE.rosterDraft.push({ '사원명': name, '소속팀': team, '일목표분': daily, '주간이관목표': weekly });
   document.getElementById('newAgentName').value = '';
   document.getElementById('newAgentTeam').value = '';
   document.getElementById('newAgentDaily').value = '60';
@@ -1768,7 +1913,7 @@ function addAgent() {
 }
 
 function deleteAgent(idx) {
-  const name = STATE.rosterDraft[idx]['상담원'];
+  const name = STATE.rosterDraft[idx]['사원명'];
   if (!confirm(`"${name}"님을 삭제하시겠습니까? (통화·근태·이관매출 기록은 시트에 그대로 남고, 대시보드 집계에서만 제외됩니다)`)) return;
   STATE.rosterDraft.splice(idx, 1);
   document.getElementById('rosterStatus').textContent = `"${name}" 삭제됨 (아직 저장 안 됨 — 아래 저장 버튼을 눌러주세요)`;
