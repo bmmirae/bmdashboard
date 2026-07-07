@@ -388,7 +388,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v4.0';
+const DASHBOARD_VERSION = 'v4.2';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -898,13 +898,14 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
 
     // 주간 이관 200만원 달성 시 그 주 + 다음 주 콜미션 면제
     const callGoalExempt = !skipExempt && hasCallGoal && (salesPct >= 100 || prevWeekSalesAchievedMap[name] === true);
-    const callAchieved = hasCallGoal ? (callGoalExempt ? true : callPct >= 100) : false;
+    const realCallAchieved = hasCallGoal && callPct >= 100; // 면제 여부와 무관한 실제 통화 달성 여부
+    const callAchieved = hasCallGoal ? (callGoalExempt ? true : callPct >= 100) : false; // 패널티 회차 계산 등에 쓰이는 값(면제 포함)
 
     agentData[name] = {
       dailyGoal, weekGoalMin, totalMin, totalSec, callCount, outCount,
       weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt, penaltyMin, penaltyRows,
       hasCallGoal, callPct, salesPct, callGoalExempt,
-      callAchieved,
+      callAchieved, realCallAchieved,
       salesAchieved: monthlyExempt || salesPct >= 100
     };
   });
@@ -1043,8 +1044,8 @@ function renderWeekHistory() {
     const both = [], callOnly = [], salesOnly = [], none = [], exempt = [];
     Object.entries(data).forEach(([name, d]) => {
       if (d.dailyGoal === 0) exempt.push(name);
-      else if (d.callAchieved && d.salesAchieved) both.push(name);
-      else if (d.callAchieved) callOnly.push(name);
+      else if (d.realCallAchieved && d.salesAchieved) both.push(name);
+      else if (d.realCallAchieved) callOnly.push(name);
       else if (d.salesAchieved) salesOnly.push(name);
       else none.push(name);
     });
@@ -1093,8 +1094,8 @@ function renderAchieverBar(agentData) {
   const both = [], callOnly = [], salesOnly = [], none = [], exempt = [];
   Object.entries(agentData).forEach(([name, d]) => {
     if (d.dailyGoal === 0) exempt.push(name); // 목표 미설정(고액 예외) 인원은 별도 분류
-    else if (d.callAchieved && d.salesAchieved) both.push(name);
-    else if (d.callAchieved) callOnly.push(name);
+    else if (d.realCallAchieved && d.salesAchieved) both.push(name);
+    else if (d.realCallAchieved) callOnly.push(name);
     else if (d.salesAchieved) salesOnly.push(name);
     else none.push(name);
   });
@@ -1160,15 +1161,15 @@ function renderPersonCard(name, d) {
   if (d.monthlyExempt) {
     achClass = 'ach-monthly';
     achBadge = `<span class="person-badge badge-exempt">🏆 월 300만 달성</span>`;
-  } else if (d.callAchieved && d.salesAchieved) {
+  } else if (d.realCallAchieved && d.salesAchieved) {
     achClass = 'ach-both';
     achBadge = `<span class="person-badge" style="background:var(--green-bg);color:var(--green)">🏆 콜+이관 달성</span>`;
-  } else if (d.callAchieved) {
+  } else if (d.realCallAchieved) {
     achClass = 'ach-call';
     achBadge = `<span class="person-badge" style="background:var(--blue-bg,transparent);color:var(--blue);border:1px solid var(--blue)">📞 콜 달성</span>`;
   } else if (d.salesAchieved) {
     achClass = 'ach-sales';
-    achBadge = `<span class="person-badge" style="background:var(--purple-bg);color:var(--purple)">💰 이관 달성</span>`;
+    achBadge = `<span class="person-badge" style="background:var(--purple-bg);color:var(--purple)">💰 이관 달성${d.callGoalExempt ? ' (콜 면제)' : ''}</span>`;
   }
 
   let callBar = '';
@@ -1223,13 +1224,6 @@ function renderPersonCard(name, d) {
       </div>`;
   }
 
-  const canClearPenalty = d.missStreak > 0 && d.callAchieved && d.salesAchieved && d.penaltyRows && d.penaltyRows.length > 0;
-  const clearPenaltyBtn = canClearPenalty
-    ? `<div style="margin-top:8px;">
-         <button class="save-btn" style="width:100%;background:var(--green);font-size:11px;" onclick='clearWeekPenalty("${name}", ${JSON.stringify(d.penaltyRows)})'>✅ 목표 달성 — 이번 주 패널티 해제</button>
-       </div>`
-    : '';
-
   return `
     <div class="person-card ${achClass}">
       <div class="person-header">
@@ -1238,7 +1232,6 @@ function renderPersonCard(name, d) {
       </div>
       ${callBar}
       ${salesBar}
-      ${clearPenaltyBtn}
     </div>`;
 }
 
