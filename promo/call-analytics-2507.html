@@ -258,7 +258,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 <div class="tab-bar">
   <button class="tab-btn active" data-tab="dashboard">📊 현황 대시보드</button>
   <button class="tab-btn" data-tab="upload">📤 데이터 업로드</button>
-  <button class="tab-btn" data-tab="input">✏️ 근태 · 이관매출 · 패널티</button>
+  <button class="tab-btn" data-tab="input">✏️ 근태·기타·이관매출·패널티</button>
   <button class="tab-btn" data-tab="roster">👥 인원관리</button>
 </div>
 
@@ -307,7 +307,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
     </div>
 
     <div class="form-section">
-      <div class="form-title">📅 근태 입력</div>
+      <div class="form-title">📅 근태 및 기타 입력</div>
       <div class="form-row">
         <input type="date" id="attDate">
         <select id="attTeamFilter" onchange="filterAgentSelect('att')"></select>
@@ -321,6 +321,9 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
           <input type="number" id="attCustomMin" placeholder="차감분" style="width:80px;" min="0"><span style="font-size:12px;color:var(--text-dim)">분</span>
         </span>
         <button class="save-btn" onclick="saveAttendance()">저장</button>
+      </div>
+      <div class="form-row">
+        <input type="text" id="attMemo" placeholder="기타사항 메모 (선택)" style="flex:1;min-width:200px;">
       </div>
       <div id="attStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
       <div id="attList" style="margin-top:12px;"></div>
@@ -385,7 +388,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v3.8';
+const DASHBOARD_VERSION = 'v4.0';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -795,7 +798,7 @@ function parseExcelFile(file) {
 }
 
 // ── 임의 기간(start~end)에 대한 상담원별 집계 (현재 주 / 히스토리 공용) ──
-function computeAgentDataForRange(rangeStart, rangeEnd) {
+function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) {
   const dateStr = d => {
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
     return `${y}-${m}-${day}`;
@@ -836,6 +839,14 @@ function computeAgentDataForRange(rangeStart, rangeEnd) {
     return d >= monthStartStr && d <= monthEndStr;
   });
 
+  // 지난주 주간 이관목표(200만) 달성 여부 맵 — 콜미션 2주 면제 판단용 (재귀 1단계로 제한)
+  let prevWeekSalesAchievedMap = {};
+  if (!skipExempt && offsetHint !== undefined && offsetHint > 0) {
+    const prevRange = computeWeekRangeForOffset(offsetHint - 1);
+    const prevData = computeAgentDataForRange(prevRange.start, prevRange.end, offsetHint - 1, true);
+    Object.keys(prevData).forEach(n => { prevWeekSalesAchievedMap[n] = prevData[n].salesPct >= 100; });
+  }
+
   const agentData = {};
   STATE.settings.forEach(s => {
     const name = s['상담원'];
@@ -863,6 +874,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd) {
 
     const myPenalty = weekPenalty.filter(p => p['상담원'] === name);
     const penaltyMin = myPenalty.reduce((sum, p) => sum + (Number(p['추가분']) || 0), 0);
+    const penaltyRows = myPenalty.map(p => p['_row']);
 
     const weekGoalMin = Math.max(0, dailyGoal * goalDays - customDeductMin + penaltyMin);
 
@@ -884,11 +896,15 @@ function computeAgentDataForRange(rangeStart, rangeEnd) {
     const callPct = hasCallGoal ? (totalMin / weekGoalMin * 100) : -1;
     const salesPct = weekSalesGoal > 0 ? (totalSalesAmt / weekSalesGoal * 100) : 0;
 
+    // 주간 이관 200만원 달성 시 그 주 + 다음 주 콜미션 면제
+    const callGoalExempt = !skipExempt && hasCallGoal && (salesPct >= 100 || prevWeekSalesAchievedMap[name] === true);
+    const callAchieved = hasCallGoal ? (callGoalExempt ? true : callPct >= 100) : false;
+
     agentData[name] = {
       dailyGoal, weekGoalMin, totalMin, totalSec, callCount, outCount,
-      weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt, penaltyMin,
-      hasCallGoal, callPct, salesPct,
-      callAchieved: hasCallGoal && callPct >= 100,
+      weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt, penaltyMin, penaltyRows,
+      hasCallGoal, callPct, salesPct, callGoalExempt,
+      callAchieved,
       salesAchieved: monthlyExempt || salesPct >= 100
     };
   });
@@ -940,29 +956,30 @@ function computeWeekRangeForOffset(offset) {
   return { start: mon, end: fri };
 }
 
-// 현재 주 이전(offset-1)부터 거슬러 올라가며 연속으로 미달성(콜·이관 둘 다 실패)한 주 수를 셈.
-// 목표 예외 인원(dailyGoal=0)이거나 데이터가 없으면 거기서 멈춤. 최대 8주까지만 확인.
+// 0주차부터 현재 주(currentOffset) 직전까지 순서대로 시뮬레이션하며 "패널티 회차"를 계산.
+// 규칙: 완전 미달성(콜+이관 모두 실패) 주를 만나면 +1 (누적). 완전 달성(콜+이관 모두 성공) 주를 만나도
+// 회차는 내려가지 않고 그대로 유지(이력으로 남김). 부분 달성은 회차 변화 없음.
+// 목표 예외 인원(dailyGoal=0)은 계산에서 제외.
 function computeMissStreak(name, currentOffset) {
   if (currentOffset <= 0) return 0;
-  let streak = 0;
-  const lookbackLimit = Math.min(currentOffset, 8);
-  for (let i = 1; i <= lookbackLimit; i++) {
-    const offset = currentOffset - i;
+  let stage = 0;
+  const lookbackLimit = Math.min(currentOffset, 12);
+  for (let offset = currentOffset - lookbackLimit; offset < currentOffset; offset++) {
     const range = computeWeekRangeForOffset(offset);
-    const data = computeAgentDataForRange(range.start, range.end);
-    const d = data[name];
-    if (!d || d.dailyGoal === 0) break;
-    const missed = !(d.callAchieved || d.salesAchieved);
-    if (missed) streak++; else break;
+    const data = computeAgentDataForRange(range.start, range.end, offset)[name];
+    if (!data || data.dailyGoal === 0) continue;
+    const bothMissed = !data.callAchieved && !data.salesAchieved;
+    if (bothMissed) stage += 1;
+    // 완전 달성이거나 부분 달성이면 회차 변화 없음 (한 번 오른 회차는 유지)
   }
-  return streak;
+  return stage;
 }
 
 // ══════════════════════════════════════
 // DASHBOARD RENDERING
 // ══════════════════════════════════════
 function renderDashboard() {
-  const agentData = computeAgentDataForRange(STATE.weekStart, STATE.weekEnd);
+  const agentData = computeAgentDataForRange(STATE.weekStart, STATE.weekEnd, STATE.weekOffset);
 
   // 지난주부터 거슬러 올라가며 연속 미달성 주 수 계산 (예외 인원 제외)
   Object.keys(agentData).forEach(name => {
@@ -1022,7 +1039,7 @@ function renderWeekHistory() {
   let idx = 0;
   for (let offset = STATE.weekOffset - 1; offset >= 0; offset--) {
     const range = computeWeekRangeForOffset(offset);
-    const data = computeAgentDataForRange(range.start, range.end);
+    const data = computeAgentDataForRange(range.start, range.end, offset);
     const both = [], callOnly = [], salesOnly = [], none = [], exempt = [];
     Object.entries(data).forEach(([name, d]) => {
       if (d.dailyGoal === 0) exempt.push(name);
@@ -1117,11 +1134,18 @@ function renderPersonCard(name, d) {
   if (d.dailyGoal === 0) {
     badge += `<span class="person-badge badge-sparkle">✨ 1억 이상 매출 달성자</span> `;
   }
-  if (d.penaltyMin > 0) {
+  if (d.penaltyMin > 0 && d.missStreak === 0) {
     badge += `<span class="person-badge badge-leave">⚠️ 패널티 +${d.penaltyMin}분</span> `;
   }
   if (d.missStreak > 0) {
-    badge += `<span class="person-badge badge-half">🚨 ${d.missStreak}회차 패널티</span> `;
+    if (d.penaltyMin > 0) {
+      badge += `<span class="person-badge badge-half">🚨 ${d.missStreak}회차 패널티 진행중 (-${d.penaltyMin}분)</span> `;
+    } else {
+      badge += `<span class="person-badge" style="background:var(--green-bg);color:var(--green)">✅ ${d.missStreak}회차 패널티 이력 (수행완료)</span> `;
+    }
+  }
+  if (d.callGoalExempt) {
+    badge += `<span class="person-badge" style="background:var(--gold-bg);color:var(--gold)">🎯 콜미션 면제(이관200만)</span> `;
   }
   if (d.leaveDays.length > 0) {
     const types = d.leaveDays.map(l => l.type);
@@ -1153,6 +1177,12 @@ function renderPersonCard(name, d) {
       <div class="metric-row">
         <div class="metric-label"><span>📞 통화시간</span><span>${Math.round(d.totalMin)}분 (${d.callCount}건)</span></div>
         <div class="metric-detail">목표 미설정</div>
+      </div>`;
+  } else if (d.callGoalExempt) {
+    callBar = `
+      <div class="metric-row">
+        <div class="metric-label"><span>📞 통화시간</span><span class="pct" style="color:var(--gold)">면제 ✅</span></div>
+        <div class="metric-detail">${Math.round(d.totalMin)}분 (참고용, 이관 200만 달성으로 콜미션 면제)</div>
       </div>`;
   } else if (d.weekGoalMin === 0) {
     callBar = `
@@ -1193,6 +1223,13 @@ function renderPersonCard(name, d) {
       </div>`;
   }
 
+  const canClearPenalty = d.missStreak > 0 && d.callAchieved && d.salesAchieved && d.penaltyRows && d.penaltyRows.length > 0;
+  const clearPenaltyBtn = canClearPenalty
+    ? `<div style="margin-top:8px;">
+         <button class="save-btn" style="width:100%;background:var(--green);font-size:11px;" onclick='clearWeekPenalty("${name}", ${JSON.stringify(d.penaltyRows)})'>✅ 목표 달성 — 이번 주 패널티 해제</button>
+       </div>`
+    : '';
+
   return `
     <div class="person-card ${achClass}">
       <div class="person-header">
@@ -1201,6 +1238,7 @@ function renderPersonCard(name, d) {
       </div>
       ${callBar}
       ${salesBar}
+      ${clearPenaltyBtn}
     </div>`;
 }
 
@@ -1272,6 +1310,7 @@ async function saveAttendance() {
   const agent = document.getElementById('attAgent').value;
   const type = document.getElementById('attType').value;
   const customMin = type === '기타' ? (Number(document.getElementById('attCustomMin').value) || 0) : 0;
+  const memo = document.getElementById('attMemo').value.trim();
   if (!date || !agent) return;
   if (type === '기타' && customMin <= 0) {
     document.getElementById('attStatus').textContent = '❌ 차감 분을 입력해주세요';
@@ -1284,13 +1323,14 @@ async function saveAttendance() {
     const res = await fetch(API_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'saveAttendance', data: [{ '날짜': date, '상담원': agent, '구분': type, '차감분': customMin }], password: getStoredPassword() })
+      body: JSON.stringify({ action: 'saveAttendance', data: [{ '날짜': date, '상담원': agent, '구분': type, '차감분': customMin, '메모': memo }], password: getStoredPassword() })
     });
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
     status.textContent = type === '기타'
       ? `✅ ${agent} ${date} 기타(${customMin}분 차감) 저장 완료`
       : `✅ ${agent} ${date} ${type} 저장 완료`;
+    document.getElementById('attMemo').value = '';
     showToast('근태 저장 완료');
     await loadAllData();
   } catch (err) {
@@ -1312,7 +1352,8 @@ function renderAttendanceList() {
     return;
   }
   attEl.innerHTML = weekAtt.map(a => `
-    <div class="record-row">
+    <div style="border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:6px;">
+    <div class="record-row" style="border-bottom:none;padding-bottom:0;margin-bottom:0;">
       <span class="record-date">${String(a['날짜']).substring(0,10)}</span>
       <span class="record-name">${a['상담원']}</span>
       <select onchange="updateAttendanceType(${a['_row']}, this.value)">
@@ -1327,6 +1368,11 @@ function renderAttendanceList() {
            </div>`
         : `<span></span>`}
       <button class="roster-del" onclick="deleteAttendance(${a['_row']})" title="삭제">✕</button>
+    </div>
+    <div style="display:flex;gap:6px;align-items:center;margin-top:4px;padding-left:2px;">
+      <span style="font-size:11px;color:var(--text-dim);">📝</span>
+      <input type="text" id="memo_${a['_row']}" value="${(a['메모']||'').replace(/"/g,'&quot;')}" placeholder="기타사항 메모" style="flex:1;font-size:12px;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);" onchange="updateAttendanceMemo(${a['_row']}, this.value)">
+    </div>
     </div>`
   ).join('');
 }
@@ -1344,6 +1390,22 @@ async function updateAttendanceCustomMin(row, value) {
     await loadAllData();
   } catch (err) {
     alert('수정 실패: ' + err.message);
+  }
+}
+
+async function updateAttendanceMemo(row, value) {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'updateAttendanceMemo', row, value, password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    showToast('메모 저장 완료');
+    await loadAllData();
+  } catch (err) {
+    alert('메모 저장 실패: ' + err.message);
   }
 }
 
@@ -1465,6 +1527,28 @@ async function deletePenalty(row) {
     await loadAllData();
   } catch (err) {
     alert('삭제 실패: ' + err.message);
+  }
+}
+
+// 이번 주 목표를 모두 달성한 인원의 이번 주 패널티(분) 일괄 해제 (내림차순 삭제 — 행번호 밀림 방지)
+async function clearWeekPenalty(name, rows) {
+  if (!rows || rows.length === 0) return;
+  if (!confirm(`${name}님의 이번 주 패널티(${rows.length}건)를 해제하시겠습니까?`)) return;
+  const sorted = [...rows].sort((a, b) => b - a);
+  try {
+    for (const row of sorted) {
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'deletePenalty', row, password: getStoredPassword() })
+      });
+      const result = await res.json();
+      if (result.status !== 'ok') throw new Error(result.message);
+    }
+    showToast(`${name} 패널티 해제 완료`);
+    await loadAllData();
+  } catch (err) {
+    alert('패널티 해제 실패: ' + err.message);
   }
 }
 
