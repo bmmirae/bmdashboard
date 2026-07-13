@@ -413,7 +413,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v4.8';
+const DASHBOARD_VERSION = 'v4.9';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -444,6 +444,7 @@ let STATE = {
   sales: [],
   penalty: [],
   weeklyRevenue: [],
+  holidays: [],
   weekOffset: 0,     // 0 = 첫 주(7/1~7/3), 1 = 7/6~7/10, -1 등
   weekStart: null,
   weekEnd: null,
@@ -588,7 +589,13 @@ function updateWeekLabel() {
 
 function getWeekdayCount() {
   const diff = Math.round((STATE.weekEnd - STATE.weekStart) / 86400000) + 1;
-  return diff;
+  const dateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const wsStr = dateStr(STATE.weekStart), weStr = dateStr(STATE.weekEnd);
+  const holidayCount = STATE.holidays.filter(h => {
+    const hd = String(h['날짜']).substring(0, 10);
+    return hd >= wsStr && hd <= weStr;
+  }).length;
+  return Math.max(0, diff - holidayCount);
 }
 
 function getWeekDatesArray() {
@@ -631,6 +638,7 @@ async function loadAllData() {
     STATE.sales = data.sales || [];
     STATE.penalty = data.penalty || [];
     STATE.weeklyRevenue = data.weeklyRevenue || [];
+    STATE.holidays = data.holidays || [];
 
     document.getElementById('lastSync').textContent = '동기화: ' + new Date().toLocaleTimeString('ko');
     if (data.lastUpload) {
@@ -859,6 +867,13 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     rangeDates.push(d);
   }
 
+  // 이 기간에 포함된 휴일 날짜 집합 (전사 공통, 개인 근태와 무관하게 적용)
+  const holidaySet = new Set(
+    STATE.holidays
+      .map(h => String(h['날짜']).substring(0, 10))
+      .filter(hd => hd >= wsStr && hd <= weStr)
+  );
+
   const weekCalls = STATE.calls.filter(c => {
     const d = String(c['날짜']).substring(0, 10);
     return d >= wsStr && d <= weStr;
@@ -904,6 +919,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     let leaveDays = [];
     rangeDates.forEach(d => {
       const ds = dateStr(d);
+      if (holidaySet.has(ds)) { goalDays += 0; return; } // 휴일은 전 인원 공통으로 근무일에서 제외
       const att = weekAtt.find(a => String(a['날짜']).substring(0,10) === ds && a['사원명'] === name);
       if (att) {
         if (att['구분'] === '연차') { goalDays += 0; leaveDays.push({ date: ds, type: '연차' }); }
