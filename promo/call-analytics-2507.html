@@ -413,7 +413,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v4.9';
+const DASHBOARD_VERSION = 'v5.0';
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
@@ -1834,7 +1834,7 @@ function renderSalesList() {
       <span class="record-date">${String(s['날짜']).substring(0,10)}</span>
       <span class="record-name">${s['사원명']}</span>
       <input type="text" value="${s['업체명']||''}" placeholder="업체명" onchange="updateSalesCompany(${s['_row']}, this.value)">
-      <input type="number" value="${Number(s['금액'])}" step="10000" onchange="updateSalesAmount(${s['_row']}, this.value)">
+      <input type="text" inputmode="numeric" value="${Number(s['금액']).toLocaleString()}" onchange="handleSalesAmountChange(${s['_row']}, this)">
       <button class="roster-del" onclick="deleteSales(${s['_row']})" title="삭제">✕</button>
     </div>`
   ).join('');
@@ -1854,6 +1854,12 @@ async function updateSalesCompany(row, value) {
   } catch (err) {
     alert('수정 실패: ' + err.message);
   }
+}
+
+function handleSalesAmountChange(row, inputEl) {
+  const num = Number(inputEl.value.replace(/,/g, '')) || 0;
+  inputEl.value = num.toLocaleString();
+  updateSalesAmount(row, num);
 }
 
 async function updateSalesAmount(row, value) {
