@@ -2232,7 +2232,7 @@ function renderListSection(rows){
           <option value="">담당자 전체</option>
           ${mgrs.map(m=>`<option value="${m}">${m}</option>`).join('')}
         </select>
-        <input class="finput" id="fKw" oninput="applyFilter()" placeholder="🔍 업체명/키워드/전화번호 검색">
+        <select class="fsel" id="fNewOld" onchange="applyFilter()"><option value="">신규/기존 전체</option><option value="new">🟢 신규</option><option value="old">🔵 기존</option></select><input class="finput" id="fKw" oninput="applyFilter()" placeholder="🔍 업체명/키워드/전화번호 검색">
         <button onclick="expandAllDateGroups(true)"  style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:11px;cursor:pointer;white-space:nowrap;">▼ 전체 펼치기</button>
         <button onclick="expandAllDateGroups(false)" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:11px;cursor:pointer;white-space:nowrap;">▶ 전체 접기</button>
       </div>
@@ -2309,6 +2309,7 @@ function renderListBody(baseRows){
   const b  = document.getElementById('fBudget')?.value||'';
   const mg = document.getElementById('fMgr')?.value||'';
   const kw = (document.getElementById('fKw')?.value||'').trim().toLowerCase();
+  const newOld = document.getElementById('fNewOld')?.value||'';
   let rows=[...baseRows];
   rows=rows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
   if(g)  rows=rows.filter(r=>r.grade===g);
@@ -2319,6 +2320,8 @@ function renderListBody(baseRows){
     (r.keyword||'').toLowerCase().includes(kw)||
     (r.phone||'').replace(/-/g,'').includes(kw.replace(/-/g,''))
   );
+  if(newOld==='new') rows=rows.filter(r=>!r.recalls||!r.recalls.length);
+  if(newOld==='old') rows=rows.filter(r=>r.recalls&&r.recalls.length>0);
   rows=rows.map(r=>{
     const norm = normalizeDate(r.firstCall)||'';
     const td2  = today();
@@ -2362,11 +2365,16 @@ function renderListBody(baseRows){
     allGroupIds.push({gId, isOpen: isBizOpen});
     const hdrBg    = isToday?'#fff3e0': isBizOpen?'#f3f6ff':'var(--th-bg)';
     const hdrColor = isToday?'#e65100': isBizOpen?'#3949ab':'var(--th-color)';
+    const newCnt=items.filter(r=>!r.recalls||!r.recalls.length).length;
+    const oldCnt=items.length-newCnt;
     html+=`<tr style="background:${hdrBg};font-weight:700;cursor:pointer;" onclick="toggleDateGroup('${gId}')">
       <td colspan="10" style="padding:8px 12px;color:${hdrColor};user-select:none;">
         <span style="margin-right:6px;font-size:11px;display:inline-block;" id="${gId}_arr">${isBizOpen?'▼':'▶'}</span>
         📅 ${normDate}
         <span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">${items.length}건</span>
+        <span style="font-size:11px;font-weight:600;margin-left:8px;color:#2e7d32;">신규 ${newCnt}</span>
+        <span style="font-size:11px;font-weight:400;margin-left:4px;color:var(--text-sub);">·</span>
+        <span style="font-size:11px;font-weight:600;margin-left:4px;color:#1565c0;">기존 ${oldCnt}</span>
         ${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}
       </td>
     </tr>`;
@@ -2377,9 +2385,11 @@ function renderListBody(baseRows){
       const hasRecall   = r.recalls && r.recalls.length > 0;
       const recallCount = r.recalls ? r.recalls.length : 0;
       const latestRecall= r._latestDate !== r._normDate ? r._latestDate : '';
+      const isNew=!r.recalls||!r.recalls.length;
       html+=`<tr class="dg_row ${gId}" style="display:${isBizOpen?'table-row':'none'};${recallToday?'background:var(--rank1);':''}">
         <td>
           ${gradeBadgeEx(r.grade, r.gradeRecentlyChanged)}
+          ${isNew?`<span style="display:inline-block;margin-top:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">🟢 신규</span>`:''}
           ${hasRecall?`<span style="display:inline-block;margin-top:4px;background:#e8f4fd;color:#1565c0;border:1px solid #90caf9;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:600;white-space:nowrap;">🔁 재콜중</span>`:''}
         </td>
         <td>
