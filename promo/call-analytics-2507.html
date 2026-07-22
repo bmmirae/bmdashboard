@@ -423,7 +423,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v6.2';
+const DASHBOARD_VERSION = 'v6.3';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1011,6 +1011,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     agentData[name] = {
       dailyGoal, weekGoalMin, totalMin, totalSec, callCount, outCount,
       weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt, penaltyMin, penaltyRows,
+      weekSalesCount: mySales.length, monthSalesCount: myMonthSales.length,
       hasCallGoal, callPct, salesPct, callGoalExempt,
       callAchieved, realCallAchieved,
       salesAchieved: monthlyExempt || salesPct >= 100,
@@ -1326,7 +1327,7 @@ function renderPersonCard(name, d) {
     const pct = Math.min(d.salesPct, 100);
     salesBar = `
       <div class="metric-row">
-        <div class="metric-label"><span>💰 이관매출</span><span class="pct" style="color:var(--purple)">면제 ✅</span></div>
+        <div class="metric-label"><span>💰 이관매출 (주 ${d.weekSalesCount}건 / 월 ${d.monthSalesCount}건)</span><span class="pct" style="color:var(--purple)">면제 ✅</span></div>
         <div class="progress-bar"><div class="progress-fill fill-purple" style="width:${pct}%"></div></div>
         <div class="metric-detail sales-amount">이번달 누적 <strong>${formatWon(d.monthlyTotal)}</strong> (월 300만원 달성)</div>
       </div>`;
@@ -1336,7 +1337,7 @@ function renderPersonCard(name, d) {
     const sIcon = d.salesPct >= 100 ? ' ✅' : '';
     salesBar = `
       <div class="metric-row">
-        <div class="metric-label"><span>💰 이관매출</span><span class="pct">${Math.round(d.salesPct)}%${sIcon}</span></div>
+        <div class="metric-label"><span>💰 이관매출 (주 ${d.weekSalesCount}건 / 월 ${d.monthSalesCount}건)</span><span class="pct">${Math.round(d.salesPct)}%${sIcon}</span></div>
         <div class="progress-bar"><div class="progress-fill ${sCls}" style="width:${sPct}%"></div></div>
         <div class="metric-detail sales-amount"><strong>${formatWon(d.totalSalesAmt)}</strong> / ${formatWon(d.weekSalesGoal)}</div>
         <div class="metric-detail">월간 누적 <strong style="color:var(--text)">${formatWon(d.monthlyTotal)}</strong></div>
