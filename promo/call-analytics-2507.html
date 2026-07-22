@@ -418,7 +418,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v5.7';
+const DASHBOARD_VERSION = 'v5.8';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1404,6 +1404,7 @@ function renderMissionSummaryTable() {
     return {
       name,
       team: s['소속팀'],
+      dailyGoal: d.dailyGoal,
       totalMin: d.totalMin,
       weekGoalMin: d.weekGoalMin,
       callPct: d.hasCallGoal ? d.callPct : null,
@@ -1413,39 +1414,83 @@ function renderMissionSummaryTable() {
     };
   }).filter(Boolean);
 
-  // 통화시간 달성 분(分) 기준 내림차순
-  list.sort((a, b) => b.totalMin - a.totalMin);
+  // 1억 이상 달성자(목표 예외, dailyGoal=0)는 별도 섹션으로 분리 — 고정 순서
+  const EXEMPT_ORDER = ['심갑용', '이태웅', '박서영'];
+  const exemptList = list.filter(r => r.dailyGoal === 0)
+    .sort((a, b) => {
+      const ia = EXEMPT_ORDER.indexOf(a.name), ib = EXEMPT_ORDER.indexOf(b.name);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+  const rankedList = list.filter(r => r.dailyGoal > 0);
+
+  // 통화시간 달성 분(分) 기준 내림차순 (예외 인원 제외한 랭킹만)
+  rankedList.sort((a, b) => b.totalMin - a.totalMin);
 
   const COLS = '36px 66px 64px 1.3fr 84px 84px';
-  let html = `
-    <div class="mission-row head" style="grid-template-columns:${COLS};">
-      <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div>
-    </div>`;
 
-  list.forEach((row, idx) => {
-    const rank = idx + 1;
+  const renderMissionCell = (row) => {
     const pct = row.callPct === null ? 0 : Math.min(row.callPct, 100);
     const fillCls = row.callPct === null ? '' : (row.callPct >= 100 ? 'fill-green' : row.callPct >= 70 ? 'fill-yellow' : 'fill-red');
     const callLabel = row.callPct === null
       ? `${Math.round(row.totalMin)}분 (목표 미설정)`
       : `${Math.round(row.totalMin)}/${Math.round(row.weekGoalMin)}분 (${Math.round(row.callPct)}%)`;
-
     const weekHigh = row.weekSalesAmt >= row.weekSalesGoal && row.weekSalesGoal > 0;
     const monthHigh = row.monthlyTotal >= MONTHLY_EXEMPT_AMOUNT;
-    const weekCellStyle = weekHigh ? 'background:var(--gold-bg);color:var(--gold);font-weight:800;' : '';
-    const monthCellStyle = monthHigh ? 'background:var(--gold-bg);color:var(--gold);font-weight:800;' : '';
+    return {
+      callLabel, pct, fillCls,
+      weekCellStyle: weekHigh ? 'background:var(--gold-bg);color:var(--gold);font-weight:800;' : '',
+      monthCellStyle: monthHigh ? 'background:var(--gold-bg);color:var(--gold);font-weight:800;' : ''
+    };
+  };
 
+  let html = '';
+
+  // ── 1억 이상 달성자 섹션 (골드 테두리, 고정 순서) ──
+  if (exemptList.length > 0) {
+    html += `
+      <div style="border:2px solid var(--gold); border-radius:10px; padding:10px 8px; margin-bottom:14px; background:var(--gold-bg);">
+        <div style="font-size:12px;font-weight:800;color:var(--gold);margin-bottom:6px;padding:0 4px;">✨ 1억 이상 달성자</div>
+        <div class="mission-row head" style="grid-template-columns:${COLS};">
+          <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div>
+        </div>`;
+    exemptList.forEach(row => {
+      const c = renderMissionCell(row);
+      html += `
+        <div class="mission-row" style="grid-template-columns:${COLS};">
+          <div class="mission-rank">✨</div>
+          <div class="mission-team">${row.team}</div>
+          <div class="mission-name">${row.name}</div>
+          <div class="mission-call">
+            <div class="mission-call-label">${c.callLabel}</div>
+            ${row.callPct === null ? '' : `<div class="progress-bar" style="height:5px;"><div class="progress-fill ${c.fillCls}" style="width:${c.pct}%"></div></div>`}
+          </div>
+          <div class="mission-sales-cell" style="${c.weekCellStyle}">${formatWon(row.weekSalesAmt)}</div>
+          <div class="mission-sales-cell" style="${c.monthCellStyle}">${formatWon(row.monthlyTotal)}</div>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── 일반 랭킹 표 ──
+  html += `
+    <div class="mission-row head" style="grid-template-columns:${COLS};">
+      <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div>
+    </div>`;
+
+  rankedList.forEach((row, idx) => {
+    const rank = idx + 1;
+    const c = renderMissionCell(row);
     html += `
       <div class="mission-row" style="grid-template-columns:${COLS};">
         <div class="mission-rank">${rank}</div>
         <div class="mission-team">${row.team}</div>
         <div class="mission-name">${row.name}</div>
         <div class="mission-call">
-          <div class="mission-call-label">${callLabel}</div>
-          ${row.callPct === null ? '' : `<div class="progress-bar" style="height:5px;"><div class="progress-fill ${fillCls}" style="width:${pct}%"></div></div>`}
+          <div class="mission-call-label">${c.callLabel}</div>
+          ${row.callPct === null ? '' : `<div class="progress-bar" style="height:5px;"><div class="progress-fill ${c.fillCls}" style="width:${c.pct}%"></div></div>`}
         </div>
-        <div class="mission-sales-cell" style="${weekCellStyle}">${formatWon(row.weekSalesAmt)}</div>
-        <div class="mission-sales-cell" style="${monthCellStyle}">${formatWon(row.monthlyTotal)}</div>
+        <div class="mission-sales-cell" style="${c.weekCellStyle}">${formatWon(row.weekSalesAmt)}</div>
+        <div class="mission-sales-cell" style="${c.monthCellStyle}">${formatWon(row.monthlyTotal)}</div>
       </div>`;
   });
 
