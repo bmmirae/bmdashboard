@@ -400,16 +400,17 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
   <div id="revenue-lock"></div>
   <div id="revenue-content" style="display:none">
     <div class="form-section">
-      <div class="form-title">📊 주간미션요약</div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <span id="missionWeekLabel" style="font-size:12px;color:var(--text-dim);font-weight:600;"></span>
+        <div class="form-title" style="margin-bottom:0;">📊 주간미션요약</div>
         <button class="save-btn" id="missionPngBtn" onclick="downloadMissionSummaryPNG()">🖼️ PNG 다운로드</button>
       </div>
       <div id="missionSummaryCapture">
+        <div id="missionCaptureHeader" style="display:flex;justify-content:space-between;align-items:center;padding:0 4px 10px;font-size:11px;color:var(--text-dim);"></div>
         <div id="missionSummaryTable"></div>
       </div>
     </div>
   </div>
+
 </div>
 
 <script>
@@ -417,7 +418,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v5.5';
+const DASHBOARD_VERSION = 'v5.6';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -465,6 +466,7 @@ let STATE = {
   weeklyRevenue: [],
   holidays: [],
   prospectMap: {},
+  lastUploadLabel: '',
   weekOffset: 0,     // 0 = 첫 주(7/1~7/3), 1 = 7/6~7/10, -1 등
   weekStart: null,
   weekEnd: null,
@@ -668,6 +670,7 @@ async function loadAllData() {
     if (data.lastUpload) {
       const d = new Date(data.lastUpload);
       const label = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+      STATE.lastUploadLabel = label;
       document.getElementById('lastUpload').textContent = '📤 마지막 업로드: ' + label;
     }
     try { populateAgentSelects(); } catch (e) { console.error('populateAgentSelects 오류:', e); }
@@ -1365,12 +1368,14 @@ function getMondayStr(dateStr) {
 // 주간미션요약: 순위/소속/이름/통화시간/이관금액 랭킹표 (현재 보고 있는 주 기준)
 function renderMissionSummaryTable() {
   const tableEl = document.getElementById('missionSummaryTable');
-  const labelEl = document.getElementById('missionWeekLabel');
+  const headerEl = document.getElementById('missionCaptureHeader');
   if (!tableEl) return;
 
   const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
-  if (labelEl && STATE.weekStart && STATE.weekEnd) {
-    labelEl.textContent = `${fmt(STATE.weekStart)} ~ ${fmt(STATE.weekEnd)} 주 기준`;
+  if (headerEl && STATE.weekStart && STATE.weekEnd) {
+    const dateRangeText = `📅 데이터 기준: ${fmt(STATE.weekStart)} ~ ${fmt(STATE.weekEnd)} 주`;
+    const uploadText = STATE.lastUploadLabel ? `📤 마지막 업로드: ${STATE.lastUploadLabel}` : '';
+    headerEl.innerHTML = `<span>${dateRangeText}</span><span>${uploadText}</span>`;
   }
 
   const agentData = computeAgentDataForRange(STATE.weekStart, STATE.weekEnd, STATE.weekOffset);
@@ -1447,7 +1452,8 @@ async function downloadMissionSummaryPNG() {
     });
     const imgData = canvas.toDataURL('image/png');
     const a = document.createElement('a');
-    const labelText = (document.getElementById('missionWeekLabel').textContent || 'mission').trim().replace(/\s+/g, '_');
+    const fmt = d => `${d.getMonth()+1}_${d.getDate()}`;
+    const labelText = (STATE.weekStart && STATE.weekEnd) ? `${fmt(STATE.weekStart)}~${fmt(STATE.weekEnd)}` : 'mission';
     a.href = imgData;
     a.download = `주간미션요약_${labelText}.png`;
     a.click();
