@@ -418,13 +418,15 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v5.6';
+const DASHBOARD_VERSION = 'v5.7';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
-async function loadProspectData() {
+// weekStartStr/weekEndStr을 넘기면 그 주 기준으로, 안 넘기면 실제 이번 주 기준으로 집계됨
+async function loadProspectData(weekStartStr, weekEndStr) {
   try {
-    const url = PROSPECT_API + '?action=serverGetProspectSummary&params=' + encodeURIComponent(JSON.stringify({}));
+    const paramsObj = (weekStartStr && weekEndStr) ? { weekStart: weekStartStr, weekEnd: weekEndStr } : {};
+    const url = PROSPECT_API + '?action=serverGetProspectSummary&params=' + encodeURIComponent(JSON.stringify(paramsObj));
     const res = await fetch(url);
     const data = await res.json();
     STATE.prospectMap = data.prospectMap || {};
@@ -631,7 +633,7 @@ function getWeekDatesArray() {
   return arr;
 }
 
-function changeWeek(delta) {
+async function changeWeek(delta) {
   if (delta < 0 && STATE.weekOffset <= 0) return;
   STATE.weekOffset += delta;
   computeWeekRange();
@@ -640,6 +642,10 @@ function changeWeek(delta) {
   renderSalesList();
   renderPenaltyList();
   try { renderMissionSummaryTable(); } catch (e) {}
+
+  // 가망건 데이터도 지금 보는 주 기준으로 다시 불러온 뒤 카드 갱신
+  await loadProspectData(fmtDateStr(STATE.weekStart), fmtDateStr(STATE.weekEnd));
+  renderDashboard();
 }
 
 document.getElementById('prevWeek').addEventListener('click', () => changeWeek(-1));
@@ -651,9 +657,11 @@ document.getElementById('nextWeek').addEventListener('click', () => changeWeek(1
 async function loadAllData() {
   showLoading('teamCards');
   try {
+    const wsStr = STATE.weekStart ? fmtDateStr(STATE.weekStart) : null;
+    const weStr = STATE.weekEnd ? fmtDateStr(STATE.weekEnd) : null;
     const [res] = await Promise.all([
       fetch(API_URL + '?action=all'),
-      loadProspectData()
+      loadProspectData(wsStr, weStr)
     ]);
     const data = await res.json();
     if (data.status !== 'ok') throw new Error(data.message);
@@ -1043,6 +1051,11 @@ function renderMonthlyExemptBar() {
     </div>`;
 }
 
+// 공용 yyyy-mm-dd 포맷 헬퍼
+function fmtDateStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 function computeWeekRangeForOffset(offset) {
   if (offset === 0) return { start: new Date(FIRST_WEEK_START), end: new Date(FIRST_WEEK_END) };
   const mon = new Date(SECOND_WEEK_MONDAY);
@@ -1328,10 +1341,14 @@ function renderPersonCard(name, d) {
     : '';
 
   const prospectWeekTotal = d.prospectWeekNew + d.prospectWeekOld;
+  const isCurrentWeek = STATE.weekOffset === computeOffsetForToday();
+  const prospectTodayLine = isCurrentWeek
+    ? `<div class="metric-detail">당일 <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.prospectTodayNew}</span> <span style="color:var(--blue);font-weight:600;">🔵 기존 ${d.prospectTodayOld}</span></div>`
+    : '';
   const prospectBar = `
     <div class="metric-row" style="margin-top:4px;">
       <div class="metric-label"><span>📋 가망건</span><span style="font-size:11px;color:var(--text-dim);">주간 ${prospectWeekTotal}건</span></div>
-      <div class="metric-detail">당일 <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.prospectTodayNew}</span> <span style="color:var(--blue);font-weight:600;">🔵 기존 ${d.prospectTodayOld}</span></div>
+      ${prospectTodayLine}
       <div class="metric-detail">주간 <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.prospectWeekNew}</span> <span style="color:var(--blue);font-weight:600;">🔵 기존 ${d.prospectWeekOld}</span></div>
     </div>`;
 
