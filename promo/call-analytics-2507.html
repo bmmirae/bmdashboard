@@ -261,7 +261,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
   <button class="tab-btn" data-tab="upload">📤 데이터 업로드</button>
   <button class="tab-btn" data-tab="input">✏️ 근태·기타·이관매출·패널티</button>
   <button class="tab-btn" data-tab="roster">👥 인원관리</button>
-  <button class="tab-btn" data-tab="revenue">📈 주간매출관리</button>
+  <button class="tab-btn" data-tab="revenue">📊 주간미션요약</button>
 </div>
 
 <!-- ═══ 현황 대시보드 ═══ -->
@@ -390,20 +390,14 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
   <div id="revenue-lock"></div>
   <div id="revenue-content" style="display:none">
     <div class="form-section">
-      <div class="form-title">📈 주간 네이버+GFA 매출 입력 (전사원)</div>
-      <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">날짜는 해당 주의 아무 날이나 선택하면 자동으로 그 주(월~일)로 집계됩니다. 1주차: 6/29~7/5, 2주차: 7/6~7/12 …</div>
-      <div class="form-row">
-        <input type="date" id="revenueDate" onchange="renderWeeklyRevenueEntryTable()">
-        <span id="revenueWeekLabel" style="font-size:12px;color:var(--text-dim);font-weight:600;"></span>
+      <div class="form-title">📊 주간미션요약</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <span id="missionWeekLabel" style="font-size:12px;color:var(--text-dim);font-weight:600;"></span>
+        <button class="save-btn" id="missionPngBtn" onclick="downloadMissionSummaryPNG()">🖼️ PNG 다운로드</button>
       </div>
-      <div id="revenueEntryTable" style="margin-top:12px;"></div>
-      <button class="upload-btn" style="margin-top:14px;" onclick="saveAllWeeklyRevenue()">💾 전체 저장</button>
-      <div id="revenueStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-title">📋 등록된 주간매출 기록 (개별 수정·삭제)</div>
-      <div id="revenueList" style="margin-top:4px;"></div>
+      <div id="missionSummaryCapture">
+        <div id="missionSummaryTable"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -413,7 +407,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v5.3';
+const DASHBOARD_VERSION = 'v5.4';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -537,7 +531,7 @@ function renderLockOrContent(zone) {
     lockEl.innerHTML = '';
     contentEl.style.display = 'block';
     if (zone === 'roster') renderRosterTable();
-    if (zone === 'revenue') { renderWeeklyRevenueList(); renderWeeklyRevenueEntryTable(); }
+    if (zone === 'revenue') renderMissionSummaryTable();
   } else {
     contentEl.style.display = 'none';
     lockEl.innerHTML = `
@@ -633,6 +627,7 @@ function changeWeek(delta) {
   renderAttendanceList();
   renderSalesList();
   renderPenaltyList();
+  try { renderMissionSummaryTable(); } catch (e) {}
 }
 
 document.getElementById('prevWeek').addEventListener('click', () => changeWeek(-1));
@@ -670,7 +665,7 @@ async function loadAllData() {
     try { renderAttendanceList(); } catch (e) { console.error('renderAttendanceList 오류:', e); }
     try { renderSalesList(); } catch (e) { console.error('renderSalesList 오류:', e); }
     try { renderPenaltyList(); } catch (e) { console.error('renderPenaltyList 오류:', e); }
-    try { renderWeeklyRevenueList(); } catch (e) { console.error('renderWeeklyRevenueList 오류:', e); }
+    try { renderMissionSummaryTable(); } catch (e) { console.error('renderMissionSummaryTable 오류:', e); }
   } catch (err) {
     document.getElementById('teamCards').innerHTML =
       `<div class="loading" style="color:var(--red)">데이터 로드 실패: ${err.message}</div>`;
@@ -1357,149 +1352,89 @@ function getMondayStr(dateStr) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function renderWeeklyRevenueEntryTable() {
-  const dateInput = document.getElementById('revenueDate');
-  const tableEl = document.getElementById('revenueEntryTable');
-  const labelEl = document.getElementById('revenueWeekLabel');
-  if (!dateInput || !dateInput.value || !tableEl) { if (tableEl) tableEl.innerHTML = ''; return; }
+// 주간미션요약: 순위/소속/이름/통화시간/이관금액 랭킹표 (현재 보고 있는 주 기준)
+function renderMissionSummaryTable() {
+  const tableEl = document.getElementById('missionSummaryTable');
+  const labelEl = document.getElementById('missionWeekLabel');
+  if (!tableEl) return;
 
-  const weekStart = getMondayStr(dateInput.value);
-  const endDate = new Date(weekStart + 'T00:00:00');
-  endDate.setDate(endDate.getDate() + 6);
-  const weekEndStr = `${endDate.getFullYear()}-${String(endDate.getMonth()+1).padStart(2,'0')}-${String(endDate.getDate()).padStart(2,'0')}`;
-  if (labelEl) labelEl.textContent = `${weekStart} ~ ${weekEndStr} 주`;
+  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+  if (labelEl && STATE.weekStart && STATE.weekEnd) {
+    labelEl.textContent = `${fmt(STATE.weekStart)} ~ ${fmt(STATE.weekEnd)} 주 기준`;
+  }
 
-  // 이 주에 이미 입력된 값 매핑
-  const existing = {};
-  STATE.weeklyRevenue.forEach(r => {
-    if (String(r['날짜']).substring(0, 10) === weekStart) {
-      existing[r['사원명']] = { naver: Number(r['네이버매출']) || 0, gfa: Number(r['GFA매출']) || 0 };
-    }
-  });
+  const agentData = computeAgentDataForRange(STATE.weekStart, STATE.weekEnd, STATE.weekOffset);
 
-  const teamOrder = getTeamOrder();
-  const teams = {};
-  STATE.settings.forEach(s => {
-    const t = s['소속팀'];
-    if (!teams[t]) teams[t] = [];
-    teams[t].push(s);
-  });
+  const list = STATE.settings.map(s => {
+    const name = s['사원명'];
+    const d = agentData[name];
+    if (!d) return null;
+    return {
+      name,
+      team: s['소속팀'],
+      totalMin: d.totalMin,
+      weekGoalMin: d.weekGoalMin,
+      callPct: d.hasCallGoal ? d.callPct : null,
+      totalSalesAmt: d.totalSalesAmt
+    };
+  }).filter(Boolean);
+
+  // 통화시간 달성 분(分) 기준 내림차순
+  list.sort((a, b) => b.totalMin - a.totalMin);
 
   let html = `
-    <div class="record-row head" style="grid-template-columns:1.2fr 1fr 1fr;">
-      <div>사원명</div><div>네이버매출(원)</div><div>GFA매출(원)</div>
+    <div class="record-row head" style="grid-template-columns:50px 90px 1fr 1.4fr 1fr;">
+      <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>이관금액</div>
     </div>`;
-  teamOrder.forEach(team => {
-    html += `<div style="font-size:12px;font-weight:700;color:var(--accent);margin:10px 0 4px;">${team}</div>`;
-    teams[team].forEach(s => {
-      const name = s['사원명'];
-      const ex = existing[name] || { naver: '', gfa: '' };
-      const safeId = name.replace(/[^a-zA-Z0-9가-힣]/g, '_');
-      html += `
-        <div class="record-row" style="grid-template-columns:1.2fr 1fr 1fr;">
-          <span class="record-name">${name}</span>
-          <input type="number" id="entryNaver_${safeId}" value="${ex.naver}" placeholder="0" step="10000">
-          <input type="number" id="entryGfa_${safeId}" value="${ex.gfa}" placeholder="0" step="10000">
-        </div>`;
-    });
+
+  list.forEach((row, idx) => {
+    const rank = idx + 1;
+    const callText = row.callPct === null
+      ? `${Math.round(row.totalMin)}분 (목표 미설정)`
+      : `${Math.round(row.totalMin)}분/${Math.round(row.weekGoalMin)}분 (${Math.round(row.callPct)}%)`;
+    const salesHigh = row.totalSalesAmt >= 3000000;
+    const salesStyle = salesHigh ? 'background:var(--gold-bg);color:var(--gold);font-weight:800;border-radius:4px;padding:2px 6px;' : '';
+    html += `
+      <div class="record-row" style="grid-template-columns:50px 90px 1fr 1.4fr 1fr;">
+        <div style="font-weight:700;color:var(--text-dim);">${rank}</div>
+        <div style="font-size:12px;color:var(--text-dim);">${row.team}</div>
+        <div class="record-name">${row.name}</div>
+        <div style="font-size:12px;">${callText}</div>
+        <div style="font-size:12px;${salesStyle}">${formatWon(row.totalSalesAmt)}</div>
+      </div>`;
   });
+
   tableEl.innerHTML = html;
 }
 
-async function saveAllWeeklyRevenue() {
-  const dateInput = document.getElementById('revenueDate');
-  const status = document.getElementById('revenueStatus');
-  if (!dateInput.value) { status.textContent = '❌ 날짜(주)를 먼저 선택해주세요'; return; }
+// 주간미션요약 표를 저용량 PNG로 다운로드
+async function downloadMissionSummaryPNG() {
+  const btn = document.getElementById('missionPngBtn');
+  const target = document.getElementById('missionSummaryCapture');
+  const originalText = btn.textContent;
+  btn.textContent = '생성 중...';
+  btn.disabled = true;
 
-  const weekStart = getMondayStr(dateInput.value);
-  const rows = [];
-  STATE.settings.forEach(s => {
-    const name = s['사원명'];
-    const safeId = name.replace(/[^a-zA-Z0-9가-힣]/g, '_');
-    const naverEl = document.getElementById(`entryNaver_${safeId}`);
-    const gfaEl = document.getElementById(`entryGfa_${safeId}`);
-    if (!naverEl || !gfaEl) return;
-    const naver = Number(naverEl.value) || 0;
-    const gfa = Number(gfaEl.value) || 0;
-    if (naver > 0 || gfa > 0) {
-      rows.push({ '날짜': weekStart, '사원명': name, '네이버매출': naver, 'GFA매출': gfa });
-    }
-  });
-
-  if (rows.length === 0) { status.textContent = '❌ 입력된 값이 없습니다'; return; }
-
-  status.textContent = '저장 중...';
   try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'saveWeeklyRevenue', data: rows, password: getRevenuePassword() })
+    const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--card').trim() || '#ffffff';
+    const canvas = await html2canvas(target, {
+      scale: 1.5,
+      useCORS: true,
+      backgroundColor: bgColor
     });
-    const result = await res.json();
-    if (result.status !== 'ok') throw new Error(result.message);
-    status.textContent = `✅ ${weekStart} 주 매출 ${rows.length}명분 저장 완료`;
-    showToast('주간매출 일괄 저장 완료');
-    await loadAllData();
-    renderWeeklyRevenueEntryTable();
+    const imgData = canvas.toDataURL('image/png');
+    const a = document.createElement('a');
+    const labelText = (document.getElementById('missionWeekLabel').textContent || 'mission').trim().replace(/\s+/g, '_');
+    a.href = imgData;
+    a.download = `주간미션요약_${labelText}.png`;
+    a.click();
+    showToast('PNG 다운로드 완료');
   } catch (err) {
-    status.textContent = '❌ 실패: ' + err.message;
+    alert('PNG 생성 실패: ' + err.message);
   }
-}
 
-function renderWeeklyRevenueList() {
-  const el = document.getElementById('revenueList');
-  if (!el) return;
-  const sorted = [...STATE.weeklyRevenue].sort((a, b) =>
-    String(b['날짜']).localeCompare(String(a['날짜'])) || String(a['사원명']).localeCompare(String(b['사원명']))
-  );
-  if (sorted.length === 0) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--text-dim)">등록된 주간매출 없음</div>';
-    return;
-  }
-  el.innerHTML = sorted.map(r => {
-    const naver = Number(r['네이버매출']) || 0, gfa = Number(r['GFA매출']) || 0;
-    return `
-    <div class="record-row" style="grid-template-columns:95px 70px 1fr 1fr auto;">
-      <span class="record-date">${String(r['날짜']).substring(0,10)}주</span>
-      <span class="record-name">${r['사원명']}</span>
-      <input type="number" value="${naver}" style="width:100%;" onchange="updateWeeklyRevenueField(${r['_row']}, '네이버매출', this.value)">
-      <input type="number" value="${gfa}" style="width:100%;" onchange="updateWeeklyRevenueField(${r['_row']}, 'GFA매출', this.value)">
-      <button class="roster-del" onclick="deleteWeeklyRevenueEntry(${r['_row']})" title="삭제">✕</button>
-    </div>`;
-  }).join('');
-}
-
-async function updateWeeklyRevenueField(row, field, value) {
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'updateWeeklyRevenue', row, field, value, password: getRevenuePassword() })
-    });
-    const result = await res.json();
-    if (result.status !== 'ok') throw new Error(result.message);
-    showToast('주간매출 수정 완료');
-    await loadAllData();
-  } catch (err) {
-    alert('수정 실패: ' + err.message);
-  }
-}
-
-async function deleteWeeklyRevenueEntry(row) {
-  if (!confirm('이 주간매출 기록을 삭제하시겠습니까?')) return;
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'deleteWeeklyRevenue', row, password: getRevenuePassword() })
-    });
-    const result = await res.json();
-    if (result.status !== 'ok') throw new Error(result.message);
-    showToast('주간매출 삭제 완료');
-    await loadAllData();
-  } catch (err) {
-    alert('삭제 실패: ' + err.message);
-  }
+  btn.textContent = originalText;
+  btn.disabled = false;
 }
 
 // 최근 두 주(연속 입력 기준) 매출 증감률 계산 — 지난 데이터 없으면 null
