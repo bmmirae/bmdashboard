@@ -423,7 +423,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v6.1';
+const DASHBOARD_VERSION = 'v6.2';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1472,7 +1472,7 @@ function renderMissionSummaryTable() {
       <div style="border:2px solid var(--gold); border-radius:10px; padding:10px 8px; margin-bottom:14px; background:var(--gold-bg);">
         <div style="font-size:12px;font-weight:800;color:var(--gold);margin-bottom:6px;padding:0 4px;">✨ 1억 이상 달성자</div>
         <div class="mission-row head" style="grid-template-columns:${COLS};">
-          <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div><div>이관/가망</div>
+          <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div><div>주간 이관/가망</div>
         </div>`;
     exemptList.forEach(row => {
       const c = renderMissionCell(row);
@@ -1496,7 +1496,7 @@ function renderMissionSummaryTable() {
   // ── 일반 랭킹 표 ──
   html += `
     <div class="mission-row head" style="grid-template-columns:${COLS};">
-      <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div><div>이관/가망</div>
+      <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div><div>주간 이관/가망</div>
     </div>`;
 
   combinedRanked.forEach((row, idx) => {
