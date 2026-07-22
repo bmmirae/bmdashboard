@@ -413,7 +413,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v5.2';
+const DASHBOARD_VERSION = 'v5.3';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1320,12 +1320,12 @@ function renderPersonCard(name, d) {
     : '';
 
   const prospectWeekTotal = d.prospectWeekNew + d.prospectWeekOld;
-  const prospectBar = (prospectWeekTotal > 0) ? `
+  const prospectBar = `
     <div class="metric-row" style="margin-top:4px;">
       <div class="metric-label"><span>📋 가망건</span><span style="font-size:11px;color:var(--text-dim);">주간 ${prospectWeekTotal}건</span></div>
       <div class="metric-detail">당일 <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.prospectTodayNew}</span> <span style="color:var(--blue);font-weight:600;">🔵 기존 ${d.prospectTodayOld}</span></div>
       <div class="metric-detail">주간 <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.prospectWeekNew}</span> <span style="color:var(--blue);font-weight:600;">🔵 기존 ${d.prospectWeekOld}</span></div>
-    </div>` : '';
+    </div>`;
 
   return `
     <div class="person-card ${achClass}">
