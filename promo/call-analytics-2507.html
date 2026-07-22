@@ -413,7 +413,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v5.1';
+const DASHBOARD_VERSION = 'v5.2';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -982,7 +982,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     const realCallAchieved = hasCallGoal && callPct >= 100; // 면제 여부와 무관한 실제 통화 달성 여부
     const callAchieved = hasCallGoal ? (callGoalExempt ? true : callPct >= 100) : false; // 패널티 회차 계산 등에 쓰이는 값(면제 포함)
 
-    const prospect = STATE.prospectMap[name] || { newCount: 0, oldCount: 0 };
+    const prospect = STATE.prospectMap[name] || { todayNew: 0, todayOld: 0, weekNew: 0, weekOld: 0 };
 
     agentData[name] = {
       dailyGoal, weekGoalMin, totalMin, totalSec, callCount, outCount,
@@ -990,8 +990,10 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
       hasCallGoal, callPct, salesPct, callGoalExempt,
       callAchieved, realCallAchieved,
       salesAchieved: monthlyExempt || salesPct >= 100,
-      newProspect: prospect.newCount || 0,
-      oldProspect: prospect.oldCount || 0
+      prospectTodayNew: prospect.todayNew || 0,
+      prospectTodayOld: prospect.todayOld || 0,
+      prospectWeekNew: prospect.weekNew || 0,
+      prospectWeekOld: prospect.weekOld || 0
     };
   });
 
@@ -1317,13 +1319,12 @@ function renderPersonCard(name, d) {
     ? `<div style="text-align:right;font-size:12px;font-weight:800;margin-top:8px;color:${growth.isUp ? 'var(--green)' : 'var(--red)'}">${growth.isUp ? '🔺' : '🔻'} ${Math.abs(Math.round(growth.pct))}% ${growth.isUp ? '캡업' : '캡다운'}</div>`
     : '';
 
-  const prospectBar = (d.newProspect + d.oldProspect > 0) ? `
+  const prospectWeekTotal = d.prospectWeekNew + d.prospectWeekOld;
+  const prospectBar = (prospectWeekTotal > 0) ? `
     <div class="metric-row" style="margin-top:4px;">
-      <div class="metric-label"><span>📋 가망건</span><span style="font-size:11px;color:var(--text-dim);">${d.newProspect + d.oldProspect}건</span></div>
-      <div class="metric-detail" style="display:flex;gap:8px;">
-        <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.newProspect}</span>
-        <span style="color:var(--blue);font-weight:600;">🔵 기존 ${d.oldProspect}</span>
-      </div>
+      <div class="metric-label"><span>📋 가망건</span><span style="font-size:11px;color:var(--text-dim);">주간 ${prospectWeekTotal}건</span></div>
+      <div class="metric-detail">당일 <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.prospectTodayNew}</span> <span style="color:var(--blue);font-weight:600;">🔵 기존 ${d.prospectTodayOld}</span></div>
+      <div class="metric-detail">주간 <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.prospectWeekNew}</span> <span style="color:var(--blue);font-weight:600;">🔵 기존 ${d.prospectWeekOld}</span></div>
     </div>` : '';
 
   return `
