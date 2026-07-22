@@ -418,7 +418,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v5.8';
+const DASHBOARD_VERSION = 'v5.9';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1423,8 +1423,12 @@ function renderMissionSummaryTable() {
     });
   const rankedList = list.filter(r => r.dailyGoal > 0);
 
-  // 통화시간 달성 분(分) 기준 내림차순 (예외 인원 제외한 랭킹만)
-  rankedList.sort((a, b) => b.totalMin - a.totalMin);
+  // 월 300만원 이상 달성자: 월간이관 내림차순 (1위부터) → 나머지: 통화시간 내림차순으로 이어서
+  const monthlyAchievers = rankedList.filter(r => r.monthlyTotal >= MONTHLY_EXEMPT_AMOUNT)
+    .sort((a, b) => b.monthlyTotal - a.monthlyTotal);
+  const others = rankedList.filter(r => r.monthlyTotal < MONTHLY_EXEMPT_AMOUNT)
+    .sort((a, b) => b.totalMin - a.totalMin);
+  const combinedRanked = [...monthlyAchievers, ...others];
 
   const COLS = '36px 66px 64px 1.3fr 84px 84px';
 
@@ -1477,7 +1481,7 @@ function renderMissionSummaryTable() {
       <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div>
     </div>`;
 
-  rankedList.forEach((row, idx) => {
+  combinedRanked.forEach((row, idx) => {
     const rank = idx + 1;
     const c = renderMissionCell(row);
     html += `
