@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.14</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.15</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -234,7 +234,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.14</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.15</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -421,7 +421,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v515';
+const LS_VER='v516';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -786,8 +786,11 @@ function renderListBody(baseRows){
   Object.entries(groups).sort((a,b)=>{if(a[0]==='날짜없음')return 1;if(b[0]==='날짜없음')return-1;return b[0].localeCompare(a[0]);}).forEach(([date,items])=>{
     const normDate=normalizeDate(date)||date;const isToday=normDate===td;const isBizOpen=bizDates.has(normDate);const isNoDate=date==='날짜없음';const gId=`dg_${gIdx++}`;allGroupIds.push({gId,isOpen:isBizOpen&&!isNoDate});
     const hdrBg=isNoDate?'var(--surface2)':isToday?'#fff3e0':isBizOpen?'#f3f6ff':'var(--th-bg)';const hdrColor=isNoDate?'var(--text-muted)':isToday?'#e65100':isBizOpen?'#3949ab':'var(--th-color)';
-    const newCnt=items.filter(r=>!r.recalls||!r.recalls.length).length;const oldCnt=items.length-newCnt;
-    html+=`<tr style="background:${hdrBg};font-weight:700;cursor:pointer;" onclick="toggleDateGroup('${gId}')"><td colspan="10" style="padding:8px 12px;color:${hdrColor};user-select:none;"><span style="margin-right:6px;font-size:11px;display:inline-block;" id="${gId}_arr">${(isBizOpen&&!isNoDate)?'▼':'▶'}</span>${isNoDate?'📋 날짜 미입력':'📅 '+normDate}<span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">${items.length}건</span><span style="font-size:11px;font-weight:600;margin-left:8px;color:#2e7d32;">신규 ${newCnt}</span><span style="font-size:11px;font-weight:400;margin-left:4px;color:var(--text-sub);">·</span><span style="font-size:11px;font-weight:600;margin-left:4px;color:#1565c0;">기존 ${oldCnt}</span>${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}</td></tr>`;
+    const newCnt=items.filter(r=>!r.recalls||!r.recalls.length).length;
+    const oldCnt=items.length-newCnt;
+    const PROMO_GRADES=['단기','장기','권한오픈','권한+브리핑'];
+    const promoCnt=items.filter(r=>(!r.recalls||!r.recalls.length)&&PROMO_GRADES.includes(r.grade)&&r.budget>0&&r.advertiserManager&&r.phone&&r.email).length;
+    html+=`<tr style="background:${hdrBg};font-weight:700;cursor:pointer;" onclick="toggleDateGroup('${gId}')"><td colspan="10" style="padding:8px 12px;color:${hdrColor};user-select:none;"><span style="margin-right:6px;font-size:11px;display:inline-block;" id="${gId}_arr">${(isBizOpen&&!isNoDate)?'▼':'▶'}</span>${isNoDate?'📋 날짜 미입력':'📅 '+normDate}<span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">${items.length}건</span><span style="font-size:11px;font-weight:600;margin-left:8px;color:#2e7d32;">🟢 신규 ${newCnt}${promoCnt>0?` <span style=\"font-size:10px;color:#7b1fa2;\">(신규P ${promoCnt})</span>`:''}</span><span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">·</span><span style="font-size:11px;font-weight:600;margin-left:6px;color:#1565c0;">🔵 기존 ${oldCnt}</span>${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}</td></tr>`;
     items.forEach(r=>{const recallToday=r.nextRecallDate===td;const hasRecall=r.recalls&&r.recalls.length>0;const recallCount=r.recalls?r.recalls.length:0;const latestRecall=r._latestDate!==r._normDate?r._latestDate:'';const isNew=!r.recalls||!r.recalls.length;html+=`<tr class="dg_row ${gId}" style="display:${(isBizOpen&&!isNoDate)?'table-row':'none'};${recallToday?'background:var(--rank1);':''}"><td>${gradeBadgeEx(r.grade,r.gradeRecentlyChanged)}${isNew?`<span style="display:inline-block;margin-top:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">🟢 신규</span>`:''}${hasRecall?`<span style="display:inline-block;margin-top:4px;background:#e8f4fd;color:#1565c0;border:1px solid #90caf9;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:600;white-space:nowrap;">🔁 재콜중</span>`:''}</td><td><strong style="font-size:12px;">${r.company}</strong>${r.url?`<br><span onclick="openUrl('${r.url}')" style="font-size:10px;color:#3949ab;cursor:pointer;text-decoration:underline;">${r.url.replace(/https?:\/\//,'').slice(0,24)} 🔗</span>`:''}${(r.advertiserManager||r.email)?`<br><span style="font-size:10px;color:var(--text-sub);">${r.advertiserManager?'👤 '+r.advertiserManager:''}${r.advertiserManager&&r.email?' &nbsp;':''} ${r.email?'📧 '+r.email:''}</span>`:''}${hasRecall?`<br><span style="font-size:10px;color:#1565c0;">재콜 ${recallCount}회 진행중${latestRecall?' · 최근 '+fmtRecallDate(latestRecall):''}</span>`:''}</td><td style="white-space:nowrap;">${r.manager}</td><td style="white-space:nowrap;">${r.team}</td><td style="white-space:nowrap;font-size:12px;">${r.phone||'-'}</td><td style="font-size:12px;">${r.keyword||'-'}${r.rank?` <span style="font-size:10px;color:var(--text-muted);">(${r.rank}위)</span>`:''}</td><td style="font-weight:600;color:#6a1b9a;white-space:nowrap;">${fmtB(r.budget)}</td><td style="font-size:12px;">${r.contactPoint||'-'}</td><td style="white-space:nowrap;font-weight:${recallToday?'700':'400'};color:${recallToday?'#c62828':'var(--text)'};">${fmtRecallDate(r.nextRecallDate)}${recallToday?' 🔔':''}</td><td style="max-width:160px;">${renderRecallChips(r.recalls)}</td></tr>`;});
   });
   tbody.innerHTML=html||`<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:24px;">검색 결과가 없습니다</td></tr>`;
