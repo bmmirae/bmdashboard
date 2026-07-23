@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.17</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.18</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -234,7 +234,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.17</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.18</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -421,7 +421,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v518';
+const LS_VER='v519';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -772,33 +772,35 @@ function renderListSection(rows){const mgrs=[...new Set(rows.map(r=>r.manager))]
 function buildMgrFilter(rows){const mgrs=[...new Set(rows.map(r=>r.manager))].sort();const sel=document.getElementById('fMgr');if(!sel)return;const cur=sel.value;sel.innerHTML='<option value="">담당자 전체</option>'+mgrs.map(m=>`<option value="${m}"${m===cur?' selected':''}>${m}</option>`).join('');}
 function getFilteredBase(){const allNames=Object.values(ORG_MAP).flatMap(bu=>Object.values(bu).flat());const isMember=allNames.includes(CURRENT_FILTER);return CURRENT_FILTER==='all'?CURRENT_ROWS:isMember?CURRENT_ROWS.filter(r=>r.manager===CURRENT_FILTER):CURRENT_ROWS.filter(r=>r.bu===CURRENT_FILTER||r.team===CURRENT_FILTER);}
 function applyFilter(){curPage=1;renderListBody(getFilteredBase());}
-function getThisWeekRange(){
-  const now=new Date();const day=now.getDay();
-  const mon=new Date(now);mon.setDate(now.getDate()-(day===0?6:day-1));
-  const fri=new Date(mon);fri.setDate(mon.getDate()+4);
-  const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  return{weekFrom:fmt(mon),weekTo:fmt(fri)};
+function getWeekRange(){
+  const d=new Date();const day=d.getDay();
+  const diffToMonday=day===0?-6:1-day;
+  const monday=new Date(d);monday.setDate(d.getDate()+diffToMonday);
+  const friday=new Date(monday);friday.setDate(monday.getDate()+4);
+  const fmt=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+  return{start:fmt(monday),end:fmt(friday)};
 }
-function getThisMonthRange(){
-  const now=new Date();
-  const fmt=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  const from=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-01';
-  const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0);
-  return{monthFrom:from,monthTo:fmt(lastDay)};
+function getMonthRange(){
+  const d=new Date();
+  const first=new Date(d.getFullYear(),d.getMonth(),1);
+  const last=new Date(d.getFullYear(),d.getMonth()+1,0);
+  const fmt=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+  return{start:fmt(first),end:fmt(last)};
 }
 function classifyRow(r){
   const fc=normalizeDate(r.firstCall)||'';
-  if(!fc)return{type:'none'};
-  const{weekFrom,weekTo}=getThisWeekRange();
-  const{monthFrom,monthTo}=getThisMonthRange();
-  const now=new Date();
-  const curYear=now.getFullYear();const curMonth=now.getMonth()+1;
+  if(!fc)return{type:'none',label:''};
+  const week=getWeekRange();const month=getMonthRange();
+  const now=new Date();const curYear=now.getFullYear();
   const m=fc.match(/^(\d{4})-(\d{2})/);
   const fcYear=m?parseInt(m[1]):0;const fcMonth=m?parseInt(m[2]):0;
-  const monthLabel=(fcYear===curYear)?fcMonth+'월신규':(String(fcYear).slice(2)+'-'+fcMonth+'월신규');
-  if(fc>=weekFrom&&fc<=weekTo)return{type:'week',label:monthLabel};
-  if(fc>=monthFrom&&fc<=monthTo)return{type:'month',label:monthLabel};
-  return{type:'past',label:monthLabel};
+  const monthLabel=fcYear===curYear?fcMonth+'월신규':String(fcYear).slice(2)+'-'+fcMonth+'월신규';
+  const isThisWeek=fc>=week.start&&fc<=week.end;
+  const isThisMonth=fc>=month.start&&fc<=month.end;
+  const hasRecall=!!(r.recalls&&r.recalls.length);
+  if(isThisWeek)return{type:'week',label:monthLabel,hasRecall};
+  if(isThisMonth)return{type:'month',label:monthLabel,hasRecall};
+  return{type:'past',label:monthLabel,hasRecall};
 }
 function isPromo(r){
   const PROMO_GRADES=['단기','장기','권한오픈','권한+브리핑'];
@@ -809,7 +811,7 @@ function renderListBody(baseRows){
   const g=document.getElementById('fGrade')?.value||'';const b=document.getElementById('fBudget')?.value||'';const mg=document.getElementById('fMgr')?.value||'';const kw=(document.getElementById('fKw')?.value||'').trim().toLowerCase();const newOld=document.getElementById('fNewOld')?.value||'';
   let rows=[...baseRows];rows=rows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));if(g)rows=rows.filter(r=>r.grade===g);if(b){const[mn,mx]=b.split('-').map(Number);rows=rows.filter(r=>r.budget>=mn&&r.budget<mx);}if(mg)rows=rows.filter(r=>r.manager===mg);if(kw)rows=rows.filter(r=>r.company.toLowerCase().includes(kw)||(r.keyword||'').toLowerCase().includes(kw)||(r.phone||'').replace(/-/g,'').includes(kw.replace(/-/g,'')));
   if(newOld==='week')  rows=rows.filter(r=>classifyRow(r).type==='week');
-  if(newOld==='month') rows=rows.filter(r=>classifyRow(r).type==='month');
+  if(newOld==='month') rows=rows.filter(r=>classifyRow(r).type==='week'||classifyRow(r).type==='month');
   if(newOld==='old')   rows=rows.filter(r=>classifyRow(r).type==='past'||classifyRow(r).type==='none');
   rows=rows.map(r=>{const norm=normalizeDate(r.firstCall)||'';const td2=today();let maxRecallDate='';if(r.recalls&&r.recalls.length){r.recalls.forEach(rc=>{let d='';if(typeof rc==='object'&&rc!==null){d=normalizeDate(rc.date)||'';}else{const s=String(rc).slice(0,10);d=/^\d{4}-\d{2}-\d{2}$/.test(normalizeDate(s)||'')?normalizeDate(s):'';}if(d&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&d<=td2&&d>maxRecallDate)maxRecallDate=d;});}const latest=maxRecallDate>norm?maxRecallDate:norm;return{...r,_normDate:norm,_latestDate:latest||norm};});
   rows.sort((a,b)=>(b._latestDate||'').localeCompare(a._latestDate||''));
@@ -844,12 +846,13 @@ function renderListBody(baseRows){
         const isToday=normDate===td;const isBizOpen=bizDates.has(normDate);
         const gId='dg_'+gIdx++;allGroupIds.push({gId,isOpen:isBizOpen&&!isNoDate});
         const weekCnt=items.filter(r=>classifyRow(r).type==='week').length;
-        const monthCnt=items.filter(r=>classifyRow(r).type==='month').length;
+        const monthCnt=items.filter(r=>{const t=classifyRow(r).type;return t==='week'||t==='month';}).length;
         const recallCnt=items.filter(r=>r.recalls&&r.recalls.length>0).length;
-        const promoCnt=items.filter(r=>isPromo(r)).length;
+        const weekPromoCnt=items.filter(r=>classifyRow(r).type==='week'&&isPromo(r)).length;
+        const monthPromoCnt=items.filter(r=>{const t=classifyRow(r).type;return(t==='week'||t==='month')&&isPromo(r);}).length;
         const hdrBg=isNoDate?'var(--surface2)':isToday?'#fff3e0':isBizOpen?'#f3f6ff':'var(--th-bg)';
         const hdrColor=isNoDate?'var(--text-muted)':isToday?'#e65100':isBizOpen?'#3949ab':'var(--th-color)';
-        html+=`<tr style="background:${hdrBg};font-weight:700;cursor:pointer;" onclick="toggleDateGroup('${gId}')"><td colspan="10" style="padding:8px 12px;color:${hdrColor};user-select:none;"><span style="margin-right:6px;font-size:11px;display:inline-block;" id="${gId}_arr">${(isBizOpen&&!isNoDate)?'▼':'▶'}</span>${isNoDate?'📋 날짜 미입력':'📅 '+normDate}<span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">${items.length}건</span><span style="font-size:11px;font-weight:600;margin-left:8px;color:#2e7d32;">🟢 주간신규 ${weekCnt}${promoCnt>0?` <span style="color:#7b1fa2;font-size:10px;">(P ${promoCnt})</span>`:''}</span><span style="font-size:11px;margin-left:4px;color:var(--text-sub);">·</span><span style="font-size:11px;font-weight:600;margin-left:4px;color:#1565c0;">📅 월간신규 ${monthCnt}</span><span style="font-size:11px;margin-left:4px;color:var(--text-sub);">·</span><span style="font-size:11px;font-weight:600;margin-left:4px;color:#e65100;">🔁 재콜중 ${recallCnt}</span>${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}</td></tr>`;
+        html+=`<tr style="background:${hdrBg};font-weight:700;cursor:pointer;" onclick="toggleDateGroup('${gId}')"><td colspan="10" style="padding:8px 12px;color:${hdrColor};user-select:none;"><span style="margin-right:6px;font-size:11px;display:inline-block;" id="${gId}_arr">${(isBizOpen&&!isNoDate)?'▼':'▶'}</span>${isNoDate?'📋 날짜 미입력':'📅 '+normDate}<span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">${items.length}건</span><span style="font-size:11px;font-weight:600;margin-left:8px;color:#2e7d32;">🟢 주간신규 ${weekCnt}${weekPromoCnt>0?` <span style="color:#7b1fa2;font-size:10px;">(P ${weekPromoCnt})</span>`:''}</span><span style="font-size:11px;margin-left:4px;color:var(--text-sub);">·</span><span style="font-size:11px;font-weight:600;margin-left:4px;color:#1565c0;">📅 월간신규 ${monthCnt}${monthPromoCnt>0?` <span style="color:#7b1fa2;font-size:10px;">(P ${monthPromoCnt})</span>`:''}</span><span style="font-size:11px;margin-left:4px;color:var(--text-sub);">·</span><span style="font-size:11px;font-weight:600;margin-left:4px;color:#e65100;">🔁 재콜중 ${recallCnt}</span>${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}</td></tr>`;
         items.forEach(r=>{
           const recallToday=r.nextRecallDate===td;const hasRecall=r.recalls&&r.recalls.length>0;const recallCount=r.recalls?r.recalls.length:0;const latestRecall=r._latestDate!==r._normDate?r._latestDate:'';
           const rc=classifyRow(r);const pBadge=isPromo(r)?`<span style="display:inline-block;margin-top:4px;background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">P</span>`:'';
