@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>미래아이엔씨 가망건 대시보드 v5.16</title>
+<title>미래아이엔씨 가망건 대시보드 v5.17</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -295,7 +295,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.16</span></h1>
+      <h1>📊 미래아이엔씨 가망건 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.17</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -1115,7 +1115,7 @@ function showDash(){
 }
 
 // ══ ⚡ localStorage Stale-While-Revalidate 캐시 ══════════════════
-const LS_VER = 'v517';
+const LS_VER = 'v518';
 const LS_TTL = 15 * 60 * 1000; // 15분
 function _lsKey(role){ return 'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10); }
 function lsSave(role,data){ try{ localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data})); }catch(e){} }
@@ -2306,12 +2306,21 @@ function getThisMonthRange(){
 }
 function classifyRow(r){
   const fc=normalizeDate(r.firstCall)||'';
-  if(!fc)return'old';
+  if(!fc)return{type:'none'};
   const{weekFrom,weekTo}=getThisWeekRange();
   const{monthFrom,monthTo}=getThisMonthRange();
-  if(fc>=weekFrom&&fc<=weekTo)return'week';
-  if(fc>=monthFrom&&fc<=monthTo)return'month';
-  return'old';
+  const now=new Date();
+  const curYear=now.getFullYear();
+  const m=fc.match(/^(\d{4})-(\d{2})/);
+  const fcYear=m?parseInt(m[1]):0;const fcMonth=m?parseInt(m[2]):0;
+  const monthLabel=(fcYear===curYear)?fcMonth+'월신규':(String(fcYear).slice(2)+'-'+fcMonth+'월신규');
+  if(fc>=weekFrom&&fc<=weekTo)return{type:'week',label:monthLabel};
+  if(fc>=monthFrom&&fc<=monthTo)return{type:'month',label:monthLabel};
+  return{type:'past',label:monthLabel};
+}
+function isPromo(r){
+  const PROMO_GRADES=['단기','장기','권한오픈','권한+브리핑'];
+  return PROMO_GRADES.includes(r.grade)&&r.budget>0&&r.advertiserManager&&r.phone&&r.email;
 }
 function getRecentBizDates(n){
   const dates=[];
@@ -2333,133 +2342,189 @@ function renderListBody(baseRows){
   const mg = document.getElementById('fMgr')?.value||'';
   const kw = (document.getElementById('fKw')?.value||'').trim().toLowerCase();
   const newOld = document.getElementById('fNewOld')?.value||'';
-  let rows=[...baseRows];
-  rows=rows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
-  if(g)  rows=rows.filter(r=>r.grade===g);
-  if(b){ const[mn,mx]=b.split('-').map(Number); rows=rows.filter(r=>r.budget>=mn&&r.budget<mx); }
-  if(mg) rows=rows.filter(r=>r.manager===mg);
-  if(kw) rows=rows.filter(r=>
+
+  let rows = [...baseRows];
+  rows = rows.filter(r => !EXCLUDE_GRADES.includes(r.grade));
+  if(g)  rows = rows.filter(r => r.grade === g);
+  if(b)  { const[mn,mx]=b.split('-').map(Number); rows=rows.filter(r=>r.budget>=mn&&r.budget<mx); }
+  if(mg) rows = rows.filter(r => r.manager === mg);
+  if(kw) rows = rows.filter(r =>
     r.company.toLowerCase().includes(kw)||
     (r.keyword||'').toLowerCase().includes(kw)||
     (r.phone||'').replace(/-/g,'').includes(kw.replace(/-/g,''))
   );
-  if(newOld==='week')  rows=rows.filter(r=>classifyRow(r)==='week');
-  if(newOld==='month') rows=rows.filter(r=>classifyRow(r)==='month');
-  if(newOld==='old')   rows=rows.filter(r=>classifyRow(r)==='old');
-  rows=rows.map(r=>{
+  if(newOld==='week')  rows=rows.filter(r=>classifyRow(r).type==='week');
+  if(newOld==='month') rows=rows.filter(r=>classifyRow(r).type==='month');
+  if(newOld==='old')   rows=rows.filter(r=>classifyRow(r).type==='past'||classifyRow(r).type==='none');
+
+  rows = rows.map(r => {
     const norm = normalizeDate(r.firstCall)||'';
     const td2  = today();
     let maxRecallDate = '';
     if(r.recalls && r.recalls.length){
       r.recalls.forEach(rc=>{
         let d = '';
-        if(typeof rc==='object' && rc!==null){
-          d = normalizeDate(rc.date)||'';
-        } else {
-          const s = String(rc).slice(0,10);
-          d = /^\d{4}-\d{2}-\d{2}$/.test(normalizeDate(s)||'') ? normalizeDate(s) : '';
-        }
-        if(d && /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= td2 && d > maxRecallDate){
-          maxRecallDate = d;
-        }
+        if(typeof rc==='object' && rc!==null){ d = normalizeDate(rc.date)||''; }
+        else{ const s=String(rc).slice(0,10); d=/^\d{4}-\d{2}-\d{2}$/.test(normalizeDate(s)||'')?normalizeDate(s):''; }
+        if(d&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&d<=td2&&d>maxRecallDate) maxRecallDate=d;
       });
     }
-    const latest = maxRecallDate > norm ? maxRecallDate : norm;
-    return {...r, _normDate: norm, _latestDate: latest||norm};
+    const latest = maxRecallDate>norm?maxRecallDate:norm;
+    return {...r, _normDate:norm, _latestDate:latest||norm};
   });
   rows.sort((a,b)=>(b._latestDate||'').localeCompare(a._latestDate||''));
-  const groups={};
-  rows.forEach(r=>{
-    const d=r._latestDate||'날짜없음';
-    if(!groups[d]) groups[d]=[];
-    groups[d].push(r);
-  });
-  const td       = today();
-  const bizDates = getRecentBizDates(2);
-  const tbody    = document.getElementById('listBody');
-  if(!tbody) return;
-  let html='';
-  let gIdx=0;
-  const allGroupIds=[];
-  Object.entries(groups).forEach(([date, items])=>{
-    const normDate = normalizeDate(date);
-    const isToday  = normDate===td;
-    const isBizOpen= bizDates.has(normDate);
-    const gId      = `dg_${gIdx++}`;
-    allGroupIds.push({gId, isOpen: isBizOpen});
-    const hdrBg    = isToday?'#fff3e0': isBizOpen?'#f3f6ff':'var(--th-bg)';
-    const hdrColor = isToday?'#e65100': isBizOpen?'#3949ab':'var(--th-color)';
-    const weekCnt=items.filter(r=>classifyRow(r)==='week').length;
-    const monthCnt=items.filter(r=>classifyRow(r)==='month').length;
-    const oldCnt=items.filter(r=>classifyRow(r)==='old').length;
-    const PROMO_GRADES=['단기','장기','권한오픈','권한+브리핑'];
-    const promoCnt=items.filter(r=>classifyRow(r)!=='old'&&PROMO_GRADES.includes(r.grade)&&r.budget>0&&r.advertiserManager&&r.phone&&r.email).length;
-    html+=`<tr style="background:${hdrBg};font-weight:700;cursor:pointer;" onclick="toggleDateGroup('${gId}')">
-      <td colspan="10" style="padding:8px 12px;color:${hdrColor};user-select:none;">
-        <span style="margin-right:6px;font-size:11px;display:inline-block;" id="${gId}_arr">${isBizOpen?'▼':'▶'}</span>
-        📅 ${normDate}
-        <span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">${items.length}건</span>
-        <span style="font-size:11px;font-weight:600;margin-left:8px;color:#2e7d32;">🟢 주간신규 ${weekCnt}</span>
-        <span style="font-size:11px;font-weight:400;margin-left:4px;color:var(--text-sub);">·</span>
-        <span style="font-size:11px;font-weight:600;margin-left:4px;color:#1565c0;">📅 월간신규 ${monthCnt}</span>
-        <span style="font-size:11px;font-weight:400;margin-left:4px;color:var(--text-sub);">·</span>
-        <span style="font-size:11px;font-weight:600;margin-left:4px;color:var(--text-sub);">🔵 기존 ${oldCnt}</span>
-        ${promoCnt>0?`<span style="font-size:11px;font-weight:600;margin-left:4px;color:#7b1fa2;">(신규P ${promoCnt})</span>`:''}
-        ${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}
-      </td>
-    </tr>`;
-    // AI분석용 row 데이터 배열에 추가
-    items.forEach(r=>{ if(!window._aiRows) window._aiRows=[]; window._aiRows.push(r); });
-    items.forEach(r=>{
-      const recallToday = r.nextRecallDate===td;
-      const hasRecall   = r.recalls && r.recalls.length > 0;
-      const recallCount = r.recalls ? r.recalls.length : 0;
-      const latestRecall= r._latestDate !== r._normDate ? r._latestDate : '';
-      const isNew=!r.recalls||!r.recalls.length;
-      html+=`<tr class="dg_row ${gId}" style="display:${isBizOpen?'table-row':'none'};${recallToday?'background:var(--rank1);':''}">
-        <td>
-          ${gradeBadgeEx(r.grade, r.gradeRecentlyChanged)}
-          ${classifyRow(r)==='week'?`<span style="display:inline-block;margin-top:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">🟢 주간신규</span>`:classifyRow(r)==='month'?`<span style="display:inline-block;margin-top:4px;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">📅 월간신규</span>`:''}
-          ${hasRecall?`<span style="display:inline-block;margin-top:4px;background:#e8f4fd;color:#1565c0;border:1px solid #90caf9;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:600;white-space:nowrap;">🔁 재콜중</span>`:''}
-        </td>
-        <td>
-          <div style="display:flex;align-items:flex-start;gap:6px;">
-            <div style="flex:1;">
-              <strong style="font-size:12px;">${r.company}</strong>
-              ${r.url?`<br><span onclick="openUrl('${r.url}')" style="font-size:10px;color:#3949ab;cursor:pointer;text-decoration:underline;">${r.url.replace(/https?:\/\//,'').slice(0,24)} 🔗</span>`:''}
-              ${(r.advertiserManager||r.email)?`<br><span style="font-size:10px;color:var(--text-sub);">${r.advertiserManager?'👤 '+r.advertiserManager:''}${r.advertiserManager&&r.email?' &nbsp;':''}${r.email?'📧 '+r.email:''}</span>`:''}
-              ${hasRecall?`<br><span style="font-size:10px;color:#1565c0;">재콜 ${recallCount}회 진행중${latestRecall?' · 최근 '+fmtRecallDate(latestRecall):''}</span>`:''}
-            </div>
-            <button class="ai-open-btn" data-company="${r.company}" style="flex-shrink:0;padding:3px 7px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:10px;font-weight:700;white-space:nowrap;" title="AI 영업 분석">🤖</button>
-          </div>
-        </td>
-        <td style="white-space:nowrap;">${r.manager}</td>
-        <td style="white-space:nowrap;">${r.team}</td>
-        <td style="white-space:nowrap;font-size:12px;">${r.phone||'-'}</td>
-        <td style="font-size:12px;">${r.keyword||'-'}${r.rank?` <span style="font-size:10px;color:var(--text-muted);">(${r.rank}위)</span>`:''}</td>
-        <td style="font-weight:600;color:#6a1b9a;white-space:nowrap;">${fmtB(r.budget)}</td>
-        <td style="font-size:12px;">${r.contactPoint||'-'}</td>
-        <td style="white-space:nowrap;font-weight:${recallToday?'700':'400'};color:${recallToday?'#c62828':'var(--text)'};">
-          ${fmtRecallDate(r.nextRecallDate)}${recallToday?' 🔔':''}
-        </td>
-        <td style="max-width:160px;">${renderRecallChips(r.recalls)}</td>
-      </tr>`;
-    });
-  });
-  tbody.innerHTML=html||`<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:24px;">검색 결과가 없습니다</td></tr>`;
-  tbody.dataset.groups = JSON.stringify(allGroupIds);
-  // AI 버튼 이벤트 위임
-  tbody.onclick = function(e) {
-    const btn = e.target.closest('.ai-open-btn');
-    if (btn) {
-      e.stopPropagation();
-      openAIByKey(btn.dataset.company);
-    }
-  };
-  const pEl=document.getElementById('listPaging');
-  if(pEl) pEl.innerHTML=`총 ${rows.length}건`;
-}
+  window._aiRows = rows;
 
+  const now = new Date();
+  const thisYM = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+
+  const groups={};
+  rows.forEach(r=>{const d=r._latestDate||'날짜없음';if(!groups[d])groups[d]=[];groups[d].push(r);});
+
+  const monthGroups={};
+  Object.entries(groups).sort((a,b)=>{if(a[0]==='날짜없음')return 1;if(b[0]==='날짜없음')return-1;return b[0].localeCompare(a[0]);}).forEach(([date,items])=>{
+    const ym=date==='날짜없음'?'날짜없음':date.slice(0,7);
+    if(!monthGroups[ym])monthGroups[ym]=[];
+    monthGroups[ym].push({date,items});
+  });
+
+  const td=today();const bizDates=getRecentBizDates(2);
+  const tbody=document.getElementById('listBody');if(!tbody)return;
+  let html='';let gIdx=0;const allGroupIds=[];
+
+  Object.entries(monthGroups).sort((a,b)=>{if(a[0]==='날짜없음')return 1;if(b[0]==='날짜없음')return-1;return b[0].localeCompare(a[0]);}).forEach(([ym,dateGroups])=>{
+    const isCurrentMonth=(ym===thisYM);
+    const isNoDate=(ym==='날짜없음');
+    const allItems=dateGroups.flatMap(dg=>dg.items);
+    const ymLabel=isNoDate?'':( ym.slice(0,4)===String(now.getFullYear())?parseInt(ym.slice(5))+'월':ym.slice(2,4)+'-'+parseInt(ym.slice(5))+'월' );
+
+    if(isCurrentMonth||isNoDate){
+      dateGroups.forEach(({date,items})=>{
+        const normDate=normalizeDate(date)||date;
+        const isToday=normDate===td;const isBizOpen=bizDates.has(normDate);
+        const gId='dg_'+gIdx++;allGroupIds.push({gId,isOpen:isBizOpen&&!isNoDate});
+        const weekCnt=items.filter(r=>classifyRow(r).type==='week').length;
+        const monthCnt=items.filter(r=>classifyRow(r).type==='month').length;
+        const recallCnt=items.filter(r=>r.recalls&&r.recalls.length>0).length;
+        const promoCnt=items.filter(r=>isPromo(r)).length;
+        const hdrBg=isNoDate?'var(--surface2)':isToday?'#fff3e0':isBizOpen?'#f3f6ff':'var(--th-bg)';
+        const hdrColor=isNoDate?'var(--text-muted)':isToday?'#e65100':isBizOpen?'#3949ab':'var(--th-color)';
+        html+=`<tr style="background:${hdrBg};font-weight:700;cursor:pointer;" onclick="toggleDateGroup('${gId}')">
+          <td colspan="10" style="padding:8px 12px;color:${hdrColor};user-select:none;">
+            <span style="margin-right:6px;font-size:11px;display:inline-block;" id="${gId}_arr">${(isBizOpen&&!isNoDate)?'▼':'▶'}</span>
+            ${isNoDate?'📋 날짜 미입력':'📅 '+normDate}
+            <span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">${items.length}건</span>
+            <span style="font-size:11px;font-weight:600;margin-left:8px;color:#2e7d32;">🟢 주간신규 ${weekCnt}${promoCnt>0?` <span style="color:#7b1fa2;font-size:10px;">(P ${promoCnt})</span>`:''}</span>
+            <span style="font-size:11px;margin-left:4px;color:var(--text-sub);">·</span>
+            <span style="font-size:11px;font-weight:600;margin-left:4px;color:#1565c0;">📅 월간신규 ${monthCnt}</span>
+            <span style="font-size:11px;margin-left:4px;color:var(--text-sub);">·</span>
+            <span style="font-size:11px;font-weight:600;margin-left:4px;color:#e65100;">🔁 재콜중 ${recallCnt}</span>
+            ${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}
+          </td>
+        </tr>`;
+        items.forEach(r=>{
+          const recallToday=r.nextRecallDate===td;const hasRecall=r.recalls&&r.recalls.length>0;
+          const recallCount=r.recalls?r.recalls.length:0;const latestRecall=r._latestDate!==r._normDate?r._latestDate:'';
+          const rc2=classifyRow(r);
+          const pBadge=isPromo(r)?`<span style="display:inline-block;margin-top:4px;background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">P</span>`:'';
+          const newBadge=rc2.type==='week'?`<span style="display:inline-block;margin-top:4px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">🟢 주간신규</span>`:rc2.type==='month'?`<span style="display:inline-block;margin-top:4px;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">📅 월간신규</span>`:'';
+          const recallBadge=hasRecall?`<span style="display:inline-block;margin-top:4px;background:#e8f4fd;color:#1565c0;border:1px solid #90caf9;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:600;white-space:nowrap;">🔁 재콜중</span>`:'';
+          html+=`<tr class="dg_row ${gId}" style="display:${(isBizOpen&&!isNoDate)?'table-row':'none'};${recallToday?'background:var(--rank1);':''}">
+            <td>
+              ${gradeBadgeEx(r.grade, r.gradeRecentlyChanged)}
+              ${newBadge}${pBadge}${recallBadge}
+            </td>
+            <td>
+              <div style="display:flex;align-items:flex-start;gap:6px;">
+                <div style="flex:1;">
+                  <strong style="font-size:12px;">${r.company}</strong>
+                  ${r.url?`<br><span onclick="openUrl('${r.url}')" style="font-size:10px;color:#3949ab;cursor:pointer;text-decoration:underline;">${r.url.replace(/https?:\/\//,'').slice(0,24)} 🔗</span>`:''}
+                  ${(r.advertiserManager||r.email)?`<br><span style="font-size:10px;color:var(--text-sub);">${r.advertiserManager?'👤 '+r.advertiserManager:''}${r.advertiserManager&&r.email?' &nbsp;':''}${r.email?'📧 '+r.email:''}</span>`:''}
+                  ${hasRecall?`<br><span style="font-size:10px;color:#1565c0;">재콜 ${recallCount}회 진행중${latestRecall?' · 최근 '+fmtRecallDate(latestRecall):''}</span>`:''}
+                </div>
+                <button class="ai-open-btn" data-company="${r.company}" style="flex-shrink:0;padding:3px 7px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:10px;font-weight:700;white-space:nowrap;" title="AI 영업 분석">🤖</button>
+              </div>
+            </td>
+            <td style="white-space:nowrap;">${r.manager}</td>
+            <td style="white-space:nowrap;">${r.team}</td>
+            <td style="white-space:nowrap;font-size:12px;">${r.phone||'-'}</td>
+            <td style="font-size:12px;">${r.keyword||'-'}${r.rank?` <span style="font-size:10px;color:var(--text-muted);">(${r.rank}위)</span>`:''}</td>
+            <td style="font-weight:600;color:#6a1b9a;white-space:nowrap;">${fmtB(r.budget)}</td>
+            <td style="font-size:12px;">${r.contactPoint||'-'}</td>
+            <td style="white-space:nowrap;font-weight:${recallToday?'700':'400'};color:${recallToday?'#c62828':'var(--text)'};">
+              ${fmtRecallDate(r.nextRecallDate)}${recallToday?' 🔔':''}
+            </td>
+            <td style="max-width:160px;">${renderRecallChips(r.recalls)}</td>
+          </tr>`;
+        });
+      });
+    } else {
+      // 이전 달: 월별 묶음
+      const mgId='mg_'+gIdx++;allGroupIds.push({gId:mgId,isOpen:false});
+      const newCnt=allItems.filter(r=>{const fc=normalizeDate(r.firstCall)||'';return fc.startsWith(ym);}).length;
+      const recallCnt=allItems.filter(r=>r.recalls&&r.recalls.length>0).length;
+      const promoCnt=allItems.filter(r=>{const fc=normalizeDate(r.firstCall)||'';return fc.startsWith(ym)&&isPromo(r);}).length;
+      html+=`<tr style="background:var(--th-bg);font-weight:700;cursor:pointer;" onclick="toggleDateGroup('${mgId}')">
+        <td colspan="10" style="padding:8px 12px;color:var(--th-color);user-select:none;">
+          <span style="margin-right:6px;font-size:11px;display:inline-block;" id="${mgId}_arr">▶</span>
+          📅 ${ymLabel}
+          <span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">${allItems.length}건</span>
+          <span style="font-size:11px;font-weight:600;margin-left:8px;color:#1565c0;">📅 ${ymLabel}신규 ${newCnt}${promoCnt>0?` <span style="color:#7b1fa2;font-size:10px;">(P ${promoCnt})</span>`:''}</span>
+          <span style="font-size:11px;margin-left:4px;color:var(--text-sub);">·</span>
+          <span style="font-size:11px;font-weight:600;margin-left:4px;color:#e65100;">🔁 재콜중 ${recallCnt}</span>
+        </td>
+      </tr>`;
+      dateGroups.forEach(({date,items})=>{
+        const normDate=normalizeDate(date)||date;
+        const gId='dg_'+gIdx++;allGroupIds.push({gId,isOpen:false});
+        html+=`<tr class="dg_row ${mgId}" style="display:none;background:var(--surface2);font-weight:600;cursor:pointer;" onclick="toggleDateGroup('${gId}')">
+          <td colspan="10" style="padding:6px 20px;color:var(--text-sub);user-select:none;font-size:12px;">
+            <span style="margin-right:6px;font-size:11px;" id="${gId}_arr">▶</span>📅 ${normDate} <span style="font-weight:400;">${items.length}건</span>
+          </td>
+        </tr>`;
+        items.forEach(r=>{
+          const hasRecall=r.recalls&&r.recalls.length>0;const recallCount=r.recalls?r.recalls.length:0;
+          const latestRecall=r._latestDate!==r._normDate?r._latestDate:'';const recallToday=r.nextRecallDate===td;
+          const fc=normalizeDate(r.firstCall)||'';const isMonthNew=fc.startsWith(ym);
+          const pBadge=isPromo(r)&&isMonthNew?`<span style="display:inline-block;margin-top:4px;background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">P</span>`:'';
+          const newBadge=isMonthNew?`<span style="display:inline-block;margin-top:4px;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">📅 ${ymLabel}신규</span>`:'';
+          const recallBadge=hasRecall?`<span style="display:inline-block;margin-top:4px;background:#e8f4fd;color:#1565c0;border:1px solid #90caf9;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:600;white-space:nowrap;">🔁 재콜중</span>`:'';
+          html+=`<tr class="dg_row ${gId} dg_row ${mgId}" style="display:none;${recallToday?'background:var(--rank1);':''}">
+            <td>
+              ${gradeBadgeEx(r.grade, r.gradeRecentlyChanged)}
+              ${newBadge}${pBadge}${recallBadge}
+            </td>
+            <td>
+              <div style="display:flex;align-items:flex-start;gap:6px;">
+                <div style="flex:1;">
+                  <strong style="font-size:12px;">${r.company}</strong>
+                  ${r.url?`<br><span onclick="openUrl('${r.url}')" style="font-size:10px;color:#3949ab;cursor:pointer;text-decoration:underline;">${r.url.replace(/https?:\/\//,'').slice(0,24)} 🔗</span>`:''}
+                  ${(r.advertiserManager||r.email)?`<br><span style="font-size:10px;color:var(--text-sub);">${r.advertiserManager?'👤 '+r.advertiserManager:''}${r.advertiserManager&&r.email?' &nbsp;':''}${r.email?'📧 '+r.email:''}</span>`:''}
+                  ${hasRecall?`<br><span style="font-size:10px;color:#1565c0;">재콜 ${recallCount}회 진행중${latestRecall?' · 최근 '+fmtRecallDate(latestRecall):''}</span>`:''}
+                </div>
+                <button class="ai-open-btn" data-company="${r.company}" style="flex-shrink:0;padding:3px 7px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:10px;font-weight:700;white-space:nowrap;" title="AI 영업 분석">🤖</button>
+              </div>
+            </td>
+            <td style="white-space:nowrap;">${r.manager}</td>
+            <td style="white-space:nowrap;">${r.team}</td>
+            <td style="white-space:nowrap;font-size:12px;">${r.phone||'-'}</td>
+            <td style="font-size:12px;">${r.keyword||'-'}${r.rank?` <span style="font-size:10px;color:var(--text-muted);">(${r.rank}위)</span>`:''}</td>
+            <td style="font-weight:600;color:#6a1b9a;white-space:nowrap;">${fmtB(r.budget)}</td>
+            <td style="font-size:12px;">${r.contactPoint||'-'}</td>
+            <td style="white-space:nowrap;font-weight:${recallToday?'700':'400'};color:${recallToday?'#c62828':'var(--text)'};">
+              ${fmtRecallDate(r.nextRecallDate)}${recallToday?' 🔔':''}
+            </td>
+            <td style="max-width:160px;">${renderRecallChips(r.recalls)}</td>
+          </tr>`;
+        });
+      });
+    }
+  });
+
+  tbody.innerHTML=html||`<tr><td colspan="10" style="text-align:center;color:var(--text-muted);padding:24px;">검색 결과가 없습니다</td></tr>`;
+  tbody.dataset.groups=JSON.stringify(allGroupIds);
+  const pEl=document.getElementById('listPaging');if(pEl)pEl.innerHTML=`총 ${rows.length}건`;
+}
 function toggleDateGroup(gId){
   const rows=document.querySelectorAll(`tr.${gId}`);
   const arr =document.getElementById(`${gId}_arr`);
