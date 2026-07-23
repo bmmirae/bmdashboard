@@ -2397,6 +2397,7 @@ function renderListBody(baseRows){
             <div style="flex:1;">
               <strong style="font-size:12px;">${r.company}</strong>
               ${r.url?`<br><span onclick="openUrl('${r.url}')" style="font-size:10px;color:#3949ab;cursor:pointer;text-decoration:underline;">${r.url.replace(/https?:\/\//,'').slice(0,24)} 🔗</span>`:''}
+              ${(r.advertiserManager||r.email)?`<br><span style="font-size:10px;color:var(--text-sub);">${r.advertiserManager?'👤 '+r.advertiserManager:''}${r.advertiserManager&&r.email?' &nbsp;':''}${r.email?'📧 '+r.email:''}</span>`:''}
               ${hasRecall?`<br><span style="font-size:10px;color:#1565c0;">재콜 ${recallCount}회 진행중${latestRecall?' · 최근 '+fmtRecallDate(latestRecall):''}</span>`:''}
             </div>
             <button class="ai-open-btn" data-company="${r.company}" style="flex-shrink:0;padding:3px 7px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:10px;font-weight:700;white-space:nowrap;" title="AI 영업 분석">🤖</button>
