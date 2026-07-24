@@ -319,6 +319,18 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
     </div>
 
     <div class="form-section">
+      <div class="form-title">⚙️ 신규P 혜택 설정</div>
+      <div class="form-row">
+        <span style="font-size:12px;color:var(--text-dim);">1건당 혜택(분)</span>
+        <input type="number" id="benefitPerCase" style="width:80px;" min="0">
+        <span style="font-size:12px;color:var(--text-dim);">주간 최대 허용(분)</span>
+        <input type="number" id="benefitWeeklyCap" style="width:100px;" placeholder="제한 없음" min="0">
+        <button class="save-btn" onclick="saveBenefitSettingsEntry()">저장</button>
+      </div>
+      <div id="benefitStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
+    </div>
+
+    <div class="form-section">
       <div class="form-title">📅 근태 및 기타 입력</div>
       <div class="form-row">
         <input type="date" id="attDate">
@@ -423,7 +435,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v6.5';
+const DASHBOARD_VERSION = 'v6.6';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -472,6 +484,7 @@ let STATE = {
   penalty: [],
   weeklyRevenue: [],
   holidays: [],
+  promoBenefit: { perCase: 10, weeklyCap: null },
   prospectMap: {},
   lastUploadLabel: '',
   weekOffset: 0,     // 0 = 첫 주(7/1~7/3), 1 = 7/6~7/10, -1 등
@@ -551,6 +564,7 @@ function renderLockOrContent(zone) {
     contentEl.style.display = 'block';
     if (zone === 'roster') renderRosterTable();
     if (zone === 'revenue') renderMissionSummaryTable();
+    if (zone === 'input') populateBenefitSettingsUI();
   } else {
     contentEl.style.display = 'none';
     lockEl.innerHTML = `
@@ -681,6 +695,7 @@ async function loadAllData() {
     STATE.penalty = data.penalty || [];
     STATE.weeklyRevenue = data.weeklyRevenue || [];
     STATE.holidays = data.holidays || [];
+    STATE.promoBenefit = data.promoBenefit || STATE.promoBenefit;
 
     document.getElementById('lastSync').textContent = '동기화: ' + new Date().toLocaleTimeString('ko');
     if (data.lastUpload) {
@@ -1319,14 +1334,34 @@ function renderPersonCard(name, d) {
         <div class="metric-label"><span>📞 통화시간</span><span>연차 주간</span></div>
       </div>`;
   } else {
-    const pct = Math.min(d.callPct, 100);
-    const cls = d.callPct >= 100 ? 'fill-green' : d.callPct >= 70 ? 'fill-yellow' : 'fill-red';
-    const icon = d.callPct >= 100 ? ' ✅' : '';
+    const benefitCap = STATE.promoBenefit.weeklyCap;
+    const rawBenefitMin = (d.prospectWeekPromoNew || 0) * (STATE.promoBenefit.perCase || 0);
+    const benefitMin = benefitCap === null ? rawBenefitMin : Math.min(rawBenefitMin, benefitCap);
+    const effectiveMin = d.totalMin + benefitMin;
+    const effectivePct = d.weekGoalMin > 0 ? (effectiveMin / d.weekGoalMin * 100) : d.callPct;
+
+    const actualWidthPct = Math.min(d.callPct, 100);
+    const totalWidthPct = Math.min(effectivePct, 100);
+    const benefitWidthPct = Math.max(0, totalWidthPct - actualWidthPct);
+    const icon = effectivePct >= 100 ? ' ✅' : '';
+
+    let barHtml;
+    if (effectivePct >= 100) {
+      barHtml = `<div class="progress-bar"><div class="progress-fill fill-green" style="width:100%"></div></div>`;
+    } else {
+      const actualCls = effectivePct >= 70 ? 'fill-yellow' : 'fill-red';
+      barHtml = `<div class="progress-bar" style="display:flex;">
+        <div class="progress-fill ${actualCls}" style="width:${actualWidthPct}%"></div>
+        <div class="progress-fill" style="width:${benefitWidthPct}%;background:var(--blue);"></div>
+      </div>`;
+    }
+    const benefitNote = benefitMin > 0 ? ` (신규P ${d.prospectWeekPromoNew}건 × ${STATE.promoBenefit.perCase}분 혜택 적용)` : '';
+
     callBar = `
       <div class="metric-row">
-        <div class="metric-label"><span>📞 통화시간</span><span class="pct">${Math.round(d.callPct)}%${icon}</span></div>
-        <div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div>
-        <div class="metric-detail">${Math.round(d.totalMin)}분 / ${Math.round(d.weekGoalMin)}분 (${d.outCount}건 아웃콜)</div>
+        <div class="metric-label"><span>📞 통화시간</span><span class="pct">${Math.round(effectivePct)}%${icon}</span></div>
+        ${barHtml}
+        <div class="metric-detail">${Math.round(d.totalMin)}분 / ${Math.round(d.weekGoalMin)}분 (${d.outCount}건 아웃콜)${benefitNote}</div>
       </div>`;
   }
 
@@ -1357,16 +1392,16 @@ function renderPersonCard(name, d) {
     ? `<div style="text-align:right;font-size:12px;font-weight:800;margin-top:8px;color:${growth.isUp ? 'var(--green)' : 'var(--red)'}">${growth.isUp ? '🔺' : '🔻'} ${Math.abs(Math.round(growth.pct))}% ${growth.isUp ? '캡업' : '캡다운'}</div>`
     : '';
 
-  const isCurrentWeek = STATE.weekOffset === computeOffsetForToday();
-  const prospectTodayLine = isCurrentWeek
-    ? `<div class="metric-detail">당일 <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.prospectTodayNew}</span></div>`
-    : '';
   const prospectBar = `
     <div class="metric-row" style="margin-top:4px;">
       <div class="metric-label"><span>📋 가망건</span><span style="font-size:11px;color:var(--text-dim);">월간 ${d.prospectMonthNew}건</span></div>
-      ${prospectTodayLine}
-      <div class="metric-detail">주간 <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.prospectWeekNew}${d.prospectWeekPromoNew > 0 ? ` (P${d.prospectWeekPromoNew})` : ''}</span> <span style="color:var(--blue);font-weight:600;">🔁 재콜중 ${d.prospectWeekRecallActive}</span></div>
-      <div class="metric-detail">월간 <span style="color:var(--green);font-weight:600;">🟢 신규 ${d.prospectMonthNew}${d.prospectMonthPromoNew > 0 ? ` (P${d.prospectMonthPromoNew})` : ''}</span> <span style="color:var(--blue);font-weight:600;">🔁 재콜중 ${d.prospectMonthRecallActive}</span></div>
+      <div class="metric-detail">
+        <span style="color:var(--text-dim);">당일</span> <span style="color:var(--green);font-weight:600;">신규 ${d.prospectTodayNew}</span>
+        <span style="color:var(--text-dim);"> · </span>
+        <span style="color:var(--text-dim);">주간</span> <span style="color:var(--green);font-weight:600;">신규 ${d.prospectWeekNew}${d.prospectWeekPromoNew > 0 ? `(P${d.prospectWeekPromoNew})` : ''}</span> <span style="color:var(--blue);font-weight:600;">재콜 ${d.prospectWeekRecallActive}</span>
+        <span style="color:var(--text-dim);"> · </span>
+        <span style="color:var(--text-dim);">월간</span> <span style="color:var(--green);font-weight:600;">신규 ${d.prospectMonthNew}${d.prospectMonthPromoNew > 0 ? `(P${d.prospectMonthPromoNew})` : ''}</span> <span style="color:var(--blue);font-weight:600;">재콜 ${d.prospectMonthRecallActive}</span>
+      </div>
     </div>`;
 
   return `
@@ -1638,6 +1673,36 @@ function filterAgentSelect(zone) {
 function toggleCustomMinInput() {
   const type = document.getElementById('attType').value;
   document.getElementById('attCustomMinWrap').style.display = (type === '기타') ? 'inline-flex' : 'none';
+}
+
+function populateBenefitSettingsUI() {
+  const perEl = document.getElementById('benefitPerCase');
+  const capEl = document.getElementById('benefitWeeklyCap');
+  if (perEl) perEl.value = STATE.promoBenefit.perCase;
+  if (capEl) capEl.value = STATE.promoBenefit.weeklyCap === null ? '' : STATE.promoBenefit.weeklyCap;
+}
+
+async function saveBenefitSettingsEntry() {
+  const perCase = Number(document.getElementById('benefitPerCase').value) || 10;
+  const capRaw = document.getElementById('benefitWeeklyCap').value;
+  const weeklyCap = capRaw === '' ? '' : Number(capRaw);
+  const status = document.getElementById('benefitStatus');
+  status.textContent = '저장 중...';
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'savePromoBenefitSettings', data: { perCase, weeklyCap }, password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    STATE.promoBenefit = result.settings;
+    status.textContent = `✅ 저장 완료 (1건당 ${result.settings.perCase}분, 주간 최대 ${result.settings.weeklyCap === null ? '제한 없음' : result.settings.weeklyCap + '분'})`;
+    showToast('신규P 혜택 설정 저장 완료');
+    await loadAllData();
+  } catch (err) {
+    status.textContent = '❌ 실패: ' + err.message;
+  }
 }
 
 async function saveAttendance() {
