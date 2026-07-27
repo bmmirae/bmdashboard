@@ -439,7 +439,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v6.7';
+const DASHBOARD_VERSION = 'v6.8';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1120,14 +1120,16 @@ function computeMissStreak(name, currentOffset) {
   return stage;
 }
 
-// 바로 직전 주(currentOffset-1)에 실제로 콜+이관을 모두 달성했는지 확인.
-// null = 비교할 지난주 없음(첫 주) 또는 목표 예외 인원.
+// 바로 직전 주(currentOffset-1) 실제 달성 상태 확인.
+// 'full' = 콜+이관 완전 달성 / 'none' = 완전 미달성 / 'partial' = 하나만 달성 / null = 비교 불가(첫 주·목표 예외)
 function computeLastWeekAchieved(name, currentOffset) {
   if (currentOffset <= 0) return null;
   const range = computeWeekRangeForOffset(currentOffset - 1);
   const data = computeAgentDataForRange(range.start, range.end, currentOffset - 1)[name];
   if (!data || data.dailyGoal === 0) return null;
-  return data.callAchieved && data.salesAchieved;
+  if (data.callAchieved && data.salesAchieved) return 'full';
+  if (!data.callAchieved && !data.salesAchieved) return 'none';
+  return 'partial';
 }
 
 // ══════════════════════════════════════
@@ -1305,10 +1307,12 @@ function renderPersonCard(name, d) {
 
     if (d.penaltyMin > 0) {
       badge += `<span class="person-badge" style="${stageStyle}">🚨 ${d.missStreak}회차 패널티 진행중 (-${d.penaltyMin}분)</span> `;
-    } else if (d.lastWeekAchieved === true) {
+    } else if (d.lastWeekAchieved === 'full') {
       badge += `<span class="person-badge" style="background:var(--green-bg);color:var(--green)">✅ ${d.missStreak}회차 패널티 이력 (수행완료)</span> `;
-    } else {
+    } else if (d.lastWeekAchieved === 'none') {
       badge += `<span class="person-badge" style="${stageStyle}">⚠️ ${d.missStreak}회차 패널티 이력 (패널티 미등록)</span> `;
+    } else {
+      badge += `<span class="person-badge" style="background:var(--card-hover);color:var(--text-dim);">${d.missStreak}회차 이력</span> `;
     }
   }
   if (d.callGoalExempt) {
