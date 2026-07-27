@@ -473,7 +473,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.4.1';
+const DASHBOARD_VERSION = 'v7.5.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -525,6 +525,7 @@ let STATE = {
   revenueCapUp: [],
   capUpWeekOffset: 0,
   trainingHistory: [],
+  goalHistory: [],
   trainingWeekOffset: 0,
   promoBenefit: { perCase: 10, weeklyCap: null },
   prospectMap: {},
@@ -743,6 +744,7 @@ async function loadAllData() {
     STATE.promoBenefit = data.promoBenefit || STATE.promoBenefit;
     STATE.revenueCapUp = data.revenueCapUp || [];
     STATE.trainingHistory = data.trainingHistory || [];
+    STATE.goalHistory = data.goalHistory || [];
 
     document.getElementById('lastSync').textContent = '동기화: ' + new Date().toLocaleTimeString('ko');
     if (data.lastUpload) {
@@ -959,6 +961,16 @@ function parseExcelFile(file) {
 }
 
 // ── 임의 기간(start~end)에 대한 사원명별 집계 (현재 주 / 히스토리 공용) ──
+// 해당 주(rangeStart)가 속한 달 기준으로 유효한 일목표(분)를 목표이력에서 찾음.
+// "적용월"이 그 달 이하인 기록 중 가장 최근(가장 큰) 것을 사용. 이력이 없으면 현재 설정값(fallback)을 그대로 씀.
+function resolveDailyGoal(name, rangeStart, fallback) {
+  const yearMonth = `${rangeStart.getFullYear()}-${String(rangeStart.getMonth()+1).padStart(2,'0')}`;
+  const entries = STATE.goalHistory.filter(g => g['사원명'] === name && String(g['적용월']).trim() <= yearMonth);
+  if (entries.length === 0) return fallback;
+  entries.sort((a, b) => String(b['적용월']).trim().localeCompare(String(a['적용월']).trim()));
+  return Number(entries[0]['일목표분']) || 0;
+}
+
 function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) {
   const dateStr = d => {
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
@@ -1022,7 +1034,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
   const agentData = {};
   STATE.settings.forEach(s => {
     const name = s['사원명'];
-    const dailyGoal = Number(s['일목표분']) || 0;
+    const dailyGoal = resolveDailyGoal(name, rangeStart, Number(s['일목표분']) || 0);
     const weekSalesGoal = Number(s['주간이관목표']) || WEEKLY_SALES_GOAL_DEFAULT;
 
     let goalDays = 0;
