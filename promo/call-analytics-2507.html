@@ -400,6 +400,23 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
       <div id="capUpStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
       <div id="capUpList" style="margin-top:12px;"></div>
     </div>
+
+    <div class="form-section">
+      <div class="form-title">🎓 짝수 회차 교육 진행 체크</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">회차가 짝수(2·4·6...)로 올라간 주는 분 추가 대신 교육 대상입니다. 그 회차를 만든 그 주를 선택해서 교육 진행 후 체크해주세요.</div>
+      <div class="form-row" style="margin-bottom:10px;">
+        <button class="save-btn" style="padding:6px 10px;" onclick="changeTrainingWeek(-1)">‹</button>
+        <span id="trainingWeekLabel" style="font-size:13px;font-weight:700;min-width:120px;text-align:center;"></span>
+        <button class="save-btn" style="padding:6px 10px;" onclick="changeTrainingWeek(1)">›</button>
+      </div>
+      <div class="form-row">
+        <select id="trainingTeamFilter" onchange="filterAgentSelect('training')"></select>
+        <select id="trainingAgent"></select>
+        <button class="save-btn" onclick="saveTrainingHistoryEntry()">저장</button>
+      </div>
+      <div id="trainingStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
+      <div id="trainingList" style="margin-top:12px;"></div>
+    </div>
   </div>
 </div>
 
@@ -456,7 +473,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.3';
+const DASHBOARD_VERSION = 'v7.4';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -507,6 +524,8 @@ let STATE = {
   holidays: [],
   revenueCapUp: [],
   capUpWeekOffset: 0,
+  trainingHistory: [],
+  trainingWeekOffset: 0,
   promoBenefit: { perCase: 10, weeklyCap: null },
   prospectMap: {},
   lastUploadLabel: '',
@@ -538,6 +557,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (STATE.revenueAuthed) _revenuePwCache = sessionStorage.getItem('ca_revenue_pw') || '';
   STATE.weekOffset = computeOffsetForToday();
   STATE.capUpWeekOffset = Math.max(0, computeOffsetForToday() - 1);
+  STATE.trainingWeekOffset = computeOffsetForToday();
   computeWeekRange();
   await loadAllData();
 });
@@ -588,7 +608,7 @@ function renderLockOrContent(zone) {
     contentEl.style.display = 'block';
     if (zone === 'roster') renderRosterTable();
     if (zone === 'revenue') renderMissionSummaryTable();
-    if (zone === 'input') { populateBenefitSettingsUI(); renderCapUpWeekLabel(); renderRevenueCapUpList(); }
+    if (zone === 'input') { populateBenefitSettingsUI(); renderCapUpWeekLabel(); renderRevenueCapUpList(); renderTrainingWeekLabel(); renderTrainingHistoryList(); }
   } else {
     contentEl.style.display = 'none';
     lockEl.innerHTML = `
@@ -722,6 +742,7 @@ async function loadAllData() {
     STATE.holidays = data.holidays || [];
     STATE.promoBenefit = data.promoBenefit || STATE.promoBenefit;
     STATE.revenueCapUp = data.revenueCapUp || [];
+    STATE.trainingHistory = data.trainingHistory || [];
 
     document.getElementById('lastSync').textContent = '동기화: ' + new Date().toLocaleTimeString('ko');
     if (data.lastUpload) {
@@ -736,6 +757,7 @@ async function loadAllData() {
     try { renderSalesList(); } catch (e) { console.error('renderSalesList 오류:', e); }
     try { renderPenaltyList(); } catch (e) { console.error('renderPenaltyList 오류:', e); }
     try { renderRevenueCapUpList(); } catch (e) { console.error('renderRevenueCapUpList 오류:', e); }
+    try { renderTrainingHistoryList(); } catch (e) { console.error('renderTrainingHistoryList 오류:', e); }
     try { renderMissionSummaryTable(); } catch (e) { console.error('renderMissionSummaryTable 오류:', e); }
   } catch (err) {
     document.getElementById('teamCards').innerHTML =
@@ -1136,25 +1158,32 @@ function computeWeekRangeForOffset(offset) {
   return { start: mon, end: fri };
 }
 
-// 0주차부터 현재 주(currentOffset) 직전까지 순서대로 시뮬레이션하며 "패널티 회차"를 계산.
+// 그 달(currentOffset이 속한 달) 첫 주부터 currentOffset 직전까지 순서대로 시뮬레이션하며 "패널티 회차"를 계산.
 // 규칙: 완전 미달성(콜+이관 모두 실패) 주를 만나면 +1 (누적). 단, 매출 20%↑ 캡업 체크(capUpOverride)된 주는
 // 콜·이관을 못 채웠어도 완전 미달성으로 안 치고 그냥 넘어감 (회차 자체가 안 생김). 완전 달성 주를 만나도
 // 회차는 내려가지 않고 그대로 유지(이력으로 남김). 부분 달성은 회차 변화 없음.
-// 목표 예외 인원(dailyGoal=0)은 계산에서 제외.
+// 목표 예외 인원(dailyGoal=0)은 계산에서 제외. 달이 바뀌면 회차는 0부터 다시 시작(월 경계에서 리셋).
+// 반환값: { stage, lastMissedOffset } — lastMissedOffset은 현재 stage를 만든(가장 최근 완전 미달성) 주의 offset
 function computeMissStreak(name, currentOffset) {
-  if (currentOffset <= 0) return 0;
+  if (currentOffset <= 0) return { stage: 0, lastMissedOffset: null };
+  const currentRange = computeWeekRangeForOffset(currentOffset);
+  const targetYear = currentRange.start.getFullYear();
+  const targetMonth = currentRange.start.getMonth();
+
   let stage = 0;
+  let lastMissedOffset = null;
   const lookbackLimit = Math.min(currentOffset, 12);
   for (let offset = currentOffset - lookbackLimit; offset < currentOffset; offset++) {
     const range = computeWeekRangeForOffset(offset);
+    if (range.start.getFullYear() !== targetYear || range.start.getMonth() !== targetMonth) continue; // 다른 달이면 건너뜀 (월 경계 리셋)
     const data = computeAgentDataForRange(range.start, range.end, offset)[name];
     if (!data || data.dailyGoal === 0) continue;
     if (data.capUpOverride) continue; // 매출 캡업 체크된 주는 회차 계산에서 완전히 제외 (이력 안 남김)
     const bothMissed = !data.callAchieved && !data.salesAchieved;
-    if (bothMissed) stage += 1;
+    if (bothMissed) { stage += 1; lastMissedOffset = offset; }
     // 완전 달성이거나 부분 달성이면 회차 변화 없음 (한 번 오른 회차는 유지)
   }
-  return stage;
+  return { stage, lastMissedOffset };
 }
 
 // 바로 직전 주(currentOffset-1) 실제 달성 상태 확인.
@@ -1180,10 +1209,25 @@ function computeLastWeekAchieved(name, currentOffset) {
 function renderDashboard() {
   const agentData = computeAgentDataForRange(STATE.weekStart, STATE.weekEnd, STATE.weekOffset);
 
-  // 지난주부터 거슬러 올라가며 연속 미달성 주 수 계산 (예외 인원 제외)
+  // 이번 달 안에서 거슬러 올라가며 회차 계산 (예외 인원 제외, 월 경계에서 리셋)
   Object.keys(agentData).forEach(name => {
     const d = agentData[name];
-    d.missStreak = (d.dailyGoal > 0) ? computeMissStreak(name, STATE.weekOffset) : 0;
+    const msResult = (d.dailyGoal > 0) ? computeMissStreak(name, STATE.weekOffset) : { stage: 0, lastMissedOffset: null };
+    d.missStreak = msResult.stage;
+    d.missStreakWeekOffset = msResult.lastMissedOffset;
+
+    // 짝수 회차: "그 회차를 만든 주"에 교육이 진행됐는지 체크
+    if (d.missStreak > 0 && d.missStreak % 2 === 0 && d.missStreakWeekOffset !== null) {
+      const tRange = computeWeekRangeForOffset(d.missStreakWeekOffset);
+      const twsStr = fmtDateStr(tRange.start), tweStr = fmtDateStr(tRange.end);
+      d.trainingDone = STATE.trainingHistory.some(t => {
+        const td = String(t['날짜']).substring(0, 10);
+        return t['사원명'] === name && td >= twsStr && td <= tweStr;
+      });
+    } else {
+      d.trainingDone = false;
+    }
+
     const lastWeekResult = (d.dailyGoal > 0) ? computeLastWeekAchieved(name, STATE.weekOffset) : { status: null, viaCapUp: false, capUp: false };
     d.lastWeekAchieved = lastWeekResult.status;
     d.lastWeekViaCapUp = lastWeekResult.viaCapUp;
@@ -1350,14 +1394,26 @@ function renderPersonCard(name, d) {
           ? 'background:var(--orange-bg);color:var(--orange);border:1px solid var(--orange);'
           : 'background:var(--yellow-bg);color:var(--yellow);';
 
-    if (d.penaltyMin > 0) {
-      badge += `<span class="person-badge" style="${stageStyle}">🚨 ${d.missStreak}회차 패널티 진행중 (-${d.penaltyMin}분)</span> `;
-    } else if (d.lastWeekAchieved === 'full') {
-      badge += `<span class="person-badge" style="background:var(--green-bg);color:var(--green)">✅ ${d.missStreak}회차 이력</span> `;
-    } else if (d.lastWeekAchieved === 'none') {
-      badge += `<span class="person-badge" style="${stageStyle}">⚠️ ${d.missStreak}회차 패널티 이력 (패널티 미등록)</span> `;
+    const isEven = d.missStreak % 2 === 0;
+
+    if (isEven) {
+      // 짝수 회차: 교육 진행 여부로만 판단 (분 추가 없음)
+      if (d.trainingDone) {
+        badge += `<span class="person-badge" style="background:var(--green-bg);color:var(--green)">✅ ${d.missStreak}회차 이력</span> `;
+      } else {
+        badge += `<span class="person-badge" style="${stageStyle}">🚨 ${d.missStreak}회차 진행중 (교육 준비 필요)</span> `;
+      }
     } else {
-      badge += `<span class="person-badge" style="background:var(--card-hover);color:var(--text-dim);">${d.missStreak}회차 이력</span> `;
+      // 홀수 회차: 기존처럼 분(分) 등록 여부 기준
+      if (d.penaltyMin > 0) {
+        badge += `<span class="person-badge" style="${stageStyle}">🚨 ${d.missStreak}회차 진행중 (-${d.penaltyMin}분)</span> `;
+      } else if (d.lastWeekAchieved === 'full') {
+        badge += `<span class="person-badge" style="background:var(--green-bg);color:var(--green)">✅ ${d.missStreak}회차 이력</span> `;
+      } else if (d.lastWeekAchieved === 'none') {
+        badge += `<span class="person-badge" style="${stageStyle}">⚠️ ${d.missStreak}회차 이력 (분 등록 필요)</span> `;
+      } else {
+        badge += `<span class="person-badge" style="background:var(--card-hover);color:var(--text-dim);">${d.missStreak}회차 이력</span> `;
+      }
     }
   }
   if (d.lastWeekCapUp) {
@@ -1702,7 +1758,7 @@ let _dateDefaultsSet = false;
 function populateAgentSelects() {
   // 팀 필터 드롭다운 채우기 (전체 + 팀 목록)
   const teamOrder = getTeamOrder();
-  ['attTeamFilter', 'salesTeamFilter', 'penaltyTeamFilter', 'revenueTeamFilter', 'capUpTeamFilter'].forEach(id => {
+  ['attTeamFilter', 'salesTeamFilter', 'penaltyTeamFilter', 'revenueTeamFilter', 'capUpTeamFilter', 'trainingTeamFilter'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const prevValue = sel.value;
@@ -1715,6 +1771,7 @@ function populateAgentSelects() {
   filterAgentSelect('penalty');
   filterAgentSelect('revenue');
   filterAgentSelect('capUp');
+  filterAgentSelect('training');
 
   const teamListEl = document.getElementById('teamList');
   if (teamListEl) {
@@ -2030,6 +2087,89 @@ async function deleteRevenueCapUp(row) {
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
     showToast('매출캡업 삭제 완료');
+    await loadAllData();
+  } catch (err) {
+    alert('삭제 실패: ' + err.message);
+  }
+}
+
+function renderTrainingWeekLabel() {
+  const el = document.getElementById('trainingWeekLabel');
+  if (!el) return;
+  const range = computeWeekRangeForOffset(STATE.trainingWeekOffset);
+  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+  el.textContent = `${fmt(range.start)} ~ ${fmt(range.end)}`;
+}
+
+function changeTrainingWeek(delta) {
+  if (delta < 0 && STATE.trainingWeekOffset <= 0) return;
+  STATE.trainingWeekOffset += delta;
+  renderTrainingWeekLabel();
+  renderTrainingHistoryList();
+}
+
+async function saveTrainingHistoryEntry() {
+  const agent = document.getElementById('trainingAgent').value;
+  const status = document.getElementById('trainingStatus');
+  if (!agent) return;
+
+  const range = computeWeekRangeForOffset(STATE.trainingWeekOffset);
+  const date = fmtDateStr(range.start);
+  const label = `${range.start.getMonth()+1}/${range.start.getDate()} ~ ${range.end.getMonth()+1}/${range.end.getDate()}`;
+
+  status.textContent = '저장 중...';
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'saveTrainingHistory', data: [{ '날짜': date, '사원명': agent }], password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    status.textContent = result.skipped > 0
+      ? `⚠️ ${agent} (${label} 주) — 이미 등록되어 있습니다`
+      : `✅ ${agent} (${label} 주) 교육 진행 등록 완료`;
+    showToast('교육이력 등록 완료');
+    await loadAllData();
+  } catch (err) {
+    status.textContent = '❌ 실패: ' + err.message;
+  }
+}
+
+function renderTrainingHistoryList() {
+  const el = document.getElementById('trainingList');
+  if (!el) return;
+  const range = computeWeekRangeForOffset(STATE.trainingWeekOffset);
+  const wsStr = fmtDateStr(range.start), weStr = fmtDateStr(range.end);
+  const weekList = STATE.trainingHistory.filter(c => {
+    const d = String(c['날짜']).substring(0,10);
+    return d >= wsStr && d <= weStr;
+  });
+  if (weekList.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-dim)">이 주 교육 진행 이력 없음</div>';
+    return;
+  }
+  el.innerHTML = weekList.map(c => `
+    <div class="record-row">
+      <span class="record-date">${String(c['날짜']).substring(0,10)}</span>
+      <span class="record-name">${c['사원명']}</span>
+      <span style="color:var(--green);font-weight:600;">🎓 교육 진행완료</span>
+      <button class="roster-del" onclick="deleteTrainingHistory(${c['_row']})" title="삭제">✕</button>
+    </div>`
+  ).join('');
+}
+
+async function deleteTrainingHistory(row) {
+  if (!confirm('이 교육 이력을 삭제하시겠습니까?')) return;
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'deleteTrainingHistory', row, password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    showToast('교육이력 삭제 완료');
     await loadAllData();
   } catch (err) {
     alert('삭제 실패: ' + err.message);
