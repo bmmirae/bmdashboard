@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.19</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.20</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -234,7 +234,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.19</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.20</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -421,7 +421,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v520';
+const LS_VER='v521';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -805,8 +805,8 @@ function classifyRow(r){
 function isPromo(r){
   const PROMO_GRADES=['단기','장기','권한오픈','권한+브리핑'];
   const hasRecall=!!(r.recalls&&r.recalls.length);
-  const gradeOk=PROMO_GRADES.includes(r.grade)||(r.grade==='이관완료'&&!hasRecall);
-  return gradeOk&&r.budget>0&&r.advertiserManager&&r.phone&&r.email;
+  return (PROMO_GRADES.includes(r.grade)&&r.budget>0&&r.advertiserManager&&r.phone&&r.email)
+    ||(r.grade==='이관완료'&&!hasRecall);
 }
 function getRecentBizDates(n){const dates=[];const d=new Date();while(dates.length<n){const day=d.getDay();if(day!==0&&day!==6)dates.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));d.setDate(d.getDate()-1);}return new Set(dates);}
 function renderListBody(baseRows){
