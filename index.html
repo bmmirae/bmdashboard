@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.22</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.23</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -234,7 +234,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.22</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.23</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -421,7 +421,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v523';
+const LS_VER='v524';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -708,6 +708,7 @@ function renderDash(stats,roleInfo,filteredRows){
   html+=renderMemberCompareCharts();
   html+=renderSalesSection();
   html+=renderKPI(stats);
+  html+=renderNewProspectSection(rows);
   html+=renderRecentTransfers(stats);
   html+=renderTodayRecall(stats);
   html+=`<div class="g2"><div class="sec"><div class="sec-hd sh-b">🎯 가망도별 현황</div>${renderGradeSection(stats)}</div><div class="sec"><div class="sec-hd sh-o">💰 예산 금액대별 분포</div>${renderBudgetSection(stats)}</div></div>`;
@@ -719,6 +720,72 @@ function renderDash(stats,roleInfo,filteredRows){
   setTimeout(()=>{if(typeof rtReset==='function')rtReset();if(typeof gcApplyFilter==='function')gcApplyFilter();},50);
   initCharts(stats);renderMemberTableBody(stats.memberStats||[]);
   buildMgrFilter(rows);curPage=1;renderListBody(rows);
+}
+
+function renderNewProspectSection(rows){
+  const activeRows=rows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
+  const week=getWeekRange();const month=getMonthRange();const td=today();
+  const now=new Date();const curYear=now.getFullYear();
+
+  const todayRows  =activeRows.filter(r=>{const fc=normalizeDate(r.firstCall)||'';return fc===td;});
+  const weekRows   =activeRows.filter(r=>{const fc=normalizeDate(r.firstCall)||'';return fc>=week.start&&fc<=week.end;});
+  const monthRows  =activeRows.filter(r=>{const fc=normalizeDate(r.firstCall)||'';return fc>=month.start&&fc<=month.end;});
+
+  const weekLabel =week.start.slice(5).replace('-','/')+' ~ '+week.end.slice(5).replace('-','/');
+  const monthLabel=now.getFullYear()+'년 '+(now.getMonth()+1)+'월';
+
+  let activeTab='today';
+  if(!todayRows.length&&weekRows.length) activeTab='week';
+  if(!todayRows.length&&!weekRows.length&&monthRows.length) activeTab='month';
+
+  const renderRow=r=>{
+    const rc2=classifyRow(r);const pBadge=isPromo(r)?`<span style="background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:6px;padding:1px 5px;font-size:10px;font-weight:700;margin-left:4px;">P</span>`:'';
+    const hasRecall=!!(r.recalls&&r.recalls.length);
+    const recallBadge=hasRecall?`<span style="background:#e8f4fd;color:#1565c0;border:1px solid #90caf9;border-radius:6px;padding:1px 5px;font-size:10px;margin-left:4px;">🔁 재콜중</span>`:'';
+    return`<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+      <div style="min-width:60px;">${gradeBadge(r.grade)}</div>
+      <div style="flex:1;min-width:120px;"><strong style="font-size:12px;">${r.company}</strong>${pBadge}${recallBadge}</div>
+      <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;">👤 ${r.manager}</div>
+      <div style="font-size:11px;color:#6a1b9a;font-weight:600;white-space:nowrap;">${fmtB(r.budget)||'-'}</div>
+      <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;">📅 ${fmtRecallDate(normalizeDate(r.firstCall))}</div>
+    </div>`;
+  };
+
+  const tabContent=(tabRows,emptyMsg)=>tabRows.length
+    ?tabRows.map(renderRow).join('')
+    :`<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">${emptyMsg}</div>`;
+
+  return`<div class="sec" style="margin-bottom:14px;">
+    <div class="sec-hd sh-g" style="margin-bottom:12px;">🟢 신규 가망건 현황</div>
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:0;">
+      <button id="npt_today" onclick="switchNPTab('today')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:700;color:#2e7d32;border-bottom:3px solid #2e7d32;cursor:pointer;margin-bottom:-2px;">
+        🟢 오늘 <span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${todayRows.length}건</span>
+      </button>
+      <button id="npt_week" onclick="switchNPTab('week')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">
+        📅 주간 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${weekRows.length}건</span>
+      </button>
+      <button id="npt_month" onclick="switchNPTab('month')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">
+        🗓 월간 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${monthRows.length}건</span>
+      </button>
+      <span style="margin-left:auto;font-size:11px;color:var(--text-muted);padding:8px 4px;align-self:center;" id="npTabLabel">오늘 ${td}</span>
+    </div>
+    <div id="np_today">${tabContent(todayRows,'오늘 신규 가망건이 없습니다')}</div>
+    <div id="np_week" style="display:none;">${tabContent(weekRows,'이번 주 신규 가망건이 없습니다')}</div>
+    <div id="np_month" style="display:none;">${tabContent(monthRows,'이번 달 신규 가망건이 없습니다')}</div>
+  </div>`;
+}
+
+function switchNPTab(tab){
+  ['today','week','month'].forEach(t=>{
+    const btn=document.getElementById('npt_'+t);
+    const content=document.getElementById('np_'+t);
+    const isActive=t===tab;
+    if(btn){btn.style.fontWeight=isActive?'700':'400';btn.style.color=isActive?'#2e7d32':'var(--text-sub)';btn.style.borderBottom=isActive?'3px solid #2e7d32':'3px solid transparent';}
+    if(content)content.style.display=isActive?'block':'none';
+  });
+  const now=new Date();const week=getWeekRange();
+  const labels={today:'오늘 '+today(),week:'주간 '+week.start.slice(5).replace('-','/')+' ~ '+week.end.slice(5).replace('-','/'),month:'월간 '+now.getFullYear()+'년 '+(now.getMonth()+1)+'월'};
+  const lbl=document.getElementById('npTabLabel');if(lbl)lbl.textContent=labels[tab];
 }
 
 function renderKPI(s){const gm=s.gradeMap;const done=(gm['이관완료']||0);const open=(gm['권한오픈']||0)+(gm['권한+브리핑']||0);const active=(gm['단기']||0)+(gm['장기']||0);return`<div class="g6" style="margin-bottom:14px;"><div class="card"><div class="card-lbl">📋 활성 가망건</div><div class="card-val cv-blue">${s.total}건</div><div class="card-sub">전체 DB ${s.totalAll||s.total}건 중</div></div><div class="card"><div class="card-lbl">✅ 이관완료</div><div class="card-val cv-green">${done}건</div><div class="card-sub">${s.total>0?(done/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-g" style="width:${s.total>0?done/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">🔓 권한오픈+브리핑</div><div class="card-val cv-purple">${open}건</div><div class="card-sub">${s.total>0?(open/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-p" style="width:${s.total>0?open/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">📅 단기+장기</div><div class="card-val cv-orange">${active}건</div><div class="card-sub">${s.total>0?(active/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-o" style="width:${s.total>0?active/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">📞 재콜 현황</div><div class="card-val cv-red">${s.todayRecalls.length}건</div><div class="card-sub">오늘 · 놓친 ${s.missedRecalls?.length||0}건</div></div><div class="card"><div class="card-lbl">💰 예산 합계</div><div class="card-val cv-purple">${fmtB(s.totalBudget)}</div></div></div>`;}
@@ -859,7 +926,7 @@ function renderListBody(baseRows){
         const monthPromoCnt=items.filter(r=>{const t=classifyRow(r).type;return(t==='week'||t==='month')&&isPromo(r);}).length;
         const hdrBg=isNoDate?'var(--surface2)':isToday?'#fff3e0':isBizOpen?'#f3f6ff':'var(--th-bg)';
         const hdrColor=isNoDate?'var(--text-muted)':isToday?'#e65100':isBizOpen?'#3949ab':'var(--th-color)';
-        html+=`<tr style="background:${hdrBg};font-weight:700;cursor:pointer;" onclick="toggleDateGroup('${gId}')"><td colspan="10" style="padding:8px 12px;color:${hdrColor};user-select:none;"><span style="margin-right:6px;font-size:11px;display:inline-block;" id="${gId}_arr">${(isBizOpen&&!isNoDate)?'▼':'▶'}</span>${isNoDate?'📋 날짜 미입력':'📅 '+normDate}<span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">${items.length}건</span><span style="font-size:11px;font-weight:600;margin-left:8px;color:#2e7d32;">🟢 주간신규 ${weekCnt}${weekPromoCnt>0?` <span style="color:#7b1fa2;font-size:10px;">(P ${weekPromoCnt})</span>`:''}</span><span style="font-size:11px;margin-left:4px;color:var(--text-sub);">·</span><span style="font-size:11px;font-weight:600;margin-left:4px;color:#1565c0;">📅 월간신규 ${monthCnt}${monthPromoCnt>0?` <span style="color:#7b1fa2;font-size:10px;">(P ${monthPromoCnt})</span>`:''}</span><span style="font-size:11px;margin-left:4px;color:var(--text-sub);">·</span><span style="font-size:11px;font-weight:600;margin-left:4px;color:#e65100;">🔁 재콜중 ${recallCnt}</span>${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}</td></tr>`;
+        html+=`<tr style="background:${hdrBg};font-weight:700;cursor:pointer;" onclick="toggleDateGroup('${gId}')"><td colspan="10" style="padding:8px 12px;color:${hdrColor};user-select:none;"><span style="margin-right:6px;font-size:11px;display:inline-block;" id="${gId}_arr">${(isBizOpen&&!isNoDate)?'▼':'▶'}</span>${isNoDate?'📋 날짜 미입력':'📅 '+normDate}<span style="font-size:11px;font-weight:400;margin-left:6px;color:var(--text-sub);">${items.length}건</span><span style="font-size:11px;font-weight:600;margin-left:8px;color:#e65100;">🔁 재콜중 ${recallCnt}</span>${isToday?`<span style="background:#e65100;color:#fff;border-radius:6px;padding:1px 8px;font-size:10px;margin-left:6px;">오늘</span>`:''}</td></tr>`;
         items.forEach(r=>{
           const recallToday=r.nextRecallDate===td;const hasRecall=r.recalls&&r.recalls.length>0;const recallCount=r.recalls?r.recalls.length:0;const latestRecall=r._latestDate!==r._normDate?r._latestDate:'';
           const rc=classifyRow(r);const pBadge=isPromo(r)?`<span style="display:inline-block;margin-top:4px;background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;white-space:nowrap;">P</span>`:'';
