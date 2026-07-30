@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>미래아이엔씨 가망건 대시보드 v5.21</title>
+<title>미래아이엔씨 가망건 대시보드 v5.22</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -295,7 +295,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.21</span></h1>
+      <h1>📊 미래아이엔씨 가망건 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.22</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -1115,7 +1115,7 @@ function showDash(){
 }
 
 // ══ ⚡ localStorage Stale-While-Revalidate 캐시 ══════════════════
-const LS_VER = 'v522';
+const LS_VER = 'v523';
 const LS_TTL = 15 * 60 * 1000; // 15분
 function _lsKey(role){ return 'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10); }
 function lsSave(role,data){ try{ localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data})); }catch(e){} }
@@ -2450,6 +2450,7 @@ function renderListBody(baseRows){
                   <strong style="font-size:12px;">${r.company}</strong>
                   ${r.url?`<br><span onclick="openUrl('${r.url}')" style="font-size:10px;color:#3949ab;cursor:pointer;text-decoration:underline;">${r.url.replace(/https?:\/\//,'').slice(0,24)} 🔗</span>`:''}
                   ${(r.advertiserManager||r.email)?`<br><span style="font-size:10px;color:var(--text-sub);">${r.advertiserManager?'👤 '+r.advertiserManager:''}${r.advertiserManager&&r.email?' &nbsp;':''}${r.email?'📧 '+r.email:''}</span>`:''}
+                  ${r.firstCall?`<br><span style="font-size:10px;color:var(--text-sub);">📅 첫콜 ${fmtRecallDate(normalizeDate(r.firstCall))}</span>`:''}
                   ${hasRecall?`<br><span style="font-size:10px;color:#1565c0;">재콜 ${recallCount}회 진행중${latestRecall?' · 최근 '+fmtRecallDate(latestRecall):''}</span>`:''}
                 </div>
                 <button class="ai-open-btn" data-company="${r.company}" style="flex-shrink:0;padding:3px 7px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:10px;font-weight:700;white-space:nowrap;" title="AI 영업 분석">🤖</button>
@@ -2510,6 +2511,7 @@ function renderListBody(baseRows){
                   <strong style="font-size:12px;">${r.company}</strong>
                   ${r.url?`<br><span onclick="openUrl('${r.url}')" style="font-size:10px;color:#3949ab;cursor:pointer;text-decoration:underline;">${r.url.replace(/https?:\/\//,'').slice(0,24)} 🔗</span>`:''}
                   ${(r.advertiserManager||r.email)?`<br><span style="font-size:10px;color:var(--text-sub);">${r.advertiserManager?'👤 '+r.advertiserManager:''}${r.advertiserManager&&r.email?' &nbsp;':''}${r.email?'📧 '+r.email:''}</span>`:''}
+                  ${r.firstCall?`<br><span style="font-size:10px;color:var(--text-sub);">📅 첫콜 ${fmtRecallDate(normalizeDate(r.firstCall))}</span>`:''}
                   ${hasRecall?`<br><span style="font-size:10px;color:#1565c0;">재콜 ${recallCount}회 진행중${latestRecall?' · 최근 '+fmtRecallDate(latestRecall):''}</span>`:''}
                 </div>
                 <button class="ai-open-btn" data-company="${r.company}" style="flex-shrink:0;padding:3px 7px;border-radius:6px;border:1px solid #3949ab;background:#e8eaf6;color:#3949ab;cursor:pointer;font-size:10px;font-weight:700;white-space:nowrap;" title="AI 영업 분석">🤖</button>
