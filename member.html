@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>미래아이엔씨 가망건 대시보드 v5.24</title>
+<title>미래아이엔씨 가망건 대시보드 v5.26</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -295,7 +295,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.24</span></h1>
+      <h1>📊 미래아이엔씨 가망건 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.26</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -1115,7 +1115,7 @@ function showDash(){
 }
 
 // ══ ⚡ localStorage Stale-While-Revalidate 캐시 ══════════════════
-const LS_VER = 'v525';
+const LS_VER = 'v527';
 const LS_TTL = 15 * 60 * 1000; // 15분
 function _lsKey(role){ return 'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10); }
 function lsSave(role,data){ try{ localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data})); }catch(e){} }
@@ -1642,24 +1642,68 @@ function resetDateFilterM(){
 }
 
 let _npPromoOnly=false;
+let _npSelectedMonth=''; // YYYY-MM 형식, 빈값이면 이번달
+
+function getNPMonthOptions(rows){
+  const activeRows=rows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
+  const months=new Set();
+  activeRows.forEach(r=>{
+    const fc=normalizeDate(r.firstCall)||'';
+    if(fc.length>=7) months.add(fc.slice(0,7));
+  });
+  return [...months].sort().reverse();
+}
+
+function getNPMonthRange(ym){
+  if(!ym){const m=getMonthRange();return m;}
+  const[y,mo]=ym.split('-').map(Number);
+  const first=new Date(y,mo-1,1);
+  const last=new Date(y,mo,0);
+  const fmt=x=>x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+  return{start:fmt(first),end:fmt(last)};
+}
+
+function isPromoForMonth(r,monthStart,monthEnd){
+  const fc=normalizeDate(r.firstCall)||'';
+  if(!fc) return false;
+  const isInMonth=fc>=monthStart&&fc<=monthEnd;
+  if(!isInMonth) return false;
+  const PROMO_GRADES=['단기','장기','권한오픈','권한+브리핑'];
+  if(PROMO_GRADES.includes(r.grade)&&r.budget>0&&r.advertiserManager&&r.phone&&r.email) return true;
+  if(r.grade==='이관완료') return true;
+  return false;
+}
+
 function renderNewProspectSection(rows){
   const activeRows=rows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
-  const week=getWeekRange();const month=getMonthRange();const td=today();
-  const now=new Date();
+  const week=getWeekRange();const td=today();const now=new Date();
+  const selMonth=_npSelectedMonth;
+  const mRange=getNPMonthRange(selMonth);
+  const monthLabel=selMonth?(parseInt(selMonth.slice(0,4))+'년 '+parseInt(selMonth.slice(5))+'월'):(now.getFullYear()+'년 '+(now.getMonth()+1)+'월');
 
   const todayRows =activeRows.filter(r=>{const fc=normalizeDate(r.firstCall)||'';return fc===td;});
   const weekRows  =activeRows.filter(r=>{const fc=normalizeDate(r.firstCall)||'';return fc>=week.start&&fc<=week.end;});
-  const monthRows =activeRows.filter(r=>{const fc=normalizeDate(r.firstCall)||'';return fc>=month.start&&fc<=month.end;});
+  const monthRows =activeRows.filter(r=>{const fc=normalizeDate(r.firstCall)||'';return fc>=mRange.start&&fc<=mRange.end;});
 
-  const todayP=todayRows.filter(r=>isPromo(r)).length;
-  const weekP =weekRows.filter(r=>isPromo(r)).length;
-  const monthP=monthRows.filter(r=>isPromo(r)).length;
+  const todayP =todayRows.filter(r=>isPromoForMonth(r,mRange.start,mRange.end)).length;
+  const weekP  =weekRows.filter(r=>isPromoForMonth(r,mRange.start,mRange.end)).length;
+  const monthP =monthRows.filter(r=>isPromoForMonth(r,mRange.start,mRange.end)).length;
 
-  const renderRow=r=>{
-    const pBadge=isPromo(r)?`<span style="background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:6px;padding:1px 5px;font-size:10px;font-weight:700;margin-left:4px;">P</span>`:'';
+  // 월 드롭다운 옵션 생성
+  const allMonths=getNPMonthOptions(rows);
+  const monthOpts=allMonths.map(ym=>{
+    const[y,mo]=ym.split('-').map(Number);
+    const lbl=y+'년 '+mo+'월';
+    const isCur=!selMonth?(ym===now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')):ym===selMonth;
+    return`<option value="${ym}"${isCur?' selected':''}>${lbl}</option>`;
+  }).join('');
+
+  const renderRow=(r,ms,me)=>{
+    const p=isPromoForMonth(r,ms,me);
+    const pBadge=p?`<span style="background:#f3e5f5;color:#7b1fa2;border:1px solid #ce93d8;border-radius:6px;padding:1px 5px;font-size:10px;font-weight:700;margin-left:4px;">P</span>`:'';
     const hasRecall=!!(r.recalls&&r.recalls.length);
     const recallBadge=hasRecall?`<span style="background:#e8f4fd;color:#1565c0;border:1px solid #90caf9;border-radius:6px;padding:1px 5px;font-size:10px;margin-left:4px;">🔁 재콜중</span>`:'';
-    return`<div class="np-row${isPromo(r)?' np-promo':''}" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+    return`<div class="np-row${p?' np-promo':''}" style="display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
       <div style="min-width:60px;">${gradeBadge(r.grade)}</div>
       <div style="flex:1;min-width:120px;"><strong style="font-size:12px;">${r.company}</strong>${pBadge}${recallBadge}</div>
       <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;">👤 ${r.manager}</div>
@@ -1668,8 +1712,8 @@ function renderNewProspectSection(rows){
     </div>`;
   };
 
-  const tabContent=(tabRows,emptyMsg)=>tabRows.length
-    ?tabRows.map(renderRow).join('')
+  const tabContent=(tabRows,ms,me,emptyMsg)=>tabRows.length
+    ?tabRows.map(r=>renderRow(r,ms,me)).join('')
     :`<div style="text-align:center;color:var(--text-muted);padding:20px;font-size:13px;">${emptyMsg}</div>`;
 
   return`<div class="sec" style="margin-bottom:14px;">
@@ -1677,7 +1721,7 @@ function renderNewProspectSection(rows){
       <div class="sec-hd sh-g" style="margin-bottom:0;">🟢 신규 가망건 현황</div>
       <button id="npPromoBtn" onclick="toggleNPPromo()" style="padding:4px 14px;border-radius:16px;border:1.5px solid #ce93d8;background:var(--surface);color:#7b1fa2;font-size:12px;font-weight:600;cursor:pointer;">🟣 P만 보기</button>
     </div>
-    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:0;">
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:0;align-items:flex-end;">
       <button id="npt_today" onclick="switchNPTab('today')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:700;color:#2e7d32;border-bottom:3px solid #2e7d32;cursor:pointer;margin-bottom:-2px;">
         🟢 오늘 <span style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${todayRows.length}건${todayP>0?` <span style="color:#7b1fa2;">(P ${todayP})</span>`:''}</span>
       </button>
@@ -1685,14 +1729,34 @@ function renderNewProspectSection(rows){
         📅 주간 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${weekRows.length}건${weekP>0?` <span style="color:#7b1fa2;">(P ${weekP})</span>`:''}</span>
       </button>
       <button id="npt_month" onclick="switchNPTab('month')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">
-        🗓 월간 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${monthRows.length}건${monthP>0?` <span style="color:#7b1fa2;">(P ${monthP})</span>`:''}</span>
+        🗓 <select id="npMonthSel" onchange="changeNPMonth(this.value)" onclick="event.stopPropagation()" style="border:none;background:none;font-size:13px;color:inherit;cursor:pointer;outline:none;font-weight:inherit;">${monthOpts}</select>
+        <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${monthRows.length}건${monthP>0?` <span style="color:#7b1fa2;">(P ${monthP})</span>`:''}</span>
       </button>
       <span style="margin-left:auto;font-size:11px;color:var(--text-muted);padding:8px 4px;align-self:center;" id="npTabLabel">오늘 ${td}</span>
     </div>
-    <div id="np_today">${tabContent(todayRows,'오늘 신규 가망건이 없습니다')}</div>
-    <div id="np_week" style="display:none;">${tabContent(weekRows,'이번 주 신규 가망건이 없습니다')}</div>
-    <div id="np_month" style="display:none;">${tabContent(monthRows,'이번 달 신규 가망건이 없습니다')}</div>
+    <div id="np_today">${tabContent(todayRows,mRange.start,mRange.end,'오늘 신규 가망건이 없습니다')}</div>
+    <div id="np_week" style="display:none;">${tabContent(weekRows,mRange.start,mRange.end,'이번 주 신규 가망건이 없습니다')}</div>
+    <div id="np_month" style="display:none;">${tabContent(monthRows,mRange.start,mRange.end,'이번 달 신규 가망건이 없습니다')}</div>
   </div>`;
+}
+
+function changeNPMonth(ym){
+  _npSelectedMonth=ym;
+  // 현재 활성 탭이 month면 재렌더링, 아니면 month 탭으로 전환
+  switchNPTab('month');
+  // 전체 섹션 재렌더링
+  const dc=document.getElementById('dashContent');
+  if(dc){
+    const allRows=CURRENT_FILTER==='all'?CURRENT_ROWS:CURRENT_ROWS.filter(r=>r.bu===CURRENT_FILTER||r.team===CURRENT_FILTER||r.manager===CURRENT_FILTER);
+    const npSecs=dc.querySelectorAll('.sec');
+    // KPI 다음 섹션이 신규가망건 현황
+    npSecs.forEach(sec=>{
+      if(sec.querySelector('.sec-hd.sh-g')&&sec.querySelector('.sec-hd.sh-g').textContent.includes('신규 가망건 현황')){
+        sec.outerHTML=renderNewProspectSection(allRows);
+        switchNPTab('month');
+      }
+    });
+  }
 }
 
 function switchNPTab(tab){
@@ -1704,7 +1768,9 @@ function switchNPTab(tab){
     if(cont)cont.style.display=isActive?'block':'none';
   });
   const now=new Date();const week=getWeekRange();
-  const labels={today:'오늘 '+today(),week:'주간 '+week.start.slice(5).replace('-','/')+' ~ '+week.end.slice(5).replace('-','/'),month:'월간 '+now.getFullYear()+'년 '+(now.getMonth()+1)+'월'};
+  const selMonth=_npSelectedMonth;
+  const monthLabel=selMonth?(parseInt(selMonth.slice(0,4))+'년 '+parseInt(selMonth.slice(5))+'월'):(now.getFullYear()+'년 '+(now.getMonth()+1)+'월');
+  const labels={today:'오늘 '+today(),week:'주간 '+week.start.slice(5).replace('-','/')+' ~ '+week.end.slice(5).replace('-','/'),month:'월간 '+monthLabel};
   const lbl=document.getElementById('npTabLabel');if(lbl)lbl.textContent=labels[tab];
   applyNPPromoFilter();
 }
@@ -1721,6 +1787,7 @@ function applyNPPromoFilter(){
     row.style.display=(_npPromoOnly&&!row.classList.contains('np-promo'))?'none':'flex';
   });
 }
+
 
 function renderKPI(s){
   const gm=s.gradeMap;
@@ -2403,14 +2470,14 @@ function classifyRow(r){
   return{type:'past',label:monthLabel,hasRecall};
 }
 function isPromo(r){
+  const fc=normalizeDate(r.firstCall)||'';
+  if(!fc) return false;
+  const month=getMonthRange();
+  const isThisMonth=fc>=month.start&&fc<=month.end;
+  if(!isThisMonth) return false;
   const PROMO_GRADES=['단기','장기','권한오픈','권한+브리핑'];
   if(PROMO_GRADES.includes(r.grade)&&r.budget>0&&r.advertiserManager&&r.phone&&r.email) return true;
-  if(r.grade==='이관완료'){
-    const fc=normalizeDate(r.firstCall)||'';
-    if(!fc) return false;
-    const month=getMonthRange();
-    return fc>=month.start&&fc<=month.end;
-  }
+  if(r.grade==='이관완료') return true;
   return false;
 }
 function getRecentBizDates(n){
