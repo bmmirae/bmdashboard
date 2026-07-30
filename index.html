@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.27</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.28</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -234,7 +234,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.27</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.28</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -298,6 +298,7 @@ const NAVER_WORKER_URL = 'https://naver-api.bm1mirae.workers.dev';
 // ── 공통 상수 ─────────────────────────────────
 const BU_ORDER   = ['BM2본부','BM3본부'];
 const TEAM_ORDER = ['BM2-1팀','BM2-2팀','BM2-3팀','BM3-1팀','BM3-2팀'];
+const VALID_GRADES = ['단기','장기','권한오픈','권한+브리핑','이관완료'];
 const EXCLUDE_GRADES = ['선택없음','단순재콜','희망건','메일전송',''];
 
 let SESSION = null;
@@ -421,7 +422,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v528';
+const LS_VER='v529';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -601,7 +602,7 @@ function resetDateFilter(){DATE_FROM='';DATE_TO='';const df=document.getElementB
 function calcClientStats(rows){
   const td=today();let filteredByDate=rows;
   if(DATE_FROM||DATE_TO){filteredByDate=rows.filter(r=>{const norm=normalizeDate(r.firstCall)||'';let maxD=norm;if(r.recalls&&r.recalls.length){r.recalls.forEach(rc=>{const d=typeof rc==='object'?normalizeDate(rc.date)||'':normalizeDate(String(rc).slice(0,10))||'';if(d&&/^\d{4}-\d{2}-\d{2}$/.test(d)&&d>maxD)maxD=d;});}const latestDate=maxD||norm;if(DATE_FROM&&latestDate<DATE_FROM)return false;if(DATE_TO&&latestDate>DATE_TO)return false;return true;});}
-  const activeRows=filteredByDate.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
+  const activeRows=filteredByDate.filter(r=>VALID_GRADES.includes(r.grade));
   const gradeMap={},memberMap={},teamMap={},buMap={};
   const bands={'50만원 미만':{min:0,max:500000,count:0,total:0},'50-100만원':{min:500000,max:1000000,count:0,total:0},'100-300만원':{min:1000000,max:3000000,count:0,total:0},'300-500만원':{min:3000000,max:5000000,count:0,total:0},'500만원 이상':{min:5000000,max:Infinity,count:0,total:0}};
   const contactMap={};
@@ -727,7 +728,7 @@ let _npPromoOnly=false;
 let _npSelectedMonth=''; // YYYY-MM 형식, 빈값이면 이번달
 
 function getNPMonthOptions(rows){
-  const activeRows=rows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
+  const activeRows=rows.filter(r=>VALID_GRADES.includes(r.grade));
   const months=new Set();
   activeRows.forEach(r=>{
     const fc=normalizeDate(r.firstCall)||'';
@@ -757,7 +758,7 @@ function isPromoForMonth(r,monthStart,monthEnd){
 }
 
 function renderNewProspectSection(rows){
-  const activeRows=rows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));
+  const activeRows=rows.filter(r=>VALID_GRADES.includes(r.grade));
   const week=getWeekRange();const td=today();const now=new Date();
   const selMonth=_npSelectedMonth;
   const mRange=getNPMonthRange(selMonth);
@@ -1019,7 +1020,7 @@ function isPromo(r){
 function getRecentBizDates(n){const dates=[];const d=new Date();while(dates.length<n){const day=d.getDay();if(day!==0&&day!==6)dates.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'));d.setDate(d.getDate()-1);}return new Set(dates);}
 function renderListBody(baseRows){
   const g=document.getElementById('fGrade')?.value||'';const b=document.getElementById('fBudget')?.value||'';const mg=document.getElementById('fMgr')?.value||'';const kw=(document.getElementById('fKw')?.value||'').trim().toLowerCase();const newOld=document.getElementById('fNewOld')?.value||'';
-  let rows=[...baseRows];rows=rows.filter(r=>!EXCLUDE_GRADES.includes(r.grade));if(g)rows=rows.filter(r=>r.grade===g);if(b){const[mn,mx]=b.split('-').map(Number);rows=rows.filter(r=>r.budget>=mn&&r.budget<mx);}if(mg)rows=rows.filter(r=>r.manager===mg);if(kw)rows=rows.filter(r=>r.company.toLowerCase().includes(kw)||(r.keyword||'').toLowerCase().includes(kw)||(r.phone||'').replace(/-/g,'').includes(kw.replace(/-/g,'')));
+  let rows=[...baseRows];rows=rows.filter(r=>VALID_GRADES.includes(r.grade));if(g)rows=rows.filter(r=>r.grade===g);if(b){const[mn,mx]=b.split('-').map(Number);rows=rows.filter(r=>r.budget>=mn&&r.budget<mx);}if(mg)rows=rows.filter(r=>r.manager===mg);if(kw)rows=rows.filter(r=>r.company.toLowerCase().includes(kw)||(r.keyword||'').toLowerCase().includes(kw)||(r.phone||'').replace(/-/g,'').includes(kw.replace(/-/g,'')));
   if(newOld==='week')  rows=rows.filter(r=>classifyRow(r).type==='week');
   if(newOld==='month') rows=rows.filter(r=>classifyRow(r).type==='week'||classifyRow(r).type==='month');
   if(newOld==='old')   rows=rows.filter(r=>classifyRow(r).type==='past'||classifyRow(r).type==='none');
