@@ -473,7 +473,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.5.0';
+const DASHBOARD_VERSION = 'v7.6.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1252,6 +1252,15 @@ function renderDashboard() {
     teams[team].push(s);
   });
 
+  // 1억 이상 달성자(목표 예외)는 팀 카드 안에서 항상 맨 아래로 (인원 추가되어도 유지)
+  Object.keys(teams).forEach(team => {
+    teams[team].sort((a, b) => {
+      const aExempt = (agentData[a['사원명']]?.dailyGoal === 0) ? 1 : 0;
+      const bExempt = (agentData[b['사원명']]?.dailyGoal === 0) ? 1 : 0;
+      return aExempt - bExempt; // 예외(1) 인원이 뒤로
+    });
+  });
+
   renderMonthlyExemptBar();
   renderAchieverBar(agentData);
   renderWeekHistory();
@@ -1294,48 +1303,91 @@ function renderWeekHistory() {
   if (STATE.weekOffset <= 0) { el.innerHTML = ''; return; }
 
   let html = '<div class="history-title">📜 지난 주간 기록</div>';
-  let idx = 0;
+  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
+  const chipList = (arr, cls) => arr.length
+    ? arr.map(n => `<span class="ag-chip" style="color:var(${cls})">${n}</span>`).join('')
+    : '<span class="ag-empty">없음</span>';
+
+  // 오프셋별 주간 범위를 계산해서 월별로 묶음
+  const monthGroups = {}; // 'YYYY-MM' -> [{offset, range}]
+  const monthOrder = [];
   for (let offset = STATE.weekOffset - 1; offset >= 0; offset--) {
     const range = computeWeekRangeForOffset(offset);
-    const data = computeAgentDataForRange(range.start, range.end, offset);
-    const both = [], callOnly = [], salesOnly = [], none = [], exempt = [];
-    Object.entries(data).forEach(([name, d]) => {
-      if (d.dailyGoal === 0) exempt.push(name);
-      else if (d.realCallAchieved && d.salesAchieved) both.push(name);
-      else if (d.realCallAchieved) callOnly.push(name);
-      else if (d.salesAchieved) salesOnly.push(name);
-      else none.push(name);
+    const ym = `${range.start.getFullYear()}-${String(range.start.getMonth()+1).padStart(2,'0')}`;
+    if (!monthGroups[ym]) { monthGroups[ym] = []; monthOrder.push(ym); }
+    monthGroups[ym].push({ offset, range });
+  }
+
+  let idx = 0;
+  monthOrder.forEach((ym, mIdx) => {
+    const weeks = monthGroups[ym];
+    const monthLabel = `${Number(ym.split('-')[1])}월`;
+    let monthBoth = 0, monthCall = 0, monthSales = 0, monthNone = 0, monthExempt = 0;
+
+    let weeksHtml = '';
+    weeks.forEach(({ offset, range }) => {
+      const data = computeAgentDataForRange(range.start, range.end, offset);
+      const both = [], callOnly = [], salesOnly = [], none = [], exempt = [];
+      Object.entries(data).forEach(([name, d]) => {
+        if (d.dailyGoal === 0) exempt.push(name);
+        else if (d.realCallAchieved && d.salesAchieved) both.push(name);
+        else if (d.realCallAchieved) callOnly.push(name);
+        else if (d.salesAchieved) salesOnly.push(name);
+        else none.push(name);
+      });
+      monthBoth += both.length; monthCall += callOnly.length; monthSales += salesOnly.length;
+      monthNone += none.length; monthExempt += exempt.length;
+
+      weeksHtml += `
+        <div class="history-item">
+          <div class="history-row" onclick="toggleHistoryRow(${idx})">
+            <div class="history-period"><span class="history-arrow" id="histArrow${idx}">▸</span> ${fmt(range.start)}~${fmt(range.end)}</div>
+            <div class="history-counts">
+              <span style="color:var(--green)">🏆 ${both.length}</span>
+              <span style="color:var(--blue)">📞 ${callOnly.length}</span>
+              <span style="color:var(--purple)">💰 ${salesOnly.length}</span>
+              <span style="color:var(--red)">⚠️ ${none.length}</span>
+              <span style="color:var(--text-dim)">🎖️ ${exempt.length}</span>
+            </div>
+          </div>
+          <div class="history-detail" id="histDetail${idx}" style="display:none">
+            <div class="achiever-bar" style="margin-top:8px;">
+              <div class="achiever-group ag-both"><div class="ag-title">🏆 콜+이관 모두 달성 (${both.length}명)</div><div class="ag-names">${chipList(both,'--green')}</div></div>
+              <div class="achiever-group ag-call"><div class="ag-title">📞 콜 달성 (${callOnly.length}명)</div><div class="ag-names">${chipList(callOnly,'--blue')}</div></div>
+              <div class="achiever-group ag-sales"><div class="ag-title">💰 이관 달성 (${salesOnly.length}명)</div><div class="ag-names">${chipList(salesOnly,'--purple')}</div></div>
+              <div class="achiever-group ag-none"><div class="ag-title">⚠️ 미달성 (${none.length}명)</div><div class="ag-names">${chipList(none,'--red')}</div></div>
+              <div class="achiever-group ag-exempt"><div class="ag-title">🎖️ 목표 예외 (1억 이상 달성자) (${exempt.length}명)</div><div class="ag-names">${chipList(exempt,'--gold')}</div></div>
+            </div>
+          </div>
+        </div>`;
+      idx++;
     });
-    const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
-    const chipList = (arr, cls) => arr.length
-      ? arr.map(n => `<span class="ag-chip" style="color:var(${cls})">${n}</span>`).join('')
-      : '<span class="ag-empty">없음</span>';
 
     html += `
       <div class="history-item">
-        <div class="history-row" onclick="toggleHistoryRow(${idx})">
-          <div class="history-period"><span class="history-arrow" id="histArrow${idx}">▸</span> ${fmt(range.start)}~${fmt(range.end)}</div>
+        <div class="history-row" onclick="toggleHistoryMonth(${mIdx})" style="font-weight:700;">
+          <div class="history-period"><span class="history-arrow" id="histMonthArrow${mIdx}">▸</span> 📅 ${monthLabel} (${weeks.length}주)</div>
           <div class="history-counts">
-            <span style="color:var(--green)">🏆 ${both.length}</span>
-            <span style="color:var(--blue)">📞 ${callOnly.length}</span>
-            <span style="color:var(--purple)">💰 ${salesOnly.length}</span>
-            <span style="color:var(--red)">⚠️ ${none.length}</span>
-            <span style="color:var(--text-dim)">🎖️ ${exempt.length}</span>
+            <span style="color:var(--green)">🏆 ${monthBoth}</span>
+            <span style="color:var(--blue)">📞 ${monthCall}</span>
+            <span style="color:var(--purple)">💰 ${monthSales}</span>
+            <span style="color:var(--red)">⚠️ ${monthNone}</span>
+            <span style="color:var(--text-dim)">🎖️ ${monthExempt}</span>
           </div>
         </div>
-        <div class="history-detail" id="histDetail${idx}" style="display:none">
-          <div class="achiever-bar" style="margin-top:8px;">
-            <div class="achiever-group ag-both"><div class="ag-title">🏆 콜+이관 모두 달성 (${both.length}명)</div><div class="ag-names">${chipList(both,'--green')}</div></div>
-            <div class="achiever-group ag-call"><div class="ag-title">📞 콜 달성 (${callOnly.length}명)</div><div class="ag-names">${chipList(callOnly,'--blue')}</div></div>
-            <div class="achiever-group ag-sales"><div class="ag-title">💰 이관 달성 (${salesOnly.length}명)</div><div class="ag-names">${chipList(salesOnly,'--purple')}</div></div>
-            <div class="achiever-group ag-none"><div class="ag-title">⚠️ 미달성 (${none.length}명)</div><div class="ag-names">${chipList(none,'--red')}</div></div>
-            <div class="achiever-group ag-exempt"><div class="ag-title">🎖️ 목표 예외 (1억 이상 달성자) (${exempt.length}명)</div><div class="ag-names">${chipList(exempt,'--gold')}</div></div>
-          </div>
-        </div>
+        <div id="histMonth${mIdx}" style="display:none;padding-left:14px;">${weeksHtml}</div>
       </div>`;
-    idx++;
-  }
+  });
+
   el.innerHTML = html;
+}
+
+function toggleHistoryMonth(mIdx) {
+  const box = document.getElementById('histMonth' + mIdx);
+  const arrow = document.getElementById('histMonthArrow' + mIdx);
+  const isOpen = box.style.display !== 'none';
+  box.style.display = isOpen ? 'none' : 'block';
+  arrow.textContent = isOpen ? '▸' : '▾';
 }
 
 function toggleHistoryRow(idx) {
