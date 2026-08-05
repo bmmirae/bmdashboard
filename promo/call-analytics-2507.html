@@ -473,7 +473,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.6.1';
+const DASHBOARD_VERSION = 'v7.7.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1662,7 +1662,7 @@ function renderMissionSummaryTable() {
     const d = agentData[name];
     if (!d) return null;
     const salesCount = weekSalesRows.filter(r => r['사원명'] === name).length;
-    const prospect = STATE.prospectMap[name] || { weekNew: 0 };
+    const prospect = STATE.prospectMap[name] || { weekNew: 0, weekPromoNew: 0 };
     return {
       name,
       team: s['소속팀'],
@@ -1674,7 +1674,8 @@ function renderMissionSummaryTable() {
       weekSalesGoal: d.weekSalesGoal,
       monthlyTotal: d.monthlyTotal,
       salesCount,
-      prospectTotal: prospect.weekNew || 0
+      prospectTotal: prospect.weekNew || 0,
+      prospectWeekPromoNew: prospect.weekPromoNew || 0
     };
   }).filter(Boolean);
 
@@ -1703,15 +1704,37 @@ function renderMissionSummaryTable() {
   const COLS = '36px 66px 64px 1.3fr 84px 84px 100px';
 
   const renderMissionCell = (row) => {
-    const pct = row.callPct === null ? 0 : Math.min(row.callPct, 100);
-    const fillCls = row.callPct === null ? '' : (row.callPct >= 100 ? 'fill-green' : row.callPct >= 70 ? 'fill-yellow' : 'fill-red');
-    const callLabel = row.callPct === null
-      ? `${Math.round(row.totalMin)}분 (목표 미설정)`
-      : `${Math.round(row.totalMin)}/${Math.round(row.weekGoalMin)}분 (${Math.round(row.callPct)}%)`;
+    let callLabel, barHtml;
+    if (row.callPct === null) {
+      callLabel = `${Math.round(row.totalMin)}분 (목표 미설정)`;
+      barHtml = '';
+    } else {
+      const benefitCap = STATE.promoBenefit.weeklyCap;
+      const rawBenefitMin = (row.prospectWeekPromoNew || 0) * (STATE.promoBenefit.perCase || 0);
+      const benefitMin = benefitCap === null ? rawBenefitMin : Math.min(rawBenefitMin, benefitCap);
+      const effectiveMin = row.totalMin + benefitMin;
+      const effectivePct = row.weekGoalMin > 0 ? (effectiveMin / row.weekGoalMin * 100) : row.callPct;
+
+      const actualWidthPct = Math.min(row.callPct, 100);
+      const totalWidthPct = Math.min(effectivePct, 100);
+      const benefitWidthPct = Math.max(0, totalWidthPct - actualWidthPct);
+      const icon = effectivePct >= 100 ? ' ✅' : '';
+
+      callLabel = `${Math.round(row.totalMin)}/${Math.round(row.weekGoalMin)}분 (${Math.round(effectivePct)}%${icon})`;
+      if (effectivePct >= 100) {
+        barHtml = `<div class="progress-bar" style="height:5px;"><div class="progress-fill fill-green" style="width:100%"></div></div>`;
+      } else {
+        const actualCls = effectivePct >= 70 ? 'fill-yellow' : 'fill-red';
+        barHtml = `<div class="progress-bar" style="height:5px;display:flex;">
+          <div class="progress-fill ${actualCls}" style="width:${actualWidthPct}%"></div>
+          <div class="progress-fill" style="width:${benefitWidthPct}%;background:var(--blue);"></div>
+        </div>`;
+      }
+    }
     const weekHigh = row.weekSalesAmt >= row.weekSalesGoal && row.weekSalesGoal > 0;
     const monthHigh = row.monthlyTotal >= MONTHLY_EXEMPT_AMOUNT;
     return {
-      callLabel, pct, fillCls,
+      callLabel, barHtml,
       weekCellStyle: weekHigh ? 'background:var(--gold-bg);color:var(--gold);font-weight:800;' : '',
       monthCellStyle: monthHigh ? 'background:var(--gold-bg);color:var(--gold);font-weight:800;' : ''
     };
@@ -1736,7 +1759,7 @@ function renderMissionSummaryTable() {
           <div class="mission-name">${row.name}</div>
           <div class="mission-call">
             <div class="mission-call-label">${c.callLabel}</div>
-            ${row.callPct === null ? '' : `<div class="progress-bar" style="height:5px;"><div class="progress-fill ${c.fillCls}" style="width:${c.pct}%"></div></div>`}
+            ${c.barHtml}
           </div>
           <div class="mission-sales-cell" style="${c.weekCellStyle}">${formatWon(row.weekSalesAmt)}</div>
           <div class="mission-sales-cell" style="${c.monthCellStyle}">${formatWon(row.monthlyTotal)}</div>
@@ -1762,7 +1785,7 @@ function renderMissionSummaryTable() {
         <div class="mission-name">${row.name}</div>
         <div class="mission-call">
           <div class="mission-call-label">${c.callLabel}</div>
-          ${row.callPct === null ? '' : `<div class="progress-bar" style="height:5px;"><div class="progress-fill ${c.fillCls}" style="width:${c.pct}%"></div></div>`}
+          ${c.barHtml}
         </div>
         <div class="mission-sales-cell" style="${c.weekCellStyle}">${formatWon(row.weekSalesAmt)}</div>
         <div class="mission-sales-cell" style="${c.monthCellStyle}">${formatWon(row.monthlyTotal)}</div>
