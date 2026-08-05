@@ -473,7 +473,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.7.0';
+const DASHBOARD_VERSION = 'v7.7.1';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1720,7 +1720,8 @@ function renderMissionSummaryTable() {
       const benefitWidthPct = Math.max(0, totalWidthPct - actualWidthPct);
       const icon = effectivePct >= 100 ? ' ✅' : '';
 
-      callLabel = `${Math.round(row.totalMin)}/${Math.round(row.weekGoalMin)}분 (${Math.round(effectivePct)}%${icon})`;
+      const benefitNote = benefitMin > 0 ? ` (P -${Math.round(benefitMin)}분)` : '';
+      callLabel = `${Math.round(row.totalMin)}/${Math.round(row.weekGoalMin)}분 (${Math.round(effectivePct)}%${icon})${benefitNote}`;
       if (effectivePct >= 100) {
         barHtml = `<div class="progress-bar" style="height:5px;"><div class="progress-fill fill-green" style="width:100%"></div></div>`;
       } else {
