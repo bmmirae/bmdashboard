@@ -358,17 +358,28 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
     </div>
 
     <div class="form-section">
-      <div class="form-title">💰 이관매출 입력</div>
+      <div class="form-title">💰 이관매출 / 피이관매출 입력</div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">이관·피이관 중 하나만 입력해도 저장됩니다. 피이관은 다른 사람/팀으로 빠져나간 건입니다.</div>
       <div class="form-row">
         <input type="date" id="salesDate">
         <select id="salesTeamFilter" onchange="filterAgentSelect('sales')"></select>
         <select id="salesAgent"></select>
+      </div>
+      <div class="form-row" style="margin-top:8px;">
+        <span style="font-size:12px;color:var(--green);font-weight:700;min-width:44px;">이관</span>
         <input type="text" id="salesCompany" placeholder="업체명">
         <input type="number" id="salesAmount" placeholder="금액 (원)" step="10000">
-        <button class="save-btn" onclick="saveSales()">저장</button>
       </div>
+      <div class="form-row" style="margin-top:8px;">
+        <span style="font-size:12px;color:var(--red);font-weight:700;min-width:44px;">피이관</span>
+        <input type="text" id="reverseSalesCompany" placeholder="업체명">
+        <input type="number" id="reverseSalesAmount" placeholder="금액 (원)" step="10000">
+      </div>
+      <button class="save-btn" style="margin-top:10px;" onclick="saveSales()">저장</button>
       <div id="salesStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
       <div id="salesList" style="margin-top:12px;"></div>
+      <div class="form-title" style="margin-top:16px;font-size:13px;">💸 피이관매출 목록</div>
+      <div id="reverseSalesList" style="margin-top:8px;"></div>
     </div>
 
     <div class="form-section">
@@ -473,7 +484,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.7.1';
+const DASHBOARD_VERSION = 'v7.8.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -526,6 +537,7 @@ let STATE = {
   capUpWeekOffset: 0,
   trainingHistory: [],
   goalHistory: [],
+  reverseSales: [],
   trainingWeekOffset: 0,
   promoBenefit: { perCase: 10, weeklyCap: null },
   prospectMap: {},
@@ -706,6 +718,7 @@ async function changeWeek(delta) {
   renderDashboard();
   renderAttendanceList();
   renderSalesList();
+  try { renderReverseSalesList(); } catch (e) {}
   renderPenaltyList();
   try { renderRevenueCapUpList(); } catch (e) {}
   try { renderMissionSummaryTable(); } catch (e) {}
@@ -745,6 +758,7 @@ async function loadAllData() {
     STATE.revenueCapUp = data.revenueCapUp || [];
     STATE.trainingHistory = data.trainingHistory || [];
     STATE.goalHistory = data.goalHistory || [];
+    STATE.reverseSales = data.reverseSales || [];
 
     document.getElementById('lastSync').textContent = '동기화: ' + new Date().toLocaleTimeString('ko');
     if (data.lastUpload) {
@@ -757,6 +771,7 @@ async function loadAllData() {
     try { renderDashboard(); } catch (e) { console.error('renderDashboard 오류:', e); }
     try { renderAttendanceList(); } catch (e) { console.error('renderAttendanceList 오류:', e); }
     try { renderSalesList(); } catch (e) { console.error('renderSalesList 오류:', e); }
+    try { renderReverseSalesList(); } catch (e) { console.error('renderReverseSalesList 오류:', e); }
     try { renderPenaltyList(); } catch (e) { console.error('renderPenaltyList 오류:', e); }
     try { renderRevenueCapUpList(); } catch (e) { console.error('renderRevenueCapUpList 오류:', e); }
     try { renderTrainingHistoryList(); } catch (e) { console.error('renderTrainingHistoryList 오류:', e); }
@@ -1021,6 +1036,10 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     const d = String(s['날짜']).substring(0, 10);
     return d >= monthStartStr && d <= monthEndStr;
   });
+  const monthReverseSales = STATE.reverseSales.filter(s => {
+    const d = String(s['날짜']).substring(0, 10);
+    return d >= monthStartStr && d <= monthEndStr;
+  });
 
   // 지난주 주간 이관목표(200만) 달성 여부 + 매출캡업 체크 여부 맵 — 콜미션 면제 판단용 (재귀 1단계로 제한)
   let prevWeekSalesAchievedMap = {};
@@ -1078,7 +1097,10 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
 
     const myMonthSales = monthSales.filter(s => s['사원명'] === name);
     const monthlyTotal = myMonthSales.reduce((sum, s) => sum + (Number(s['금액']) || 0), 0);
-    const monthlyExempt = monthlyTotal >= MONTHLY_EXEMPT_AMOUNT;
+    const myMonthReverseSales = monthReverseSales.filter(s => s['사원명'] === name);
+    const monthlyReverseTotal = myMonthReverseSales.reduce((sum, s) => sum + (Number(s['금액']) || 0), 0);
+    // 월간이관이 300만원을 채워도, 월간피이관이 더 크면(순유출) 달성으로 인정하지 않음
+    const monthlyExempt = monthlyTotal >= MONTHLY_EXEMPT_AMOUNT && monthlyTotal >= monthlyReverseTotal;
 
     const hasCallGoal = dailyGoal > 0 && weekGoalMin > 0;
     const callPct = hasCallGoal ? (totalMin / weekGoalMin * 100) : -1;
@@ -1104,7 +1126,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
 
     agentData[name] = {
       dailyGoal, weekGoalMin, totalMin, totalSec, callCount, outCount,
-      weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt, penaltyMin, penaltyRows,
+      weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt, monthlyReverseTotal, penaltyMin, penaltyRows,
       weekSalesCount: mySales.length, monthSalesCount: myMonthSales.length,
       hasCallGoal, callPct, salesPct, callGoalExempt, capUpOverride, exemptViaCapUp,
       callAchieved, realCallAchieved,
@@ -1576,17 +1598,20 @@ function renderPersonCard(name, d) {
         <div class="metric-label"><span>💰 이관매출 (주 ${d.weekSalesCount}건 / 월 ${d.monthSalesCount}건)</span><span class="pct" style="color:var(--purple)">면제 ✅</span></div>
         <div class="progress-bar"><div class="progress-fill fill-purple" style="width:${pct}%"></div></div>
         <div class="metric-detail sales-amount">이번달 누적 <strong>${formatWon(d.monthlyTotal)}</strong> (월 300만원 달성)</div>
+        ${d.monthlyReverseTotal > 0 ? `<div class="metric-detail" style="color:var(--red);">피이관 누적 <strong>${formatWon(d.monthlyReverseTotal)}</strong></div>` : ''}
       </div>`;
   } else {
     const sPct = Math.min(d.salesPct, 100);
     const sCls = d.salesPct >= 100 ? 'fill-green' : d.salesPct >= 70 ? 'fill-yellow' : 'fill-red';
     const sIcon = d.salesPct >= 100 ? ' ✅' : '';
+    const reverseBlocked = d.monthlyTotal >= MONTHLY_EXEMPT_AMOUNT && d.monthlyReverseTotal > d.monthlyTotal;
     salesBar = `
       <div class="metric-row">
         <div class="metric-label"><span>💰 이관매출 (주 ${d.weekSalesCount}건 / 월 ${d.monthSalesCount}건)</span><span class="pct">${Math.round(d.salesPct)}%${sIcon}</span></div>
         <div class="progress-bar"><div class="progress-fill ${sCls}" style="width:${sPct}%"></div></div>
         <div class="metric-detail sales-amount"><strong>${formatWon(d.totalSalesAmt)}</strong> / ${formatWon(d.weekSalesGoal)}</div>
         <div class="metric-detail">월간 누적 <strong style="color:var(--text)">${formatWon(d.monthlyTotal)}</strong></div>
+        ${d.monthlyReverseTotal > 0 ? `<div class="metric-detail" style="color:var(--red);">피이관 누적 <strong>${formatWon(d.monthlyReverseTotal)}</strong>${reverseBlocked ? ' — 피이관이 더 커서 월 300만 달성 무효' : ''}</div>` : ''}
       </div>`;
   }
 
@@ -2351,23 +2376,44 @@ async function saveSales() {
   const date = document.getElementById('salesDate').value;
   const agent = document.getElementById('salesAgent').value;
   const company = document.getElementById('salesCompany').value.trim();
-  const amount = Number(document.getElementById('salesAmount').value);
-  if (!date || !agent || !amount) return;
-
+  const amount = Number(document.getElementById('salesAmount').value) || 0;
+  const reverseCompany = document.getElementById('reverseSalesCompany').value.trim();
+  const reverseAmount = Number(document.getElementById('reverseSalesAmount').value) || 0;
   const status = document.getElementById('salesStatus');
+
+  if (!date || !agent) return;
+  if (amount <= 0 && reverseAmount <= 0) { status.textContent = '❌ 이관 또는 피이관 금액을 입력해주세요'; return; }
+
   status.textContent = '저장 중...';
   try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'saveSales', data: [{ '날짜': date, '사원명': agent, '금액': amount, '업체명': company }], password: getStoredPassword() })
-    });
-    const result = await res.json();
-    if (result.status !== 'ok') throw new Error(result.message);
-    status.textContent = `✅ ${agent} ${company ? company+' ' : ''}${formatWon(amount)} 저장 완료`;
+    const tasks = [];
+    if (amount > 0) {
+      tasks.push(fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'saveSales', data: [{ '날짜': date, '사원명': agent, '금액': amount, '업체명': company }], password: getStoredPassword() })
+      }));
+    }
+    if (reverseAmount > 0) {
+      tasks.push(fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ action: 'saveReverseSales', data: [{ '날짜': date, '사원명': agent, '금액': reverseAmount, '업체명': reverseCompany }], password: getStoredPassword() })
+      }));
+    }
+    const results = await Promise.all(tasks.map(t => t.then(r => r.json())));
+    const failed = results.find(r => r.status !== 'ok');
+    if (failed) throw new Error(failed.message);
+
+    const parts = [];
+    if (amount > 0) parts.push(`이관 ${formatWon(amount)}`);
+    if (reverseAmount > 0) parts.push(`피이관 ${formatWon(reverseAmount)}`);
+    status.textContent = `✅ ${agent} ${parts.join(' / ')} 저장 완료`;
     document.getElementById('salesAmount').value = '';
     document.getElementById('salesCompany').value = '';
-    showToast('이관매출 저장 완료');
+    document.getElementById('reverseSalesAmount').value = '';
+    document.getElementById('reverseSalesCompany').value = '';
+    showToast('저장 완료');
     await loadAllData();
   } catch (err) {
     status.textContent = '❌ 실패: ' + err.message;
@@ -2447,6 +2493,85 @@ async function deleteSales(row) {
     const result = await res.json();
     if (result.status !== 'ok') throw new Error(result.message);
     showToast('이관매출 삭제 완료');
+    await loadAllData();
+  } catch (err) {
+    alert('삭제 실패: ' + err.message);
+  }
+}
+
+function renderReverseSalesList() {
+  const el = document.getElementById('reverseSalesList');
+  if (!el) return;
+  const dateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const wsStr = dateStr(STATE.weekStart), weStr = dateStr(STATE.weekEnd);
+  const weekReverseSales = STATE.reverseSales.filter(s => {
+    const d = String(s['날짜']).substring(0,10);
+    return d >= wsStr && d <= weStr;
+  });
+  if (weekReverseSales.length === 0) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--text-dim)">이번 주 피이관매출 기록 없음</div>';
+    return;
+  }
+  el.innerHTML = weekReverseSales.map(s => `
+    <div class="record-row">
+      <span class="record-date">${String(s['날짜']).substring(0,10)}</span>
+      <span class="record-name">${s['사원명']}</span>
+      <input type="text" value="${s['업체명']||''}" placeholder="업체명" onchange="updateReverseSalesCompany(${s['_row']}, this.value)">
+      <input type="text" inputmode="numeric" value="${Number(s['금액']).toLocaleString()}" onchange="handleReverseSalesAmountChange(${s['_row']}, this)">
+      <button class="roster-del" onclick="deleteReverseSales(${s['_row']})" title="삭제">✕</button>
+    </div>`
+  ).join('');
+}
+
+async function updateReverseSalesCompany(row, value) {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'updateReverseSalesCompany', row, value, password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    showToast('업체명 수정 완료');
+    await loadAllData();
+  } catch (err) {
+    alert('수정 실패: ' + err.message);
+  }
+}
+
+function handleReverseSalesAmountChange(row, inputEl) {
+  const num = Number(inputEl.value.replace(/,/g, '')) || 0;
+  inputEl.value = num.toLocaleString();
+  updateReverseSalesAmount(row, num);
+}
+
+async function updateReverseSalesAmount(row, value) {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'updateReverseSalesAmount', row, value, password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    showToast('피이관매출 수정 완료');
+    await loadAllData();
+  } catch (err) {
+    alert('수정 실패: ' + err.message);
+  }
+}
+
+async function deleteReverseSales(row) {
+  if (!confirm('이 피이관매출 기록을 삭제하시겠습니까?')) return;
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'deleteReverseSales', row, password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    showToast('피이관매출 삭제 완료');
     await loadAllData();
   } catch (err) {
     alert('삭제 실패: ' + err.message);
