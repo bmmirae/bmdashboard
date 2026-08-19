@@ -222,7 +222,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 .roster-del:hover { opacity:.8; }
 
 /* ── 주간미션요약 표 ── */
-#missionSummaryCapture { max-width:820px; margin:0 auto; }
+#missionSummaryCapture { max-width:900px; margin:0 auto; }
 .mission-row { display:grid; gap:6px; align-items:center; padding:7px 8px; border-bottom:1px solid var(--border); font-size:12px; }
 .mission-row.head { font-weight:700; color:var(--text-dim); font-size:11px; border-bottom:2px solid var(--border); }
 .mission-rank { font-weight:700; color:var(--text-dim); }
@@ -484,7 +484,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.8.0';
+const DASHBOARD_VERSION = 'v7.9.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1698,6 +1698,8 @@ function renderMissionSummaryTable() {
       weekSalesAmt: d.totalSalesAmt,
       weekSalesGoal: d.weekSalesGoal,
       monthlyTotal: d.monthlyTotal,
+      monthlyReverseTotal: d.monthlyReverseTotal,
+      monthlyExempt: d.monthlyExempt,
       salesCount,
       prospectTotal: prospect.weekNew || 0,
       prospectWeekPromoNew: prospect.weekPromoNew || 0
@@ -1713,10 +1715,10 @@ function renderMissionSummaryTable() {
     });
   const rankedList = list.filter(r => r.dailyGoal > 0);
 
-  // 월 300만원 이상 달성자: 월간이관 내림차순 (1위부터) → 나머지: 월간이관 → 통화률(%) → 통화분(分) 순으로 이어서
-  const monthlyAchievers = rankedList.filter(r => r.monthlyTotal >= MONTHLY_EXEMPT_AMOUNT)
+  // 월 300만원 이상 "실질" 달성자(피이관 차감 후에도 유효한 경우만): 월간이관 내림차순 (1위부터) → 나머지 이어서
+  const monthlyAchievers = rankedList.filter(r => r.monthlyExempt)
     .sort((a, b) => b.monthlyTotal - a.monthlyTotal);
-  const others = rankedList.filter(r => r.monthlyTotal < MONTHLY_EXEMPT_AMOUNT)
+  const others = rankedList.filter(r => !r.monthlyExempt)
     .sort((a, b) => {
       if (b.monthlyTotal !== a.monthlyTotal) return b.monthlyTotal - a.monthlyTotal;
       const aPct = a.callPct === null ? -1 : a.callPct;
@@ -1726,7 +1728,7 @@ function renderMissionSummaryTable() {
     });
   const combinedRanked = [...monthlyAchievers, ...others];
 
-  const COLS = '36px 66px 64px 1.3fr 84px 84px 100px';
+  const COLS = '36px 66px 64px 1.3fr 84px 84px 84px 100px';
 
   const renderMissionCell = (row) => {
     let callLabel, barHtml;
@@ -1759,10 +1761,14 @@ function renderMissionSummaryTable() {
     }
     const weekHigh = row.weekSalesAmt >= row.weekSalesGoal && row.weekSalesGoal > 0;
     const monthHigh = row.monthlyTotal >= MONTHLY_EXEMPT_AMOUNT;
+    const monthlyBenefit = row.monthlyTotal - (row.monthlyReverseTotal || 0);
+    const benefitNegative = monthlyBenefit < 0;
     return {
       callLabel, barHtml,
       weekCellStyle: weekHigh ? 'background:var(--gold-bg);color:var(--gold);font-weight:800;' : '',
-      monthCellStyle: monthHigh ? 'background:var(--gold-bg);color:var(--gold);font-weight:800;' : ''
+      monthCellStyle: monthHigh ? 'background:var(--gold-bg);color:var(--gold);font-weight:800;' : '',
+      monthlyBenefit,
+      benefitCellStyle: benefitNegative ? 'background:var(--red-bg);color:var(--red);font-weight:800;' : ''
     };
   };
 
@@ -1774,7 +1780,7 @@ function renderMissionSummaryTable() {
       <div style="border:2px solid var(--gold); border-radius:10px; padding:10px 8px; margin-bottom:14px; background:var(--gold-bg);">
         <div style="font-size:12px;font-weight:800;color:var(--gold);margin-bottom:6px;padding:0 4px;">✨ 1억 이상 달성자</div>
         <div class="mission-row head" style="grid-template-columns:${COLS};">
-          <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div><div>주간 이관/가망</div>
+          <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div><div>월간베네핏</div><div>주간 이관/가망</div>
         </div>`;
     exemptList.forEach(row => {
       const c = renderMissionCell(row);
@@ -1789,6 +1795,7 @@ function renderMissionSummaryTable() {
           </div>
           <div class="mission-sales-cell" style="${c.weekCellStyle}">${formatWon(row.weekSalesAmt)}</div>
           <div class="mission-sales-cell" style="${c.monthCellStyle}">${formatWon(row.monthlyTotal)}</div>
+          <div class="mission-sales-cell" style="${c.benefitCellStyle}">${c.monthlyBenefit < 0 ? '-' : ''}${formatWon(Math.abs(c.monthlyBenefit))}</div>
           <div class="mission-sales-cell">${row.salesCount}건 / ${row.prospectTotal}건</div>
         </div>`;
     });
@@ -1798,7 +1805,7 @@ function renderMissionSummaryTable() {
   // ── 일반 랭킹 표 ──
   html += `
     <div class="mission-row head" style="grid-template-columns:${COLS};">
-      <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div><div>주간 이관/가망</div>
+      <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div><div>월간베네핏</div><div>주간 이관/가망</div>
     </div>`;
 
   combinedRanked.forEach((row, idx) => {
@@ -1815,6 +1822,7 @@ function renderMissionSummaryTable() {
         </div>
         <div class="mission-sales-cell" style="${c.weekCellStyle}">${formatWon(row.weekSalesAmt)}</div>
         <div class="mission-sales-cell" style="${c.monthCellStyle}">${formatWon(row.monthlyTotal)}</div>
+          <div class="mission-sales-cell" style="${c.benefitCellStyle}">${c.monthlyBenefit < 0 ? '-' : ''}${formatWon(Math.abs(c.monthlyBenefit))}</div>
         <div class="mission-sales-cell">${row.salesCount}건 / ${row.prospectTotal}건</div>
       </div>`;
   });
