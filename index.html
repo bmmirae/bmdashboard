@@ -256,8 +256,10 @@ tr:hover td{background:var(--surface2);}
           <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;" id="navRowTop"></div>
           <div id="navDivider" style="display:none;height:1px;background:var(--border);margin:8px 0;"></div>
           <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;" id="navRowBottom"></div>
-          <div style="height:1px;background:var(--border);margin:10px 0;"></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:6px;">
+        </div>
+      </div>
+      <div id="stickyDateBar" style="display:none;position:sticky;z-index:90;background:var(--surface);border-radius:12px;box-shadow:var(--card-shadow);padding:10px 16px;margin-bottom:14px;">
+          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
             <span class="nav-lbl">📅</span>
             <select id="selYear" onchange="applyYearMonth()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;"><option value="">연도</option></select>
             <select id="selMonth" onchange="applyYearMonth()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
@@ -279,7 +281,6 @@ tr:hover td{background:var(--surface2);}
             <button class="nbtn" onclick="resetDateFilter()" style="font-size:11px;padding:4px 10px;">전체 기간</button>
             <span id="dateFilterInfo" style="font-size:11px;color:var(--text-sub);"></span>
           </div>
-        </div>
       </div>
       <div class="abar no-cap">
         <button class="rbtn" onclick="refreshData()">🔄 새로고침</button>
@@ -521,6 +522,7 @@ function showDash(){
   document.getElementById('userChip').textContent=`${ri.name} ${ri.title||''}${ri.joinDate?` (${ri.joinDate.slice(0,7)})`:''}`; 
   document.getElementById('headerScope').textContent=(ri.scope||'내 가망건')+' | '+new Date().toLocaleString('ko-KR');
   initYearSelect();
+  setTimeout(updateStickyBarTop,50);
 }
 
 // ── 네비게이션 ─────────────────────────────────
@@ -528,22 +530,22 @@ function buildNav(stats){
   const role=SESSION.role;const buMap={},teamMap={};
   (stats.buStats||[]).forEach(b=>buMap[b.bu]=b);(stats.teamStats||[]).forEach(t=>teamMap[t.team]=t);
   const topEl=document.getElementById('navRowTop');const botEl=document.getElementById('navRowBottom');
-  const divEl=document.getElementById('navDivider');const navWrap=document.getElementById('navWrap');
+  const divEl=document.getElementById('navDivider');const navWrap=document.getElementById('navWrap');const stickyBar=document.getElementById('stickyDateBar');
   let topHtml='',botHtml='';
   if(role==='center'||role==='관리자모드'||role==='master'){
-    navWrap.style.display='block';
+    navWrap.style.display='block';stickyBar.style.display='block';
     topHtml=`<span class="nav-lbl">📌</span><button class="nbtn ${CURRENT_FILTER==='all'?'na':''}" onclick="filterView('all')">🏆 전체</button>`;
     BU_ORDER.forEach(bu=>{if(!ORG_MAP[bu])return;const total=buMap[bu]?.total||0;const isBm2=bu==='BM2본부';topHtml+=`<button class="nbtn ${CURRENT_FILTER===bu?(isBm2?'na-bm2':'na-bm3'):''}" onclick="filterView('${bu}')">${isBm2?'🔵':'🟣'} ${bu}(${total})</button>`;TEAM_ORDER.filter(t=>t.startsWith(isBm2?'BM2':'BM3')).forEach(team=>{const tt=teamMap[team];if(!tt)return;topHtml+=`<button class="nbtn ${CURRENT_FILTER===team?'na-team':''}" onclick="filterView('${team}')">👥 ${team}(${tt.total})</button>`;});});
     botHtml=buildMemberNav(CURRENT_FILTER);
   }else if(role==='bm2'||role==='bm3'){
-    navWrap.style.display='block';
+    navWrap.style.display='block';stickyBar.style.display='block';
     const myBU=role==='bm2'?'BM2본부':'BM3본부';
     const myTeams=TEAM_ORDER.filter(t=>t.startsWith(role==='bm2'?'BM2':'BM3'));
     topHtml=`<span class="nav-lbl">📌</span><button class="nbtn ${CURRENT_FILTER==='all'?'na':''}" onclick="filterView('all')">전체</button>`;
     myTeams.forEach(team=>{const tt=teamMap[team];if(!tt)return;topHtml+=`<button class="nbtn ${CURRENT_FILTER===team?'na-team':''}" onclick="filterView('${team}')">👥 ${team}(${tt.total})</button>`;});
     botHtml=buildMemberNav(CURRENT_FILTER,myBU);
   }else if(['bm2_2','bm2_3','bm3_2'].includes(role)){
-    navWrap.style.display='block';
+    navWrap.style.display='block';stickyBar.style.display='block';
     const teamName=role==='bm2_2'?'BM2-2팀':role==='bm2_3'?'BM2-3팀':'BM3-2팀';
     const bu=role.startsWith('bm2')?'BM2본부':'BM3본부';
     topHtml=`<span class="nav-lbl">📌</span><button class="nbtn ${CURRENT_FILTER==='all'?'na':''}" onclick="filterView('all')">👥 ${teamName} 전체</button>`;
@@ -553,7 +555,7 @@ function buildNav(stats){
       const sheetBtn=sheetId?`<a href="https://docs.google.com/spreadsheets/d/${sheetId}" target="_blank" title="${name} 시트" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-size:12px;text-decoration:none;margin-left:2px;vertical-align:middle;" onclick="event.stopPropagation()">📊</a>`:'';
       botHtml+=`<span style="display:inline-flex;align-items:center;gap:2px;"><button class="nbtn ${CURRENT_FILTER===name?'na-member':''}" onclick="filterView('${name}')">👤 ${name}</button>${sheetBtn}</span>`;
     });
-  }else{navWrap.style.display='none';return;}
+  }else{navWrap.style.display='none';stickyBar.style.display='none';return;}
   topEl.innerHTML=topHtml;botEl.innerHTML=botHtml;divEl.style.display=botHtml?'block':'none';
 }
 
@@ -1153,9 +1155,16 @@ function showAddMsg(msg,type){const el=document.getElementById('addMsg');el.text
 document.addEventListener('click',e=>{const modal=document.getElementById('memberMgmtModal');if(modal&&e.target===modal)closeMemberMgmt();});
 
 // ── 세션 복구 ─────────────────────────────────
+function updateStickyBarTop(){
+  const header=document.querySelector('.header');
+  const bar=document.getElementById('stickyDateBar');
+  if(header&&bar) bar.style.top=header.offsetHeight+'px';
+}
+window.addEventListener('resize',updateStickyBarTop);
 window.addEventListener('DOMContentLoaded',function(){
   const saved=sessionStorage.getItem('dash_session');
   if(saved){try{SESSION=JSON.parse(saved);showDash();loadData();}catch(e){sessionStorage.removeItem('dash_session');}}
+  updateStickyBarTop();
   document.addEventListener('mouseover',function(e){const tip=e.target.closest('.recall-tip');if(!tip)return;const content=tip.querySelector('.tip-content');if(!content)return;const rect=tip.getBoundingClientRect();if(rect.top>160){content.style.top=(rect.top-10)+'px';content.style.bottom='auto';content.style.transform='translateY(-100%) translateX(-50%)';}else{content.style.top=(rect.bottom+8)+'px';content.style.bottom='auto';content.style.transform='translateX(-50%)';}let left=rect.left+rect.width/2;const tipW=220;if(left-tipW/2<8)left=tipW/2+8;if(left+tipW/2>window.innerWidth-8)left=window.innerWidth-tipW/2-8;content.style.left=left+'px';});
 });
 
