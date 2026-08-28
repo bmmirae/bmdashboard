@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.31</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.32</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -234,7 +234,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.31</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.32</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -422,7 +422,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v532';
+const LS_VER='v533';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -461,10 +461,10 @@ async function loadData(forceRefresh=false){
   if(!forceRefresh){
     const cached=lsLoad(SESSION.role);
     if(cached&&cached.success){
-      _applyData(cached);loadSalesData(SALES_MONTH||'');loading(false);
+      _applyData(cached);loading(false);
       toast('⚡ 빠른 로드 완료 (백그라운드 갱신 중...)');
       callServer('serverData',{role:SESSION.role,token:SESSION.token,forceRefresh:false})
-        .then(res=>{if(!res.success)return;lsSave(SESSION.role,res);if((res.rows||[]).length!==CURRENT_ROWS.length){_applyData(res);loadSalesData(SALES_MONTH||'');toast('✅ 데이터 갱신 완료');}})
+        .then(res=>{if(!res.success)return;lsSave(SESSION.role,res);if((res.rows||[]).length!==CURRENT_ROWS.length){_applyData(res);toast('✅ 데이터 갱신 완료');}})
         .catch(()=>{});
       return;
     }
@@ -473,7 +473,7 @@ async function loadData(forceRefresh=false){
   try{
     const res=await callServer('serverData',{role:SESSION.role,token:SESSION.token,forceRefresh});
     if(!res.success){if(res.error.includes('세션'))doLogout();throw new Error(res.error);}
-    lsSave(SESSION.role,res);_applyData(res);loadSalesData(SALES_MONTH||'');
+    lsSave(SESSION.role,res);_applyData(res);
     toast('✅ 데이터 로드 완료!'+(res._cached?' (서버캐시)':''));
     setTimeout(prefetchPerformance,3000);
   }catch(e){toast('❌ '+e.message,'err');}
@@ -711,12 +711,11 @@ function renderDash(stats,roleInfo,filteredRows){
   document.getElementById('headerScope').textContent=(roleInfo.scope||'-')+' | '+new Date().toLocaleString('ko-KR');
   let html='';
   html+=renderMemberCompareCharts();
-  html+=renderSalesSection();
+  html+=`<div class="g2"><div class="sec"><div class="sec-hd sh-b">🎯 가망도별 현황 <span style="font-size:11px;font-weight:400;color:var(--text-sub);">(${getFilterLabel()})</span></div>${renderGradeSection(stats)}</div><div class="sec"><div class="sec-hd sh-o">💰 예산 금액대별 분포 <span style="font-size:11px;font-weight:400;color:var(--text-sub);">(${getFilterLabel()})</span></div>${renderBudgetSection(stats)}</div></div>`;
   html+=renderKPI(stats);
   html+=renderNewProspectSection(rows);
   html+=renderRecentTransfers(stats);
   html+=renderTodayRecall(stats);
-  html+=`<div class="g2"><div class="sec"><div class="sec-hd sh-b">🎯 가망도별 현황</div>${renderGradeSection(stats)}</div><div class="sec"><div class="sec-hd sh-o">💰 예산 금액대별 분포</div>${renderBudgetSection(stats)}</div></div>`;
   html+=renderMemberStat(stats);
   html+=renderContactStat(stats);
   html+=renderRecentGradeChanges();
@@ -929,6 +928,12 @@ function applyNPPromoFilter(){
   });
 }
 
+function getFilterLabel(){
+  if(CURRENT_FILTER==='all') return '전체';
+  const allNames=Object.values(ORG_MAP).flatMap(bu=>Object.values(bu).flat());
+  if(allNames.includes(CURRENT_FILTER)) return CURRENT_FILTER;
+  return CURRENT_FILTER;
+}
 function renderKPI(s){const gm=s.gradeMap;const done=(gm['이관완료']||0);const open=(gm['권한오픈']||0)+(gm['권한+브리핑']||0);const active=(gm['단기']||0)+(gm['장기']||0);return`<div class="g6" style="margin-bottom:14px;"><div class="card"><div class="card-lbl">📋 활성 가망건</div><div class="card-val cv-blue">${s.total}건</div><div class="card-sub">전체 DB ${s.totalAll||s.total}건 중</div></div><div class="card"><div class="card-lbl">✅ 이관완료</div><div class="card-val cv-green">${done}건</div><div class="card-sub">${s.total>0?(done/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-g" style="width:${s.total>0?done/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">🔓 권한오픈+브리핑</div><div class="card-val cv-purple">${open}건</div><div class="card-sub">${s.total>0?(open/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-p" style="width:${s.total>0?open/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">📅 단기+장기</div><div class="card-val cv-orange">${active}건</div><div class="card-sub">${s.total>0?(active/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-o" style="width:${s.total>0?active/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">📞 재콜 현황</div><div class="card-val cv-red">${s.todayRecalls.length}건</div><div class="card-sub">오늘 · 놓친 ${s.missedRecalls?.length||0}건</div></div><div class="card"><div class="card-lbl">💰 예산 합계</div><div class="card-val cv-purple">${fmtB(s.totalBudget)}</div></div></div>`;}
 function renderGradeSection(s){const GRADES=[{g:'단기',color:'#e65100'},{g:'장기',color:'#c62828'},{g:'권한오픈',color:'#6a1b9a'},{g:'권한+브리핑',color:'#3949ab'},{g:'이관완료',color:'#2e7d32'}];return GRADES.map(({g,color})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">${gradeBadge(g)}<span style="font-size:15px;font-weight:700;color:${color};">${s.gradeMap[g]||0}건</span></div>`).join('')+`<div class="chart-box" style="margin-top:12px;"><canvas id="gradeChart"></canvas></div>`;}
 function renderBudgetSection(s){const bb=s.budgetBands;const keys=Object.keys(bb);const colors=['#3949ab','#2e7d32','#e65100','#6a1b9a','#c62828'];return`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;">${keys.map((k,i)=>`<div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text-sub);margin-bottom:4px;">${k}</div><div style="font-size:18px;font-weight:700;color:${colors[i]};">${bb[k].count}</div><div style="font-size:10px;color:var(--text-muted);">${fmtB(bb[k].total)}</div></div>`).join('')}</div><div class="chart-box"><canvas id="budgetChart"></canvas></div>`;}
