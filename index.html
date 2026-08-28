@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.29</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.30</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -234,7 +234,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.29</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.30</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -422,7 +422,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v530';
+const LS_VER='v531';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -548,7 +548,11 @@ function buildNav(stats){
     const bu=role.startsWith('bm2')?'BM2본부':'BM3본부';
     topHtml=`<span class="nav-lbl">📌</span><button class="nbtn ${CURRENT_FILTER==='all'?'na':''}" onclick="filterView('all')">👥 ${teamName} 전체</button>`;
     botHtml=`<span class="nav-lbl">👤</span>`;
-    (ORG_MAP[bu]?.[teamName]||[]).forEach(name=>{botHtml+=`<button class="nbtn ${CURRENT_FILTER===name?'na-member':''}" onclick="filterView('${name}')">👤 ${name}</button>`;});
+    (ORG_MAP[bu]?.[teamName]||[]).forEach(name=>{
+      const sheetId=SHEET_MAP[name]||'';
+      const sheetBtn=sheetId?`<a href="https://docs.google.com/spreadsheets/d/${sheetId}" target="_blank" title="${name} 시트" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-size:12px;text-decoration:none;margin-left:2px;vertical-align:middle;" onclick="event.stopPropagation()">📊</a>`:'';
+      botHtml+=`<span style="display:inline-flex;align-items:center;gap:2px;"><button class="nbtn ${CURRENT_FILTER===name?'na-member':''}" onclick="filterView('${name}')">👤 ${name}</button>${sheetBtn}</span>`;
+    });
   }else{navWrap.style.display='none';return;}
   topEl.innerHTML=topHtml;botEl.innerHTML=botHtml;divEl.style.display=botHtml?'block':'none';
 }
