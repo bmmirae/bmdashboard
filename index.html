@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.33</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.35</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
@@ -234,7 +234,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.33</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.35</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -251,14 +251,23 @@ tr:hover td{background:var(--surface2);}
       <button id="mainTab_promo" onclick="switchMainTab('promo')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">🎯 프로모션</button>
     </div>
     <div id="tabContent_db">
-      <div id="navWrap" style="display:none;">
-        <div class="nav-wrap" style="padding:12px 16px;">
-          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;" id="navRowTop"></div>
-          <div id="navDivider" style="display:none;height:1px;background:var(--border);margin:8px 0;"></div>
-          <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;" id="navRowBottom"></div>
+      <div id="navWrap" style="display:none;position:sticky;z-index:90;margin-bottom:14px;">
+        <div style="background:var(--surface);padding:10px 16px;border-radius:12px 12px 0 0;box-shadow:var(--card-shadow);cursor:pointer;display:flex;align-items:center;" id="navSummaryBar" onclick="toggleNavExpand()">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="nav-lbl">📌</span>
+            <span id="navSummaryText" style="font-size:13px;font-weight:600;color:var(--text);">전체</span>
+            <span id="navExpandArr" style="margin-left:auto;font-size:12px;color:var(--text-sub);transition:transform .2s;">▼</span>
+          </div>
+        </div>
+        <div id="navExpandBody" class="cbody collapsed" style="background:var(--surface);border-radius:0 0 12px 12px;box-shadow:var(--card-shadow);">
+          <div style="padding:10px 16px;">
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;" id="navRowTop"></div>
+            <div id="navDivider" style="display:none;height:1px;background:var(--border);margin:8px 0;"></div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;" id="navRowBottom"></div>
+          </div>
         </div>
       </div>
-      <div id="stickyDateBar" style="display:none;position:sticky;z-index:90;background:var(--surface);border-radius:12px;box-shadow:var(--card-shadow);padding:10px 16px;margin-bottom:14px;">
+      <div id="stickyDateBar" style="display:none;position:sticky;z-index:89;background:var(--surface);border-radius:12px;box-shadow:var(--card-shadow);padding:10px 16px;margin-bottom:14px;">
           <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
             <span class="nav-lbl">📅</span>
             <select id="selYear" onchange="applyYearMonth()" style="padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;"><option value="">연도</option></select>
@@ -423,7 +432,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v534';
+const LS_VER='v536';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -454,7 +463,8 @@ function _applyData(res){
   }
   buildNav(calcClientStats(CURRENT_ROWS));
   renderDash(calcClientStats(CURRENT_ROWS),res.roleInfo);
-
+  updateNavSummary();
+  setTimeout(updateStickyBarTop,50);
 }
 
 async function loadData(forceRefresh=false){
@@ -585,6 +595,8 @@ function filterView(filter){
   const isMember=allNames.includes(filter);
   const filtered=filter==='all'?CURRENT_ROWS:isMember?CURRENT_ROWS.filter(r=>r.manager===filter):CURRENT_ROWS.filter(r=>r.bu===filter||r.team===filter);
   renderDash(calcClientStats(filtered),SESSION.roleInfo,filtered);buildNav(calcClientStats(CURRENT_ROWS));
+  updateNavSummary();
+  setTimeout(updateStickyBarTop,50);
 }
 
 // ── 날짜 필터 ─────────────────────────────────
@@ -1157,8 +1169,28 @@ document.addEventListener('click',e=>{const modal=document.getElementById('membe
 // ── 세션 복구 ─────────────────────────────────
 function updateStickyBarTop(){
   const header=document.querySelector('.header');
-  const bar=document.getElementById('stickyDateBar');
-  if(header&&bar) bar.style.top=header.offsetHeight+'px';
+  const navWrap=document.getElementById('navWrap');
+  const summaryBar=document.getElementById('navSummaryBar');
+  const dateBar=document.getElementById('stickyDateBar');
+  const headerH=header?header.offsetHeight:0;
+  if(navWrap) navWrap.style.top=headerH+'px';
+  // navWrap이 보일 때만 요약바 높이만큼 dateBar를 그 아래로
+  const navVisible=navWrap&&navWrap.style.display!=='none';
+  const summaryH=(navVisible&&summaryBar)?summaryBar.offsetHeight:0;
+  if(dateBar) dateBar.style.top=(headerH+summaryH)+'px';
+}
+function toggleNavExpand(){
+  const body=document.getElementById('navExpandBody');
+  const arr=document.getElementById('navExpandArr');
+  if(!body)return;
+  const collapsed=body.classList.toggle('collapsed');
+  if(arr) arr.style.transform=collapsed?'rotate(-90deg)':'rotate(0deg)';
+  setTimeout(updateStickyBarTop,50);
+}
+function updateNavSummary(){
+  const el=document.getElementById('navSummaryText');
+  if(!el)return;
+  el.textContent=(typeof getFilterLabel==='function')?getFilterLabel():'전체';
 }
 window.addEventListener('resize',updateStickyBarTop);
 window.addEventListener('DOMContentLoaded',function(){
