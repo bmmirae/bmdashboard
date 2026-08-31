@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.50</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.51</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -61,6 +61,8 @@ body{font-family:'Pretendard','Segoe UI',sans-serif;background:var(--bg);color:v
 .jump-fab{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:95;display:flex;flex-direction:column;gap:8px;}
 @media(min-width:1101px){#navWrap,#stickyDateBar{margin-right:76px;}}
 .jump-fab-item{width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s;border:none;color:#fff;font-size:9px;font-weight:700;line-height:1.3;text-align:center;padding:2px;}
+#sidePanel{transform:translateX(100%);transition:transform .25s ease;}
+#sidePanel.open{transform:translateX(0);}
 .jump-fab-item:hover{transform:translateX(-4px) scale(1.05);}
 .jump-fab-item span.emoji{font-size:16px;margin-bottom:1px;}
 @media(max-width:1100px){.jump-fab{display:none;}}
@@ -241,7 +243,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.50</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.51</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -256,10 +258,18 @@ tr:hover td{background:var(--surface2);}
     <button class="jump-fab-item" style="background:#3949ab;" onclick="jumpTo('jump-grade')" title="가망도별 현황"><span class="emoji">🎯</span>가망도</button>
     <button class="jump-fab-item" style="background:#00695c;" onclick="jumpTo('jump-transfer')" title="이관완료 전환 현황"><span class="emoji">🏆</span>이관완료</button>
     <button class="jump-fab-item" style="background:#6a1b9a;" onclick="jumpTo('jump-member')" title="담당자별 가망건 현황"><span class="emoji">👤</span>담당자</button>
-    <button class="jump-fab-item" style="background:#0277bd;" onclick="jumpTo('jump-contact')" title="컨택포인트 현황"><span class="emoji">🔗</span>컨택</button>
-    <button class="jump-fab-item" style="background:#e65100;" onclick="jumpTo('jump-recall')" title="재콜 현황"><span class="emoji">📞</span>재콜</button>
+    <button class="jump-fab-item" style="background:#0277bd;" onclick="openSidePanel('contact')" title="컨택포인트 현황"><span class="emoji">🔗</span>컨택<br>포인트</button>
+    <button class="jump-fab-item" style="background:#e65100;" onclick="openSidePanel('recall')" title="재콜 현황"><span class="emoji">📞</span>재콜</button>
     <button class="jump-fab-item" style="background:#c62828;" onclick="jumpTo('jump-check')" title="CHECK 가망건"><span class="emoji">📋</span>CHECK</button>
     <button class="jump-fab-item" style="background:#455a64;" onclick="jumpTo('jump-list')" title="전체 가망건 리스트"><span class="emoji">📄</span>전체</button>
+  </div>
+  <div id="sidePanelOverlay" onclick="closeSidePanel()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:200;"></div>
+  <div id="sidePanel" style="display:none;position:fixed;top:0;right:0;height:100vh;width:440px;max-width:92vw;background:var(--surface);box-shadow:-4px 0 24px rgba(0,0,0,.2);z-index:201;overflow-y:auto;">
+    <div style="position:sticky;top:0;background:var(--surface);border-bottom:1px solid var(--border);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;z-index:1;">
+      <span id="sidePanelTitle" style="font-size:15px;font-weight:700;"></span>
+      <button onclick="closeSidePanel()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-sub);">✕</button>
+    </div>
+    <div id="sidePanelBody" style="padding:16px 18px;"></div>
   </div>
   <div class="container">
     <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border);">
@@ -449,7 +459,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v551';
+const LS_VER='v552';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -754,8 +764,7 @@ function renderDash(stats,roleInfo,filteredRows){
   html+=`<div id="jump-grade" class="g2"><div class="sec"><div class="sec-hd sh-b">🎯 가망도별 현황 <span style="font-size:14px;font-weight:700;color:#3949ab;">(${getFilterLabel()})</span></div>${renderGradeSection(stats)}</div><div class="sec"><div class="sec-hd sh-o">💰 예산 금액대별 분포 <span style="font-size:14px;font-weight:700;color:#e65100;">(${getFilterLabel()})</span></div>${renderBudgetSection(stats)}</div></div>`;
   html+=`<div id="jump-transfer">`+renderRecentTransfers(stats)+`</div>`;
   html+=`<div id="jump-member">`+renderMemberStat(stats)+`</div>`;
-  html+=`<div id="jump-contact">`+renderContactStat(stats)+`</div>`;
-  html+=`<div id="jump-recall">`+renderTodayRecall(stats)+`</div>`;
+  window._lastStats=stats; // 사이드패널에서 재사용
   html+=`<div id="jump-check">`+renderCheckSection(rows)+`</div>`;
   html+=`<div id="jump-list">`+renderListSection(rows)+`</div>`;
   document.getElementById('dashContent').innerHTML=html;
@@ -1111,7 +1120,7 @@ function renderCheckSection(rows){
       return html;
     })()}</div>
     <div id="ctb_done" style="display:none;">
-      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 확인완료 항목은 처리일로부터 2주가 지나면 이 목록에서 자동으로 사라집니다 (기록은 계속 보관됩니다)</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 확인완료 항목은 처리일로부터 2주가 지나면 자동으로 사라집니다. 계속 추적이 필요한 건은 📌 보관으로 옮겨주세요.</div>
       ${doneItems.length?grid2(doneItems.map(l=>renderLogCard(l,true)).join('')):emptyMsg('확인완료 항목이 없습니다')}
     </div>
     <div id="ctb_archive" style="display:none;">${archiveItems.length?grid2(archiveItems.map(l=>renderLogCard(l,false)).join('')):emptyMsg('보관된 항목이 없습니다')}</div>
@@ -1376,6 +1385,38 @@ function showAddMsg(msg,type){const el=document.getElementById('addMsg');el.text
 document.addEventListener('click',e=>{const modal=document.getElementById('memberMgmtModal');if(modal&&e.target===modal)closeMemberMgmt();});
 
 // ── 세션 복구 ─────────────────────────────────
+function openSidePanel(type){
+  const panel=document.getElementById('sidePanel');
+  const overlay=document.getElementById('sidePanelOverlay');
+  const title=document.getElementById('sidePanelTitle');
+  const body=document.getElementById('sidePanelBody');
+  if(!panel||!body)return;
+  const stats=window._lastStats;
+  if(!stats){toast('데이터를 불러오는 중입니다','err');return;}
+  if(type==='contact'){
+    title.textContent='🔗 컨택포인트 현황 ('+getFilterLabel()+')';
+    body.innerHTML=renderContactStat(stats);
+  }else if(type==='recall'){
+    title.textContent='📞 재콜 현황 ('+getFilterLabel()+')';
+    body.innerHTML=renderTodayRecall(stats);
+  }
+  overlay.style.display='block';
+  panel.style.display='block';
+  requestAnimationFrame(()=>panel.classList.add('open'));
+  // 패널 내부는 항상 펼친 상태로 표시
+  setTimeout(()=>{
+    body.querySelectorAll('.cbody.collapsed').forEach(el=>el.classList.remove('collapsed'));
+    body.querySelectorAll('.carr').forEach(el=>el.style.transform='rotate(0deg)');
+  },0);
+}
+function closeSidePanel(){
+  const panel=document.getElementById('sidePanel');
+  const overlay=document.getElementById('sidePanelOverlay');
+  if(!panel)return;
+  panel.classList.remove('open');
+  overlay.style.display='none';
+  setTimeout(()=>{panel.style.display='none';},250);
+}
 function jumpTo(id){
   const el=document.getElementById(id);
   if(!el){toast('해당 섹션이 없습니다','err');return;}
