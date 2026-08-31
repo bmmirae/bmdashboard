@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.61</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.62</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -250,7 +250,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.61</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.62</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -468,7 +468,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v562';
+const LS_VER='v563';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1289,7 +1289,20 @@ function renderRecentTransfers(s){
   return`<div class="sec"><div class="chd" onclick="toggleC('rt')"><span style="display:flex;align-items:center;gap:8px;"><span class="sh-g">🏆</span><span class="sh-g">이관완료 전환 현황</span><span id="rtBadge" style="background:#e8f5e9;color:#2e7d32;border-radius:10px;padding:2px 9px;font-size:11px;font-weight:700;">-건</span></span><span class="carr" id="rtA">▼</span></div><div class="cbody" id="rt"><div style="background:var(--surface2);border-radius:10px;padding:12px 14px;margin-bottom:14px;"><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px;"><span style="font-size:11px;font-weight:600;color:var(--text-sub);">📅</span><button class="nbtn" id="rtQ7" onclick="rtQuick(7)" style="font-size:11px;padding:4px 12px;">최근 7일</button><button class="nbtn" id="rtQMon" onclick="rtQuick('month')" style="font-size:11px;padding:4px 12px;">이번달</button><button class="nbtn" id="rtQ30" onclick="rtQuick(30)" style="font-size:11px;padding:4px 12px;">최근 30일</button><button class="nbtn" id="rtQ90" onclick="rtQuick(90)" style="font-size:11px;padding:4px 12px;">3개월</button><button class="nbtn" id="rtQAll" onclick="rtQuick('all')" style="font-size:11px;padding:4px 12px;">전체</button><span style="color:var(--border);">|</span><input type="date" id="rtFrom" value="${defFrom}" onchange="rtApplyFilter()" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;"><span style="font-size:12px;color:var(--text-sub);">~</span><input type="date" id="rtTo" value="${defTo}" onchange="rtApplyFilter()" style="padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;"></div><div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><button onclick="rtReset()" style="padding:4px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);font-size:11px;cursor:pointer;">↺ 초기화</button><span id="rtFilterInfo" style="font-size:11px;color:var(--text-muted);"></span></div></div><div style="font-size:11px;color:var(--text-muted);padding:4px 2px;margin-bottom:8px;">ℹ️ 이관완료일 기준: 마지막 재콜 날짜 &nbsp;|&nbsp; 정확한 날짜 기록 → 이관완료 처리 시 재콜란에 날짜 입력</div><div id="rtTableWrap"></div></div></div>`;
 }
 function rtQuick(range){const todayD=new Date();const pad=n=>String(n).padStart(2,'0');const fmt=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());let from='',to=fmt(todayD);if(range==='all'){from='';to='';}else if(range==='month'){from=todayD.getFullYear()+'-'+pad(todayD.getMonth()+1)+'-01';}else{const d=new Date(todayD);d.setDate(d.getDate()-(range-1));from=fmt(d);}const fromEl=document.getElementById('rtFrom');const toEl=document.getElementById('rtTo');if(fromEl)fromEl.value=from;if(toEl)toEl.value=to;['rtQ7','rtQMon','rtQ30','rtQ90','rtQAll'].forEach(id=>{const el=document.getElementById(id);if(!el)return;const map={rtQ7:7,rtQMon:'month',rtQ30:30,rtQ90:90,rtQAll:'all'};el.classList.toggle('na',map[id]===range);});rtApplyFilter();}
-function rtApplyFilter(){const from=document.getElementById('rtFrom')?.value||'';const to=document.getElementById('rtTo')?.value||'';let filtered=[...(window._transferAll||[])];if(from)filtered=filtered.filter(r=>{const d=normalizeDate(r.transferDate||'')||normalizeDate(r.firstCall||'')||'';return d>=from;});if(to)filtered=filtered.filter(r=>{const d=normalizeDate(r.transferDate||'')||normalizeDate(r.firstCall||'')||'';return d<=to;});filtered.sort((a,b)=>normalizeDate(b.transferDate||b.firstCall||'').localeCompare(normalizeDate(a.transferDate||a.firstCall||'')));const badge=document.getElementById('rtBadge');if(badge)badge.textContent=filtered.length+'건';const info=document.getElementById('rtFilterInfo');if(info){const parts=[];if(from||to)parts.push((from||'시작')+' ~ '+(to||'현재'));info.textContent=parts.length?parts.join(' · '):'';};const wrap=document.getElementById('rtTableWrap');if(!wrap)return;if(!filtered.length){wrap.innerHTML='<div style="text-align:center;color:var(--text-muted);padding:24px;">해당 기간 이관완료 건이 없습니다</div>';return;}wrap.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>업체명</th><th>담당자</th><th>팀</th><th>본부</th><th>예산</th><th>키워드</th><th>전화번호</th><th>컨택포인트</th><th>이관완료일</th><th>첫콜일</th></tr></thead><tbody>${filtered.map(r=>`<tr><td><strong>${r.company}</strong>${r.url?`<span onclick="openUrl('${r.url}')" style="margin-left:6px;cursor:pointer;color:#3949ab;font-size:11px;">🔗</span>`:''}</td><td>${r.manager}</td><td>${r.team}</td><td>${buBadge(r.bu)}</td><td style="font-weight:600;color:#2e7d32;">${fmtB(r.budget)}</td><td>${r.keyword||'-'}</td><td style="white-space:nowrap;">${r.phone||'-'}</td><td>${r.contactPoint||'-'}</td><td style="white-space:nowrap;font-weight:600;color:#2e7d32;">${fmtDateDisp(r.transferDate)}</td><td style="white-space:nowrap;color:var(--text-sub);">${fmtDateDisp(r.firstCall)}</td></tr>`).join('')}</tbody></table></div>`;}
+function rtApplyFilter(){const from=document.getElementById('rtFrom')?.value||'';const to=document.getElementById('rtTo')?.value||'';let filtered=[...(window._transferAll||[])];if(from)filtered=filtered.filter(r=>{const d=normalizeDate(r.transferDate||'')||normalizeDate(r.firstCall||'')||'';return d>=from;});if(to)filtered=filtered.filter(r=>{const d=normalizeDate(r.transferDate||'')||normalizeDate(r.firstCall||'')||'';return d<=to;});filtered.sort((a,b)=>normalizeDate(b.transferDate||b.firstCall||'').localeCompare(normalizeDate(a.transferDate||a.firstCall||'')));const badge=document.getElementById('rtBadge');if(badge)badge.textContent=filtered.length+'건';const info=document.getElementById('rtFilterInfo');if(info){const parts=[];if(from||to)parts.push((from||'시작')+' ~ '+(to||'현재'));info.textContent=parts.length?parts.join(' · '):'';};const wrap=document.getElementById('rtTableWrap');if(!wrap)return;if(!filtered.length){wrap.innerHTML='<div style="text-align:center;color:var(--text-muted);padding:24px;">해당 기간 이관완료 건이 없습니다</div>';return;}
+  wrap.innerHTML=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;">${filtered.map(r=>`
+    <div class="card" style="padding:12px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <strong style="font-size:13px;">${r.company}</strong>${r.url?`<span onclick="openUrl('${r.url}')" style="cursor:pointer;color:#3949ab;font-size:11px;">🔗</span>`:''}
+      </div>
+      <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;">👤 ${r.manager} · ${r.team} · ${buBadge(r.bu)}</div>
+      <div style="font-size:11px;color:#2e7d32;font-weight:600;margin-bottom:4px;">💰 ${fmtB(r.budget)}${r.keyword?' · 🔍 '+r.keyword:''}</div>
+      <div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;">📞 ${r.phone||'-'}</div>
+      ${r.contactPoint?`<div style="font-size:11px;color:var(--text-sub);margin-bottom:4px;">🔗 ${r.contactPoint}</div>`:''}
+      <div style="font-size:11px;color:#2e7d32;font-weight:600;">📅 이관 ${fmtDateDisp(r.transferDate)}</div>
+      <div style="font-size:10px;color:var(--text-muted);">첫콜 ${fmtDateDisp(r.firstCall)}</div>
+    </div>`).join('')}</div>`;
+}
 function rtReset(){const todayD=new Date();const d7=new Date(todayD);d7.setDate(d7.getDate()-6);const pad=n=>String(n).padStart(2,'0');const fmt=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());const fromEl=document.getElementById('rtFrom');const toEl=document.getElementById('rtTo');if(fromEl)fromEl.value=fmt(d7);if(toEl)toEl.value=fmt(todayD);['rtQ7','rtQMon','rtQ30','rtQ90','rtQAll'].forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove('na');});document.getElementById('rtQ7')?.classList.add('na');rtApplyFilter();}
 
 // ── 재콜 현황 ─────────────────────────────────
@@ -1482,33 +1495,100 @@ function showAddMsg(msg,type){const el=document.getElementById('addMsg');el.text
 document.addEventListener('click',e=>{const modal=document.getElementById('memberMgmtModal');if(modal&&e.target===modal)closeMemberMgmt();});
 
 // ── 세션 복구 ─────────────────────────────────
-function openSidePanel(type){
-  const panel=document.getElementById('sidePanel');
-  const overlay=document.getElementById('sidePanelOverlay');
+let _panelType=null;
+let _panelFilter='all'; // 사이드패널 전용 독립 필터 (메인 대시보드와 무관)
+
+function getPanelFilterOptions(){
+  // 로그인 역할에 따라 관리자모드/본부장/팀장 각각 다른 범위 반환
+  const role=SESSION.role;
+  const opts=[]; // {value,label,type}
+  if(role==='center'||role==='관리자모드'||role==='master'){
+    opts.push({value:'all',label:'🏆 전체',type:'all'});
+    BU_ORDER.forEach(bu=>{
+      if(!ORG_MAP[bu])return;
+      opts.push({value:bu,label:(bu==='BM2본부'?'🔵 ':'🟣 ')+bu,type:'bu'});
+      TEAM_ORDER.filter(t=>t.startsWith(bu==='BM2본부'?'BM2':'BM3')).forEach(team=>{
+        if(!ORG_MAP[bu][team])return;
+        opts.push({value:team,label:'👥 '+team,type:'team'});
+        ORG_MAP[bu][team].forEach(name=>opts.push({value:name,label:'👤 '+name,type:'member'}));
+      });
+    });
+  }else if(role==='bm2'||role==='bm3'){
+    const myBU=role==='bm2'?'BM2본부':'BM3본부';
+    opts.push({value:'all',label:'전체',type:'all'});
+    TEAM_ORDER.filter(t=>t.startsWith(role==='bm2'?'BM2':'BM3')).forEach(team=>{
+      if(!ORG_MAP[myBU]||!ORG_MAP[myBU][team])return;
+      opts.push({value:team,label:'👥 '+team,type:'team'});
+      ORG_MAP[myBU][team].forEach(name=>opts.push({value:name,label:'👤 '+name,type:'member'}));
+    });
+  }else if(['bm2_2','bm2_3','bm3_2'].includes(role)){
+    const teamName=role==='bm2_2'?'BM2-2팀':role==='bm2_3'?'BM2-3팀':'BM3-2팀';
+    const bu=role.startsWith('bm2')?'BM2본부':'BM3본부';
+    opts.push({value:'all',label:'👥 '+teamName+' 전체',type:'all'});
+    (ORG_MAP[bu]?.[teamName]||[]).forEach(name=>opts.push({value:name,label:'👤 '+name,type:'member'}));
+  }
+  return opts;
+}
+
+function getPanelStats(){
+  const filter=_panelFilter;
+  const allNames=Object.values(ORG_MAP).flatMap(bu=>Object.values(bu).flat());
+  const isMember=allNames.includes(filter);
+  const rows=filter==='all'?CURRENT_ROWS:isMember?CURRENT_ROWS.filter(r=>r.manager===filter):CURRENT_ROWS.filter(r=>r.bu===filter||r.team===filter);
+  return calcClientStats(rows);
+}
+
+function renderPanelFilterBar(){
+  const opts=getPanelFilterOptions();
+  if(opts.length<=1)return''; // 선택지 없으면 필터 숨김
+  const optionsHtml=opts.map(o=>`<option value="${o.value}"${o.value===_panelFilter?' selected':''}>${o.label}</option>`).join('');
+  return`<div style="margin-bottom:14px;padding:10px 12px;background:var(--surface2);border-radius:10px;">
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">🔍 패널 내에서만 다른 범위로 조회 (메인 대시보드에는 반영되지 않습니다)</div>
+    <select onchange="changePanelFilter(this.value)" style="width:100%;padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">${optionsHtml}</select>
+  </div>`;
+}
+
+function changePanelFilter(val){
+  _panelFilter=val;
+  renderSidePanelBody();
+}
+
+function renderSidePanelBody(){
   const title=document.getElementById('sidePanelTitle');
   const body=document.getElementById('sidePanelBody');
-  if(!panel||!body)return;
-  const stats=window._lastStats;
-  if(!stats){toast('데이터를 불러오는 중입니다','err');return;}
-  if(type==='transfer'){
-    title.textContent='🏆 이관완료 전환 현황 ('+getFilterLabel()+')';
-    body.innerHTML=renderRecentTransfers(stats);
+  if(!body)return;
+  const stats=getPanelStats();
+  const filterBar=renderPanelFilterBar();
+  const filterLabelForTitle=_panelFilter==='all'?getFilterLabel():_panelFilter;
+  if(_panelType==='transfer'){
+    title.textContent='🏆 이관완료 전환 현황 ('+filterLabelForTitle+')';
+    body.innerHTML=filterBar+renderRecentTransfers(stats);
     setTimeout(()=>{if(typeof rtReset==='function')rtReset();},50);
-  }else if(type==='contact'){
-    title.textContent='🔗 컨택포인트 현황 ('+getFilterLabel()+')';
-    body.innerHTML=renderContactStat(stats);
-  }else if(type==='recall'){
-    title.textContent='📞 재콜 현황 ('+getFilterLabel()+')';
-    body.innerHTML=renderTodayRecall(stats);
+  }else if(_panelType==='contact'){
+    title.textContent='🔗 컨택포인트 현황 ('+filterLabelForTitle+')';
+    body.innerHTML=filterBar+renderContactStat(stats);
+  }else if(_panelType==='recall'){
+    title.textContent='📞 재콜 현황 ('+filterLabelForTitle+')';
+    body.innerHTML=filterBar+renderTodayRecall(stats);
   }
-  overlay.style.display='block';
-  panel.style.display='block';
-  requestAnimationFrame(()=>panel.classList.add('open'));
   // 패널 내부는 항상 펼친 상태로 표시
   setTimeout(()=>{
     body.querySelectorAll('.cbody.collapsed').forEach(el=>el.classList.remove('collapsed'));
     body.querySelectorAll('.carr').forEach(el=>el.style.transform='rotate(0deg)');
   },0);
+}
+
+function openSidePanel(type){
+  const panel=document.getElementById('sidePanel');
+  const overlay=document.getElementById('sidePanelOverlay');
+  if(!panel)return;
+  if(!window._lastStats){toast('데이터를 불러오는 중입니다','err');return;}
+  _panelType=type;
+  _panelFilter=CURRENT_FILTER; // 열 때는 메인 화면 필터로 시작
+  renderSidePanelBody();
+  overlay.style.display='block';
+  panel.style.display='block';
+  requestAnimationFrame(()=>panel.classList.add('open'));
 }
 function closeSidePanel(){
   const panel=document.getElementById('sidePanel');
