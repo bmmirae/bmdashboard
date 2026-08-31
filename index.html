@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.67</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.68</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -252,7 +252,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.67</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.68</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -470,7 +470,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v568';
+const LS_VER='v569';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -634,6 +634,8 @@ function filterView(filter){
   const allNames=Object.values(ORG_MAP).flatMap(bu=>Object.values(bu).flat());
   const isMember=allNames.includes(filter);
   const filtered=filter==='all'?CURRENT_ROWS:isMember?CURRENT_ROWS.filter(r=>r.manager===filter):CURRENT_ROWS.filter(r=>r.bu===filter||r.team===filter);
+  // 필터가 바뀔 때는 네비게이션을 항상 펼쳐서 지금 어디를 보고 있는지 바로 확인 가능하게
+  _navExpandCollapsed=false;
   renderDash(calcClientStats(filtered),SESSION.roleInfo,filtered);buildNav(calcClientStats(CURRENT_ROWS));
   updateNavSummary();
   setTimeout(updateStickyBarTop,50);
