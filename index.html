@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.65</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.66</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -252,7 +252,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.65</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.66</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -470,7 +470,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v566';
+const LS_VER='v567';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1078,6 +1078,65 @@ function renderCheckSection(rows){
     if(fab) fab.classList.toggle('blink', needItems.length>0);
   },0);
 
+  // ── 부서장 요약 카드 (이번 달 처리 현황) ──
+  const renderSummaryCard=()=>{
+    const now=new Date();const mRange=getMonthRange();
+    const processedThisMonth=_checkLogData.filter(l=>{
+      const d=(l.actedAt||'').slice(0,10);
+      return (l.status==='확인완료'||l.status==='보관')&&d>=mRange.start&&d<=mRange.end;
+    });
+    const processedCount=processedThisMonth.length;
+    // 평균 처리일: firstCall(가망건 최초 등록일) ~ 처리일 사이 근사치
+    let avgDays='-';
+    if(processedCount){
+      const diffs=processedThisMonth.map(l=>{
+        const fc=normalizeDate(l.firstCall)||'';
+        const acted=(l.actedAt||'').slice(0,10);
+        if(!fc||!acted)return null;
+        const d=Math.floor((new Date(acted)-new Date(fc))/86400000);
+        return d>=0?d:null;
+      }).filter(d=>d!==null);
+      if(diffs.length) avgDays=(diffs.reduce((a,b)=>a+b,0)/diffs.length).toFixed(1);
+    }
+    // 최다 사유
+    const catCount={};
+    processedThisMonth.forEach(l=>{catCount[l.category]=(catCount[l.category]||0)+1;});
+    const topCat=Object.entries(catCount).sort((a,b)=>b[1]-a[1])[0];
+
+    // 사원별 통계
+    const memberStat={};
+    processedThisMonth.forEach(l=>{
+      if(!memberStat[l.manager])memberStat[l.manager]={processed:0,days:[]};
+      memberStat[l.manager].processed++;
+      const fc=normalizeDate(l.firstCall)||'';const acted=(l.actedAt||'').slice(0,10);
+      if(fc&&acted){const d=Math.floor((new Date(acted)-new Date(fc))/86400000);if(d>=0)memberStat[l.manager].days.push(d);}
+    });
+    needItems.forEach(it=>{
+      if(!memberStat[it.r.manager])memberStat[it.r.manager]={processed:0,days:[]};
+      memberStat[it.r.manager]._pending=(memberStat[it.r.manager]._pending||0)+1;
+    });
+    const memberRows=Object.entries(memberStat).map(([name,d])=>{
+      const avg=d.days.length?(d.days.reduce((a,b)=>a+b,0)/d.days.length).toFixed(1):'-';
+      return{name,processed:d.processed,avg,pending:d._pending||0};
+    }).sort((a,b)=>b.processed-a.processed);
+
+    return`<div class="card" style="padding:14px;margin-bottom:14px;background:var(--surface2);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+        <div style="font-size:12px;font-weight:700;color:var(--text);">📊 이번 달 처리 현황 (${getFilterLabel()})</div>
+        <button onclick="toggleCheckSummaryDetail()" id="ckSummaryToggleBtn" style="background:none;border:none;color:#3949ab;font-size:11px;cursor:pointer;">▼ 사원별로 보기</button>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--text-sub);">
+        <span>처리 <strong style="color:var(--text);">${processedCount}건</strong></span>
+        <span>평균 <strong style="color:var(--text);">${avgDays}일</strong></span>
+        <span>최다사유 <strong style="color:var(--text);">${topCat?topCat[0]+'('+topCat[1]+')':'-'}</strong></span>
+        <span>📌 보관 중 <strong style="color:#7b1fa2;">${archiveItems.length}건</strong></span>
+      </div>
+      <div id="ckSummaryDetail" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        ${memberRows.length?memberRows.map(m=>`<div style="display:flex;gap:12px;font-size:11px;color:var(--text-sub);padding:3px 0;flex-wrap:wrap;"><span style="min-width:70px;font-weight:600;color:var(--text);">👤 ${m.name}</span><span>처리 ${m.processed}건</span><span>평균 ${m.avg}일</span><span style="color:${m.pending>0?'#c62828':'var(--text-muted)'};">미처리 ${m.pending}건</span></div>`).join(''):'<div style="font-size:11px;color:var(--text-muted);">데이터가 없습니다</div>'}
+      </div>
+    </div>`;
+  };
+
   const renderNeedCard=({r,cat,reason,key})=>{
     const recallCnt=r.recalls?r.recalls.length:0;
     const fc=fmtRecallDate(normalizeDate(r.firstCall));
@@ -1161,6 +1220,7 @@ function renderCheckSection(rows){
       <span class="carr" id="checkBodyA">▼</span>
     </div>
     <div class="cbody" id="checkBody">
+    ${renderSummaryCard()}
     <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:12px;">
       <button id="ct_need" onclick="switchCheckTab('need')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:700;color:#c62828;border-bottom:3px solid #c62828;cursor:pointer;margin-bottom:-2px;">🔴 체크 필요 <span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${needItems.length}</span></button>
       <button id="ct_done" onclick="switchCheckTab('done')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">✅ 확인완료 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${doneItems.length}</span></button>
@@ -1195,6 +1255,14 @@ function renderCheckSection(rows){
   </div>`;
 }
 
+function toggleCheckSummaryDetail(){
+  const detail=document.getElementById('ckSummaryDetail');
+  const btn=document.getElementById('ckSummaryToggleBtn');
+  if(!detail)return;
+  const hidden=detail.style.display==='none';
+  detail.style.display=hidden?'block':'none';
+  if(btn) btn.textContent=hidden?'▲ 접기':'▼ 사원별로 보기';
+}
 function switchCheckSub(sub){
   const gmgSec=document.getElementById('ctSubSec_gmg');
   const nonGmgSec=document.getElementById('ctSubSec_nongmg');
