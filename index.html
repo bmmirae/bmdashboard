@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.70</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.71</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.70</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.71</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -475,7 +475,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v571';
+const LS_VER='v572';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1396,8 +1396,8 @@ function refreshCheckSectionOnly(){
 }
 
 function renderKPI(s){const gm=s.gradeMap;const done=(gm['이관완료']||0);const open=(gm['권한오픈']||0)+(gm['권한+브리핑']||0);const active=(gm['단기']||0)+(gm['장기']||0);return`<div class="g6" style="margin-bottom:14px;"><div class="card"><div class="card-lbl">📋 활성 가망건</div><div class="card-val cv-blue">${s.total}건</div><div class="card-sub">전체 DB ${s.totalAll||s.total}건 중</div></div><div class="card"><div class="card-lbl">✅ 이관완료</div><div class="card-val cv-green">${done}건</div><div class="card-sub">${s.total>0?(done/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-g" style="width:${s.total>0?done/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">🔓 권한오픈+브리핑</div><div class="card-val cv-purple">${open}건</div><div class="card-sub">${s.total>0?(open/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-p" style="width:${s.total>0?open/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">📅 단기+장기</div><div class="card-val cv-orange">${active}건</div><div class="card-sub">${s.total>0?(active/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-o" style="width:${s.total>0?active/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">📞 재콜 현황</div><div class="card-val cv-red">${s.todayRecalls.length}건</div><div class="card-sub">오늘 · 놓친 ${s.missedRecalls?.length||0}건</div></div><div class="card"><div class="card-lbl">💰 예산 합계</div><div class="card-val cv-purple">${fmtB(s.totalBudget)}</div></div></div>`;}
-function renderGradeSection(s){const GRADES=[{g:'단기',color:'#e65100'},{g:'장기',color:'#c62828'},{g:'권한오픈',color:'#6a1b9a'},{g:'권한+브리핑',color:'#3949ab'},{g:'이관완료',color:'#2e7d32'}];return GRADES.map(({g,color})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">${gradeBadge(g)}<span style="font-size:15px;font-weight:700;color:${color};">${s.gradeMap[g]||0}건</span></div>`).join('')+`<div class="chart-box" style="margin-top:12px;"><canvas id="gradeChart"></canvas></div>`;}
-function renderBudgetSection(s){const bb=s.budgetBands;const keys=Object.keys(bb);const colors=['#3949ab','#2e7d32','#e65100','#6a1b9a','#c62828'];return`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px;">${keys.map((k,i)=>`<div style="background:var(--surface2);border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text-sub);margin-bottom:4px;">${k}</div><div style="font-size:18px;font-weight:700;color:${colors[i]};">${bb[k].count}</div><div style="font-size:10px;color:var(--text-muted);">${fmtB(bb[k].total)}</div></div>`).join('')}</div><div style="position:relative;height:280px;"><canvas id="budgetChart"></canvas></div>`;}
+function renderGradeSection(s){const GRADES=[{g:'단기',color:'#e65100'},{g:'장기',color:'#c62828'},{g:'권한오픈',color:'#6a1b9a'},{g:'권한+브리핑',color:'#3949ab'},{g:'이관완료',color:'#2e7d32'}];return GRADES.map(({g,color})=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);">${gradeBadge(g)}<span style="font-size:13px;font-weight:700;color:${color};">${s.gradeMap[g]||0}건</span></div>`).join('')+`<div style="position:relative;height:150px;margin-top:8px;"><canvas id="gradeChart"></canvas></div>`;}
+function renderBudgetSection(s){const bb=s.budgetBands;const keys=Object.keys(bb);const colors=['#3949ab','#2e7d32','#e65100','#6a1b9a','#c62828'];return`<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px;">${keys.map((k,i)=>`<div style="background:var(--surface2);border-radius:8px;padding:6px;text-align:center;"><div style="font-size:9px;color:var(--text-sub);margin-bottom:2px;">${k}</div><div style="font-size:15px;font-weight:700;color:${colors[i]};">${bb[k].count}</div><div style="font-size:9px;color:var(--text-muted);">${fmtB(bb[k].total)}</div></div>`).join('')}</div><div style="position:relative;height:150px;"><canvas id="budgetChart"></canvas></div>`;}
 
 // ── 이관완료 전환 현황 ─────────────────────────
 window._transferAll=[];
