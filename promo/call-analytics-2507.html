@@ -484,7 +484,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.9.0';
+const DASHBOARD_VERSION = 'v7.9.1';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -980,7 +980,7 @@ function parseExcelFile(file) {
 // "적용월"이 그 달 이하인 기록 중 가장 최근(가장 큰) 것을 사용. 동일 적용월 중복이 있으면 시트에서 더 나중에
 // 저장된(더 아래에 있는) 값을 우선. 이력이 없으면 현재 설정값(fallback)을 그대로 씀.
 function resolveDailyGoal(name, rangeStart, fallback) {
-  const yearMonth = `${rangeStart.getFullYear()}-${String(rangeStart.getMonth()+1).padStart(2,'0')}`;
+  const yearMonth = getWeekYearMonth(rangeStart);
   const entries = STATE.goalHistory
     .map((g, idx) => ({ ym: String(g['적용월']).trim(), goal: g['일목표분'], name: g['사원명'], idx }))
     .filter(g => g.name === name && g.ym <= yearMonth);
@@ -1028,8 +1028,10 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     return d >= wsStr && d <= weStr;
   });
 
-  const monthStart = new Date(rangeStart.getFullYear(), rangeStart.getMonth(), 1);
-  const monthEnd = new Date(rangeStart.getFullYear(), rangeStart.getMonth() + 1, 0);
+  const weekYearMonth = getWeekYearMonth(rangeStart);
+  const [wyYear, wyMonth] = weekYearMonth.split('-').map(Number);
+  const monthStart = new Date(wyYear, wyMonth - 1, 1);
+  const monthEnd = new Date(wyYear, wyMonth, 0);
   const monthStartStr = dateStr(monthStart);
   const monthEndStr = dateStr(monthEnd);
   const monthSales = STATE.sales.filter(s => {
@@ -1185,6 +1187,20 @@ function fmtDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
+// 특정 주(월요일 날짜 기준)를 "자동 계산(월요일이 속한 달)"과 다르게 취급하고 싶을 때 여기에 추가.
+// key: 그 주 월요일 날짜(yyyy-mm-dd), value: 소속시킬 달(yyyy-mm)
+// 예: 8/31(월)~9/4(금) 주는 대부분 9월 실적이라 9월 첫째 주로 취급하기로 함
+const WEEK_MONTH_OVERRIDE = {
+  '2026-08-31': '2026-09'
+};
+
+// 주간 범위(rangeStart)가 어느 달 소속인지 결정. 오버라이드가 있으면 그걸 우선, 없으면 월요일 기준 자동 계산.
+function getWeekYearMonth(rangeStart) {
+  const key = `${rangeStart.getFullYear()}-${String(rangeStart.getMonth()+1).padStart(2,'0')}-${String(rangeStart.getDate()).padStart(2,'0')}`;
+  if (WEEK_MONTH_OVERRIDE[key]) return WEEK_MONTH_OVERRIDE[key];
+  return `${rangeStart.getFullYear()}-${String(rangeStart.getMonth()+1).padStart(2,'0')}`;
+}
+
 function computeWeekRangeForOffset(offset) {
   if (offset === 0) return { start: new Date(FIRST_WEEK_START), end: new Date(FIRST_WEEK_END) };
   const mon = new Date(SECOND_WEEK_MONDAY);
@@ -1203,15 +1219,14 @@ function computeWeekRangeForOffset(offset) {
 function computeMissStreak(name, currentOffset) {
   if (currentOffset <= 0) return { stage: 0, lastMissedOffset: null };
   const currentRange = computeWeekRangeForOffset(currentOffset);
-  const targetYear = currentRange.start.getFullYear();
-  const targetMonth = currentRange.start.getMonth();
+  const targetYearMonth = getWeekYearMonth(currentRange.start);
 
   let stage = 0;
   let lastMissedOffset = null;
   const lookbackLimit = Math.min(currentOffset, 12);
   for (let offset = currentOffset - lookbackLimit; offset < currentOffset; offset++) {
     const range = computeWeekRangeForOffset(offset);
-    if (range.start.getFullYear() !== targetYear || range.start.getMonth() !== targetMonth) continue; // 다른 달이면 건너뜀 (월 경계 리셋)
+    if (getWeekYearMonth(range.start) !== targetYearMonth) continue; // 다른 달이면 건너뜀 (월 경계 리셋)
     const data = computeAgentDataForRange(range.start, range.end, offset)[name];
     if (!data || data.dailyGoal === 0) continue;
     if (data.capUpOverride) continue; // 매출 캡업 체크된 주는 회차 계산에서 완전히 제외 (이력 안 남김)
