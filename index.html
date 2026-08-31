@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.52</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.53</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -245,7 +245,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.52</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.53</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -388,7 +388,7 @@ function rankIcon(i){return['🥇','🥈','🥉'][i]||(i+1)+'위';}
 function rc(i){return['r1','r2','r3'][i]||'';}
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='err'?'#c62828':'#1b5e20';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 function loading(show,txt='불러오는 중...'){document.getElementById('ltxt').textContent=txt;document.getElementById('lov').classList.toggle('show',show);}
-function toggleC(id){const b=document.getElementById(id),a=document.getElementById(id+'A');const c=b.classList.toggle('collapsed');if(a)a.style.transform=c?'rotate(-90deg)':'rotate(0deg)';}
+function toggleC(id){const b=document.getElementById(id),a=document.getElementById(id+'A');const c=b.classList.toggle('collapsed');if(a)a.style.transform=c?'rotate(-90deg)':'rotate(0deg)';if(!c){setTimeout(()=>{if(chartGrade)chartGrade.resize();if(chartBudget)chartBudget.resize();if(typeof _npTrendChart!=='undefined'&&_npTrendChart)_npTrendChart.resize();},260);}}
 
 function renderRecallChips(recalls){
   if(!recalls||!recalls.length)return'<span style="color:var(--text-muted);">-</span>';
@@ -463,7 +463,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v553';
+const LS_VER='v554';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -765,7 +765,10 @@ function renderDash(stats,roleInfo,filteredRows){
   document.getElementById('headerScope').textContent=(roleInfo.scope||'-')+' | '+new Date().toLocaleString('ko-KR');
   let html='';
   html+=`<div id="jump-new">`+renderNewProspectSection(rows)+`</div>`;
-  html+=`<div id="jump-grade" class="g2"><div class="sec"><div class="sec-hd sh-b">🎯 가망도별 현황 <span style="font-size:14px;font-weight:700;color:#3949ab;">(${getFilterLabel()})</span></div>${renderGradeSection(stats)}</div><div class="sec"><div class="sec-hd sh-o">💰 예산 금액대별 분포 <span style="font-size:14px;font-weight:700;color:#e65100;">(${getFilterLabel()})</span></div>${renderBudgetSection(stats)}</div></div>`;
+  html+=`<div id="jump-grade" class="g2">
+    <div class="sec"><div class="sec-hd sh-b" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;" onclick="toggleC('gradeBody')"><span><span id="gradeBodyA" class="carr" style="margin-right:4px;">▼</span>🎯 가망도별 현황 <span style="font-size:14px;font-weight:700;color:#3949ab;">(${getFilterLabel()})</span></span></div><div class="cbody" id="gradeBody">${renderGradeSection(stats)}</div></div>
+    <div class="sec"><div class="sec-hd sh-o" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;" onclick="toggleC('budgetBody')"><span><span id="budgetBodyA" class="carr" style="margin-right:4px;">▼</span>💰 예산 금액대별 분포 <span style="font-size:14px;font-weight:700;color:#e65100;">(${getFilterLabel()})</span></span></div><div class="cbody" id="budgetBody">${renderBudgetSection(stats)}</div></div>
+  </div>`;
   html+=`<div id="jump-check">`+renderCheckSection(rows)+`</div>`;
   html+=`<div id="jump-transfer">`+renderRecentTransfers(stats)+`</div>`;
   html+=`<div id="jump-member">`+renderMemberStat(stats)+`</div>`;
@@ -873,9 +876,10 @@ function renderNewProspectSection(rows){
   setTimeout(()=>initNPTrendChart(chartMonths,chartTotal,chartPromo,chartDbAll),100);
   return`<div class="sec" style="margin-bottom:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div class="sec-hd sh-g" style="margin-bottom:0;">🟢 신규 가망건 현황</div>
+      <div class="sec-hd sh-g" style="margin-bottom:0;cursor:pointer;" onclick="toggleC('npBody')"><span id="npBodyA" class="carr" style="margin-right:4px;">▼</span>🟢 신규 가망건 현황</div>
       <button id="npPromoBtn" onclick="toggleNPPromo()" style="padding:4px 14px;border-radius:16px;border:1.5px solid #ce93d8;background:var(--surface);color:#7b1fa2;font-size:12px;font-weight:600;cursor:pointer;">🟣 P만 보기</button>
     </div>
+    <div class="cbody" id="npBody">
     <div style="margin-bottom:16px;padding:14px;background:var(--surface2);border-radius:10px;">
       <div style="font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:10px;">📊 최근 6개월 신규 가망건 추이</div>
       <div style="position:relative;height:160px;"><canvas id="npTrendChart"></canvas></div>
@@ -901,6 +905,7 @@ function renderNewProspectSection(rows){
     <div id="np_today">${tabContent(todayRows,mRange.start,mRange.end,'오늘 신규 가망건이 없습니다')}</div>
     <div id="np_week" style="display:none;">${tabContent(weekRows,mRange.start,mRange.end,'이번 주 신규 가망건이 없습니다')}</div>
     <div id="np_month" style="display:none;">${tabContent(monthRows,mRange.start,mRange.end,'이번 달 신규 가망건이 없습니다')}</div>
+    </div>
   </div>`;
 }
 
@@ -1102,8 +1107,9 @@ function renderCheckSection(rows){
 
   return`<div class="sec" style="margin-bottom:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-      <div class="sec-hd sh-r" style="margin-bottom:0;">📋 CHECK 가망건 <span style="font-size:16px;font-weight:800;color:#c62828;">[${getFilterLabel()}]</span></div>
+      <div class="sec-hd sh-r" style="margin-bottom:0;cursor:pointer;" onclick="toggleC('checkBody')"><span id="checkBodyA" class="carr" style="margin-right:4px;">▼</span>📋 CHECK 가망건 <span style="font-size:16px;font-weight:800;color:#c62828;">[${getFilterLabel()}]</span></div>
     </div>
+    <div class="cbody" id="checkBody">
     <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:12px;">
       <button id="ct_need" onclick="switchCheckTab('need')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:700;color:#c62828;border-bottom:3px solid #c62828;cursor:pointer;margin-bottom:-2px;">🔴 체크 필요 <span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${needItems.length}</span></button>
       <button id="ct_done" onclick="switchCheckTab('done')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">✅ 확인완료 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${doneItems.length}</span></button>
@@ -1134,6 +1140,7 @@ function renderCheckSection(rows){
       ${doneItems.length?grid2(doneItems.map(l=>renderLogCard(l,true)).join('')):emptyMsg('확인완료 항목이 없습니다')}
     </div>
     <div id="ctb_archive" style="display:none;">${archiveItems.length?grid2(archiveItems.map(l=>renderLogCard(l,false)).join('')):emptyMsg('보관된 항목이 없습니다')}</div>
+    </div>
   </div>`;
 }
 
