@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.75</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.76</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.75</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.76</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -500,7 +500,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v576';
+const LS_VER='v577';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1230,7 +1230,7 @@ function renderCheckSection(rows){
       <div style="display:flex;align-items:center;gap:6px;">
         <button onclick='checkConfirm(this,${JSON.stringify({company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cat}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
         <span class="recall-tip" style="cursor:help;"><span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${cat}</span><span class="tip-content">${(reason||'').replace(/</g,'&lt;')}</span></span>
-        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${r.company}</strong>${r.url?`<span onclick="openUrl('${r.url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
+        <div onclick='jumpToCompanyInList(${JSON.stringify(r.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${r.company}</strong>${r.url?`<span onclick="event.stopPropagation();openUrl('${r.url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
         <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
         <div style="font-size:11px;white-space:nowrap;flex-shrink:0;">${gradeBadge(r.grade)}</div>
       </div>
@@ -1256,7 +1256,7 @@ function renderCheckSection(rows){
       <div style="display:flex;align-items:center;gap:6px;">
         ${actionBtn}
         <span style="background:${CHECK_CAT_COLOR[l.category]}1a;color:${CHECK_CAT_COLOR[l.category]};border:1px solid ${CHECK_CAT_COLOR[l.category]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${l.category}</span>
-        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${l.company}</strong>${url?`<span onclick="openUrl('${url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
+        <div onclick='jumpToCompanyInList(${JSON.stringify(l.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${l.company}</strong>${url?`<span onclick="event.stopPropagation();openUrl('${url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
         <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${l.manager}</div>
         <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${l.actedAt.slice(5,16)}</div>
         ${closeBtn}
@@ -1822,6 +1822,18 @@ function closeSidePanel(){
   panel.classList.remove('open');
   overlay.style.display='none';
   setTimeout(()=>{panel.style.display='none';},250);
+}
+function jumpToCompanyInList(company){
+  // CHECK 섹션이 접혀있으면 상관없이, 전체 가망건 리스트(fl) 섹션을 펼치고 검색어를 채운 뒤 스크롤 이동
+  const flBody=document.getElementById('fl');
+  const flArrow=document.getElementById('flA');
+  if(flBody&&flBody.classList.contains('collapsed')){flBody.classList.remove('collapsed');if(flArrow)flArrow.style.transform='rotate(0deg)';}
+  const kwInput=document.getElementById('fKw');
+  if(kwInput){kwInput.value=company;applyFilter();}
+  setTimeout(()=>{
+    expandAllDateGroups(true); // 검색된 결과 바로 펼쳐서 보이게
+    jumpTo('jump-list');
+  },50);
 }
 function jumpTo(id){
   const el=document.getElementById(id);
