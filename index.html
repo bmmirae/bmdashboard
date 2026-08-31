@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.45</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.46</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -58,7 +58,8 @@ body{font-family:'Pretendard','Segoe UI',sans-serif;background:var(--bg);color:v
 .logout-btn:hover{background:rgba(255,255,255,.2);}
 .theme-btn{background:var(--badge-bg);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;}
 .container{max-width:1700px;margin:0 auto;padding:20px 32px;}
-.jump-fab{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:80;display:flex;flex-direction:column;gap:8px;}
+.jump-fab{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:95;display:flex;flex-direction:column;gap:8px;}
+@media(min-width:1101px){#navWrap,#stickyDateBar{margin-right:76px;}}
 .jump-fab-item{width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s;border:none;color:#fff;font-size:9px;font-weight:700;line-height:1.3;text-align:center;padding:2px;}
 .jump-fab-item:hover{transform:translateX(-4px) scale(1.05);}
 .jump-fab-item span.emoji{font-size:16px;margin-bottom:1px;}
@@ -240,7 +241,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.45</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.46</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -448,7 +449,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v546';
+const LS_VER='v547';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -986,24 +987,24 @@ let _checkTab='need';
 let _checkLogData=[]; // 서버에서 로드한 체크로그
 
 function classifyCheckItem(r){
-  const cats=[];
+  const cats=[]; // {cat, reason}
   const isGmg=VALID_GRADES.includes(r.grade)&&r.grade!=='이관완료';
   const hasRecall=!!(r.recalls&&r.recalls.length);
   if(isGmg){
-    if(r.recalls&&r.recalls.length>=5) cats.push('컨택5회+');
+    if(r.recalls&&r.recalls.length>=5) cats.push({cat:'컨택5회+',reason:'재콜 '+r.recalls.length+'회 진행 중 (5회 이상)'});
     const biz3=getRecentBizDates(3);
     const fc=normalizeDate(r.firstCall)||'';
-    if(biz3.has(fc)) cats.push('신규3일');
+    if(biz3.has(fc)) cats.push({cat:'신규3일',reason:'첫콜일 '+fc+' (최근 3영업일 이내 신규 등록)'});
     if(hasRecall){
       const dates=r.recalls.map(rc=>typeof rc==='object'?normalizeDate(rc.date)||'':normalizeDate(String(rc).slice(0,10))||'').filter(d=>/^\d{4}-\d{2}-\d{2}$/.test(d));
       if(dates.length){
         const latest=dates.sort().reverse()[0];
         const diffDays=Math.floor((new Date(today())-new Date(latest))/86400000);
-        if(diffDays>7) cats.push('컨택정체');
+        if(diffDays>7) cats.push({cat:'컨택정체',reason:'마지막 컨택 '+latest+' 이후 '+diffDays+'일 경과 (7일 초과)'});
       }
     }
   }else{
-    if(isPromo(r)) cats.push('비가망P');
+    if(isPromo(r)) cats.push({cat:'비가망P',reason:'가망도 미지정이지만 예산·담당자·연락처·이메일 등록 완료'});
     if(hasRecall){
       const longMemoDates=new Set();
       r.recalls.forEach(rc=>{
@@ -1012,7 +1013,7 @@ function classifyCheckItem(r){
           if(d) longMemoDates.add(d);
         }
       });
-      if(longMemoDates.size>=3) cats.push('숨은가망');
+      if(longMemoDates.size>=3) cats.push({cat:'숨은가망',reason:'재콜 메모 15자 이상 기록이 '+longMemoDates.size+'일 (3일 이상, 비가망건인데 컨택 활발)'});
     }
   }
   return cats;
@@ -1034,22 +1035,31 @@ function renderCheckSection(rows){
   const needItems=[];
   rows.forEach(r=>{
     const cats=classifyCheckItem(r);
-    cats.forEach(cat=>{
+    cats.forEach(({cat,reason})=>{
       const key=getCheckKey(r,cat);
       const logEntry=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===(normalizeDate(r.firstCall)||'')&&l.category===cat);
-      if(!logEntry) needItems.push({r,cat,key});
+      if(!logEntry) needItems.push({r,cat,reason,key});
     });
   });
   const doneItems=_checkLogData.filter(l=>l.status==='확인완료');
   const archiveItems=_checkLogData.filter(l=>l.status==='보관');
 
-  const renderNeedCard=({r,cat,key})=>{
-    return`<div class="np-row" style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
-      <button onclick='checkConfirm(${JSON.stringify({company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cat}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
-      <span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${cat}</span>
-      <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${r.company}</strong></div>
-      <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
-      <div style="font-size:11px;white-space:nowrap;flex-shrink:0;">${gradeBadge(r.grade)}</div>
+  const renderNeedCard=({r,cat,reason,key})=>{
+    const recallCnt=r.recalls?r.recalls.length:0;
+    const fc=fmtRecallDate(normalizeDate(r.firstCall));
+    return`<div class="np-row" style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
+      <div style="display:flex;align-items:center;gap:6px;">
+        <button onclick='checkConfirm(${JSON.stringify({company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cat}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
+        <span class="recall-tip" style="cursor:help;"><span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${cat}</span><span class="tip-content">${(reason||'').replace(/</g,'&lt;')}</span></span>
+        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${r.company}</strong></div>
+        <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
+        <div style="font-size:11px;white-space:nowrap;flex-shrink:0;">${gradeBadge(r.grade)}</div>
+      </div>
+      <div style="display:flex;gap:10px;padding-left:2px;font-size:10px;color:var(--text-muted);flex-wrap:wrap;">
+        <span>💰 ${fmtB(r.budget)||'-'}</span>
+        <span>📅 첫콜 ${fc}</span>
+        <span>🔁 재콜 ${recallCnt}회</span>
+      </div>
     </div>`;
   };
   const renderLogCard=(l,showArchiveBtn)=>{
