@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.74</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.75</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.74</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.75</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -500,7 +500,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v575';
+const LS_VER='v576';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1083,11 +1083,21 @@ const CHECK_CAT_COLOR={'컨택5회+':'#1565c0','신규3일':'#2e7d32','컨택정
 
 function getCheckKey(r,cat){return r.company+'|||'+r.manager+'|||'+(normalizeDate(r.firstCall)||'')+'|||'+cat;}
 
+function dedupeCheckLog(rows){
+  // 업체명+담당자+첫콜날짜+분류가 같으면 가장 최근(actedAt) 것만 남김
+  const map=new Map();
+  rows.forEach(l=>{
+    const key=l.company+'|||'+l.manager+'|||'+l.firstCall+'|||'+l.category;
+    const existing=map.get(key);
+    if(!existing||(l.actedAt||'')>(existing.actedAt||'')) map.set(key,l);
+  });
+  return[...map.values()];
+}
 async function loadCheckLog(){
   if(!SESSION)return;
   try{
     const res=await callServer('serverGetCheckLog',{role:SESSION.role,token:SESSION.token});
-    if(res&&res.success) _checkLogData=res.rows||[];
+    if(res&&res.success) _checkLogData=dedupeCheckLog(res.rows||[]);
   }catch(e){}
 }
 
@@ -1218,7 +1228,7 @@ function renderCheckSection(rows){
     const fc=fmtRecallDate(normalizeDate(r.firstCall));
     return`<div class="np-row" style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
       <div style="display:flex;align-items:center;gap:6px;">
-        <button onclick='checkConfirm(${JSON.stringify({company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cat}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
+        <button onclick='checkConfirm(this,${JSON.stringify({company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cat}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
         <span class="recall-tip" style="cursor:help;"><span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${cat}</span><span class="tip-content">${(reason||'').replace(/</g,'&lt;')}</span></span>
         <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${r.company}</strong>${r.url?`<span onclick="openUrl('${r.url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
         <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
@@ -1235,6 +1245,9 @@ function renderCheckSection(rows){
     const actionBtn=showArchiveBtn
       ?`<button onclick='checkArchive(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📌 보관</button>`
       :`<button onclick='checkDelete(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #c62828;background:var(--surface);color:#c62828;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗑 삭제</button>`;
+    const closeBtn=showArchiveBtn
+      ?`<button onclick='checkDelete(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' title="삭제 (중복 등 잘못 처리된 항목 제거)" style="background:none;border:none;color:var(--text-muted);font-size:15px;font-weight:700;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;margin-left:auto;">✕</button>`
+      :'';
     const matched=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
     const url=matched?matched.url:'';
     const memoKey=getCheckKey({company:l.company,manager:l.manager,firstCall:l.firstCall},l.category).replace(/[^a-zA-Z0-9가-힣]/g,'_');
@@ -1246,6 +1259,7 @@ function renderCheckSection(rows){
         <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${l.company}</strong>${url?`<span onclick="openUrl('${url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
         <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${l.manager}</div>
         <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${l.actedAt.slice(5,16)}</div>
+        ${closeBtn}
       </div>
       <div id="memoView_${memoKey}" style="display:${hasMemo?'flex':'none'};align-items:flex-start;gap:6px;padding-left:2px;">
         <span style="font-size:10px;color:var(--text-muted);flex-shrink:0;margin-top:1px;">📝</span>
@@ -1361,12 +1375,16 @@ function switchCheckTab(tab){
   });
 }
 
-async function checkConfirm(item){
+async function checkConfirm(btn,item){
+  if(btn){
+    if(btn.disabled)return; // 중복 클릭 완전 차단
+    btn.disabled=true;btn.style.opacity='0.5';btn.style.cursor='default';btn.textContent='처리 중...';
+  }
   try{
     const res=await callServer('serverSaveCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:item.cat,status:'확인완료'});
-    if(res&&res.success){toast('✅ 확인완료 처리됨');await loadCheckLog();refreshCheckSectionOnly();}
-    else toast('❌ '+(res.error||'처리 실패'),'err');
-  }catch(e){toast('❌ '+e.message,'err');}
+    if(res&&res.success){toast('✅ 확인되었습니다');await loadCheckLog();refreshCheckSectionOnly();}
+    else{toast('❌ '+(res.error||'처리 실패'),'err');if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';btn.textContent='✔ 확인';}}
+  }catch(e){toast('❌ '+e.message,'err');if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';btn.textContent='✔ 확인';}}
 }
 async function checkArchive(item){
   try{
@@ -1376,7 +1394,7 @@ async function checkArchive(item){
   }catch(e){toast('❌ '+e.message,'err');}
 }
 async function checkDelete(item){
-  if(!confirm('보관함에서 완전히 삭제하시겠습니까?'))return;
+  if(!confirm('이 처리 기록을 삭제하시겠습니까?\n(삭제 후 해당 건이 여전히 조건에 해당하면 체크필요 목록에 다시 나타납니다)'))return;
   try{
     const res=await callServer('serverDeleteCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:item.cat});
     if(res&&res.success){toast('🗑 삭제 완료');await loadCheckLog();refreshCheckSectionOnly();}
