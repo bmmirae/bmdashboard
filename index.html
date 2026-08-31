@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.66</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.67</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -252,7 +252,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.66</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.67</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -470,7 +470,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v567';
+const LS_VER='v568';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1080,7 +1080,7 @@ function renderCheckSection(rows){
 
   // ── 부서장 요약 카드 (이번 달 처리 현황) ──
   const renderSummaryCard=()=>{
-    const now=new Date();const mRange=getMonthRange();
+    const mRange=getMonthRange();
     const processedThisMonth=_checkLogData.filter(l=>{
       const d=(l.actedAt||'').slice(0,10);
       return (l.status==='확인완료'||l.status==='보관')&&d>=mRange.start&&d<=mRange.end;
@@ -1098,12 +1098,56 @@ function renderCheckSection(rows){
       }).filter(d=>d!==null);
       if(diffs.length) avgDays=(diffs.reduce((a,b)=>a+b,0)/diffs.length).toFixed(1);
     }
-    // 최다 사유
-    const catCount={};
-    processedThisMonth.forEach(l=>{catCount[l.category]=(catCount[l.category]||0)+1;});
-    const topCat=Object.entries(catCount).sort((a,b)=>b[1]-a[1])[0];
 
-    // 사원별 통계
+    // ── 체크필요(미처리) 건의 본부/팀/사원별 분포 ──
+    const buCount={},teamCount={},memberCount={};
+    needItems.forEach(it=>{
+      const r=it.r;
+      buCount[r.bu]=(buCount[r.bu]||0)+1;
+      teamCount[r.team]=(teamCount[r.team]||0)+1;
+      memberCount[r.manager]=(memberCount[r.manager]||0)+1;
+    });
+
+    const role=SESSION.role;
+    const isAdmin=role==='center'||role==='관리자모드'||role==='master';
+    const isBuHead=role==='bm2'||role==='bm3';
+    const isTeamLead=['bm2_2','bm2_3','bm3_2'].includes(role);
+    const allNames=Object.values(ORG_MAP).flatMap(bu=>Object.values(bu).flat());
+    const filterIsAll=CURRENT_FILTER==='all';
+    const filterIsBu=!!ORG_MAP[CURRENT_FILTER];
+    const filterIsTeam=TEAM_ORDER.includes(CURRENT_FILTER);
+    const filterIsMember=allNames.includes(CURRENT_FILTER);
+
+    let distHtml='';
+    // 관리자가 전체 보기: 본부별 + 팀별
+    if(isAdmin&&filterIsAll){
+      const buRows=BU_ORDER.filter(bu=>buCount[bu]).map(bu=>`<button onclick="filterView('${bu}')" style="background:none;border:none;cursor:pointer;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:${bu==='BM2본부'?'#1565c0':'#7b1fa2'};">${bu==='BM2본부'?'🔵':'🟣'} ${bu} ${buCount[bu]}건</button>`).join('');
+      const teamRows=TEAM_ORDER.filter(t=>teamCount[t]).map(t=>`<button onclick="filterView('${t}')" style="background:none;border:none;cursor:pointer;padding:2px 8px;font-size:11px;color:var(--text-sub);">${t} ${teamCount[t]}건</button>`).join('');
+      distHtml=`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:4px;">🏢 본부/팀별 체크 필요 현황</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;">${buRows}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;padding-left:8px;">${teamRows}</div>
+      </div>`;
+    }
+    // 본부장이 본부 보기: 팀별
+    else if(isBuHead&&filterIsBu){
+      const myBu=CURRENT_FILTER;
+      const teamRows=TEAM_ORDER.filter(t=>t.startsWith(myBu==='BM2본부'?'BM2':'BM3')&&teamCount[t]).map(t=>`<button onclick="filterView('${t}')" style="background:none;border:none;cursor:pointer;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:var(--text);">👥 ${t} ${teamCount[t]}건</button>`).join('');
+      distHtml=teamRows?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:4px;">👥 팀별 체크 필요 현황</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">${teamRows}</div>
+      </div>`:'';
+    }
+    // 팀장이 팀 보기: 사원별
+    else if((isTeamLead||isBuHead)&&(filterIsTeam||filterIsAll)){
+      const memberRowsDist=Object.entries(memberCount).sort((a,b)=>b[1]-a[1]).map(([name,cnt])=>`<button onclick="filterView('${name}')" style="background:none;border:none;cursor:pointer;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:var(--text);">👤 ${name} ${cnt}건</button>`).join('');
+      distHtml=memberRowsDist?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:4px;">👤 사원별 체크 필요 현황</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;">${memberRowsDist}</div>
+      </div>`:'';
+    }
+
+    // 사원별 처리 통계 (펼치기용)
     const memberStat={};
     processedThisMonth.forEach(l=>{
       if(!memberStat[l.manager])memberStat[l.manager]={processed:0,days:[]};
@@ -1128,9 +1172,9 @@ function renderCheckSection(rows){
       <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--text-sub);">
         <span>처리 <strong style="color:var(--text);">${processedCount}건</strong></span>
         <span>평균 <strong style="color:var(--text);">${avgDays}일</strong></span>
-        <span>최다사유 <strong style="color:var(--text);">${topCat?topCat[0]+'('+topCat[1]+')':'-'}</strong></span>
         <span>📌 보관 중 <strong style="color:#7b1fa2;">${archiveItems.length}건</strong></span>
       </div>
+      ${distHtml}
       <div id="ckSummaryDetail" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
         ${memberRows.length?memberRows.map(m=>`<div style="display:flex;gap:12px;font-size:11px;color:var(--text-sub);padding:3px 0;flex-wrap:wrap;"><span style="min-width:70px;font-weight:600;color:var(--text);">👤 ${m.name}</span><span>처리 ${m.processed}건</span><span>평균 ${m.avg}일</span><span style="color:${m.pending>0?'#c62828':'var(--text-muted)'};">미처리 ${m.pending}건</span></div>`).join(''):'<div style="font-size:11px;color:var(--text-muted);">데이터가 없습니다</div>'}
       </div>
