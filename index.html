@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.54</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.55</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -60,7 +60,9 @@ body{font-family:'Pretendard','Segoe UI',sans-serif;background:var(--bg);color:v
 .container{max-width:1700px;margin:0 auto;padding:20px 32px;}
 .jump-fab{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:95;display:flex;flex-direction:column;gap:8px;}
 @media(min-width:1101px){#navWrap,#stickyDateBar{margin-right:76px;}}
-.jump-fab-item{width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s;border:none;color:#fff;font-size:9px;font-weight:700;line-height:1.3;text-align:center;padding:2px;}
+.jump-fab-item{width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s;border:none;color:#fff;font-size:9px;font-weight:700;line-height:1.3;text-align:center;padding:2px;position:relative;}
+.jump-fab-item.fab-popup::after{content:'↗';position:absolute;top:-4px;right:-4px;width:16px;height:16px;background:#fff;color:#333;border-radius:50%;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+.fab-popup-group{background:rgba(255,255,255,.12);border:1px dashed rgba(255,255,255,.5);border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:8px;}
 #sidePanel{transform:translateX(100%);transition:transform .25s ease;}
 #sidePanel.open{transform:translateX(0);}
 @keyframes fabBlink{0%,100%{box-shadow:0 2px 8px rgba(0,0,0,.15),0 0 0 0 rgba(198,40,40,.6);}50%{box-shadow:0 2px 8px rgba(0,0,0,.15),0 0 0 8px rgba(198,40,40,0);}}
@@ -245,7 +247,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.54</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.55</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -257,10 +259,10 @@ tr:hover td{background:var(--surface2);}
   </div>
   <div class="jump-fab" id="jumpFab">
     <button class="jump-fab-item" id="fabCheck" style="background:#c62828;" onclick="jumpTo('jump-check')" title="CHECK 가망건"><span class="emoji">📋</span>CHECK</button>
-    <div style="height:1px;background:rgba(255,255,255,.5);margin:2px 6px;"></div>
-    <button class="jump-fab-item" style="background:#0277bd;" onclick="openSidePanel('contact')" title="컨택포인트 현황"><span class="emoji">🔗</span>컨택<br>포인트</button>
-    <button class="jump-fab-item" style="background:#e65100;" onclick="openSidePanel('recall')" title="재콜 현황"><span class="emoji">📞</span>재콜</button>
-    <div style="height:1px;background:var(--border);margin:2px 6px;"></div>
+    <div class="fab-popup-group">
+      <button class="jump-fab-item fab-popup" style="background:#0277bd;" onclick="openSidePanel('contact')" title="컨택포인트 현황 (클릭 시 패널 열림)"><span class="emoji">🔗</span>컨택<br>포인트</button>
+      <button class="jump-fab-item fab-popup" style="background:#e65100;" onclick="openSidePanel('recall')" title="재콜 현황 (클릭 시 패널 열림)"><span class="emoji">📞</span>재콜</button>
+    </div>
     <button class="jump-fab-item" style="background:#2e7d32;" onclick="jumpTo('jump-new')" title="신규 가망건 현황"><span class="emoji">🟢</span>신규</button>
     <button class="jump-fab-item" style="background:#3949ab;" onclick="jumpTo('jump-grade')" title="가망도별 현황"><span class="emoji">🎯</span>가망도</button>
     <button class="jump-fab-item" style="background:#00695c;" onclick="jumpTo('jump-transfer')" title="이관완료 전환 현황"><span class="emoji">🏆</span>이관완료</button>
@@ -463,7 +465,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v555';
+const LS_VER='v556';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1096,12 +1098,31 @@ function renderCheckSection(rows){
       :`<button onclick='checkDelete(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #c62828;background:var(--surface);color:#c62828;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗑 삭제</button>`;
     const matched=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
     const url=matched?matched.url:'';
-    return`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
-      ${actionBtn}
-      <span style="background:${CHECK_CAT_COLOR[l.category]}1a;color:${CHECK_CAT_COLOR[l.category]};border:1px solid ${CHECK_CAT_COLOR[l.category]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${l.category}</span>
-      <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${l.company}</strong>${url?`<span onclick="openUrl('${url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
-      <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${l.manager}</div>
-      <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${l.actedAt.slice(5,16)}</div>
+    const memoKey=getCheckKey({company:l.company,manager:l.manager,firstCall:l.firstCall},l.category).replace(/[^a-zA-Z0-9가-힣]/g,'_');
+    const hasMemo=!!(l.memo&&l.memo.trim());
+    return`<div style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
+      <div style="display:flex;align-items:center;gap:6px;">
+        ${actionBtn}
+        <span style="background:${CHECK_CAT_COLOR[l.category]}1a;color:${CHECK_CAT_COLOR[l.category]};border:1px solid ${CHECK_CAT_COLOR[l.category]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${l.category}</span>
+        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${l.company}</strong>${url?`<span onclick="openUrl('${url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
+        <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${l.manager}</div>
+        <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${l.actedAt.slice(5,16)}</div>
+      </div>
+      <div id="memoView_${memoKey}" style="display:${hasMemo?'flex':'none'};align-items:flex-start;gap:6px;padding-left:2px;">
+        <span style="font-size:10px;color:var(--text-muted);flex-shrink:0;margin-top:1px;">📝</span>
+        <span style="font-size:11px;color:var(--text-sub);flex:1;white-space:pre-wrap;">${(l.memo||'').replace(/</g,'&lt;')}</span>
+        <button onclick="showMemoInput('${memoKey}')" style="background:none;border:none;color:#3949ab;font-size:10px;cursor:pointer;flex-shrink:0;">수정</button>
+      </div>
+      <div id="memoEmpty_${memoKey}" style="display:${hasMemo?'none':'flex'};">
+        <button onclick="showMemoInput('${memoKey}')" style="padding:3px 10px;border-radius:12px;border:1px dashed var(--border);background:none;color:var(--text-muted);font-size:10px;cursor:pointer;">📝 이슈 내용 남기기</button>
+      </div>
+      <div id="memoInput_${memoKey}" style="display:none;gap:6px;align-items:flex-start;">
+        <textarea id="memoTa_${memoKey}" placeholder="이슈 내용을 입력하세요" style="flex:1;min-height:50px;padding:6px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:11px;resize:vertical;">${(l.memo||'').replace(/</g,'&lt;')}</textarea>
+        <div style="display:flex;flex-direction:column;gap:4px;">
+          <button onclick='saveCheckMemo(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category,memoKey}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:10px;border:none;background:#2e7d32;color:#fff;font-size:10px;font-weight:600;cursor:pointer;white-space:nowrap;">저장</button>
+          <button onclick="hideMemoInput('${memoKey}',${hasMemo})" style="padding:4px 10px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);font-size:10px;cursor:pointer;white-space:nowrap;">취소</button>
+        </div>
+      </div>
     </div>`;
   };
 
@@ -1190,6 +1211,31 @@ async function checkDelete(item){
     const res=await callServer('serverDeleteCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:item.cat});
     if(res&&res.success){toast('🗑 삭제 완료');await loadCheckLog();refreshCheckSectionOnly();}
     else toast('❌ '+(res.error||'삭제 실패'),'err');
+  }catch(e){toast('❌ '+e.message,'err');}
+}
+function showMemoInput(memoKey){
+  const view=document.getElementById('memoView_'+memoKey);
+  const empty=document.getElementById('memoEmpty_'+memoKey);
+  const input=document.getElementById('memoInput_'+memoKey);
+  if(view)view.style.display='none';
+  if(empty)empty.style.display='none';
+  if(input){input.style.display='flex';const ta=document.getElementById('memoTa_'+memoKey);if(ta)ta.focus();}
+}
+function hideMemoInput(memoKey,hadMemo){
+  const view=document.getElementById('memoView_'+memoKey);
+  const empty=document.getElementById('memoEmpty_'+memoKey);
+  const input=document.getElementById('memoInput_'+memoKey);
+  if(input)input.style.display='none';
+  if(hadMemo){if(view)view.style.display='flex';}
+  else{if(empty)empty.style.display='flex';}
+}
+async function saveCheckMemo(item){
+  const ta=document.getElementById('memoTa_'+item.memoKey);
+  const memo=ta?ta.value.trim():'';
+  try{
+    const res=await callServer('serverSaveCheckMemo',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:item.cat,memo});
+    if(res&&res.success){toast('📝 메모 저장 완료');await loadCheckLog();refreshCheckSectionOnly();}
+    else toast('❌ '+(res.error||'저장 실패'),'err');
   }catch(e){toast('❌ '+e.message,'err');}
 }
 function refreshCheckSectionOnly(){
