@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.44</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.45</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -57,7 +57,12 @@ body{font-family:'Pretendard','Segoe UI',sans-serif;background:var(--bg);color:v
 .logout-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 14px;border-radius:20px;font-size:12px;cursor:pointer;transition:background .2s;}
 .logout-btn:hover{background:rgba(255,255,255,.2);}
 .theme-btn{background:var(--badge-bg);border:1px solid rgba(255,255,255,.2);color:#fff;padding:5px 12px;border-radius:20px;font-size:12px;cursor:pointer;}
-.container{max-width:1800px;margin:0 auto;padding:20px 32px;}
+.container{max-width:1700px;margin:0 auto;padding:20px 32px;}
+.jump-fab{position:fixed;right:14px;top:50%;transform:translateY(-50%);z-index:80;display:flex;flex-direction:column;gap:8px;}
+.jump-fab-item{width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s;border:none;color:#fff;font-size:9px;font-weight:700;line-height:1.3;text-align:center;padding:2px;}
+.jump-fab-item:hover{transform:translateX(-4px) scale(1.05);}
+.jump-fab-item span.emoji{font-size:16px;margin-bottom:1px;}
+@media(max-width:1100px){.jump-fab{display:none;}}
 .nav-wrap{background:var(--surface);border-radius:12px;padding:12px 16px;margin-bottom:14px;box-shadow:var(--card-shadow);display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
 .nav-lbl{font-size:12px;color:var(--text-sub);font-weight:600;margin-right:4px;}
 .nbtn{padding:6px 14px;border-radius:18px;border:1.5px solid var(--border);background:var(--surface);color:var(--text-sub);font-size:12px;cursor:pointer;transition:all .2s;font-weight:500;}
@@ -235,7 +240,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.44</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.45</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -244,6 +249,16 @@ tr:hover td{background:var(--surface2);}
       <button class="theme-btn" onclick="openMemberMgmt()" title="인원 관리" style="font-size:16px;padding:5px 10px;">⚙️</button>
       <button class="logout-btn" onclick="doLogout()">로그아웃</button>
     </div>
+  </div>
+  <div class="jump-fab" id="jumpFab">
+    <button class="jump-fab-item" style="background:#2e7d32;" onclick="jumpTo('jump-new')" title="신규 가망건 현황"><span class="emoji">🟢</span>신규</button>
+    <button class="jump-fab-item" style="background:#3949ab;" onclick="jumpTo('jump-grade')" title="가망도별 현황"><span class="emoji">🎯</span>가망도</button>
+    <button class="jump-fab-item" style="background:#00695c;" onclick="jumpTo('jump-transfer')" title="이관완료 전환 현황"><span class="emoji">🏆</span>이관완료</button>
+    <button class="jump-fab-item" style="background:#6a1b9a;" onclick="jumpTo('jump-member')" title="담당자별 가망건 현황"><span class="emoji">👤</span>담당자</button>
+    <button class="jump-fab-item" style="background:#0277bd;" onclick="jumpTo('jump-contact')" title="컨택포인트 현황"><span class="emoji">🔗</span>컨택</button>
+    <button class="jump-fab-item" style="background:#e65100;" onclick="jumpTo('jump-recall')" title="재콜 현황"><span class="emoji">📞</span>재콜</button>
+    <button class="jump-fab-item" style="background:#c62828;" onclick="jumpTo('jump-check')" title="CHECK 가망건"><span class="emoji">📋</span>CHECK</button>
+    <button class="jump-fab-item" style="background:#455a64;" onclick="jumpTo('jump-list')" title="전체 가망건 리스트"><span class="emoji">📄</span>전체</button>
   </div>
   <div class="container">
     <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border);">
@@ -433,7 +448,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v545';
+const LS_VER='v546';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -734,14 +749,14 @@ function renderDash(stats,roleInfo,filteredRows){
   const rows=filteredRows||CURRENT_ROWS;
   document.getElementById('headerScope').textContent=(roleInfo.scope||'-')+' | '+new Date().toLocaleString('ko-KR');
   let html='';
-  html+=renderNewProspectSection(rows);
-  html+=`<div class="g2"><div class="sec"><div class="sec-hd sh-b">🎯 가망도별 현황 <span style="font-size:14px;font-weight:700;color:#3949ab;">(${getFilterLabel()})</span></div>${renderGradeSection(stats)}</div><div class="sec"><div class="sec-hd sh-o">💰 예산 금액대별 분포 <span style="font-size:14px;font-weight:700;color:#e65100;">(${getFilterLabel()})</span></div>${renderBudgetSection(stats)}</div></div>`;
-  html+=renderRecentTransfers(stats);
-  html+=renderMemberStat(stats);
-  html+=renderContactStat(stats);
-  html+=renderTodayRecall(stats);
-  html+=renderCheckSection(rows);
-  html+=renderListSection(rows);
+  html+=`<div id="jump-new">`+renderNewProspectSection(rows)+`</div>`;
+  html+=`<div id="jump-grade" class="g2"><div class="sec"><div class="sec-hd sh-b">🎯 가망도별 현황 <span style="font-size:14px;font-weight:700;color:#3949ab;">(${getFilterLabel()})</span></div>${renderGradeSection(stats)}</div><div class="sec"><div class="sec-hd sh-o">💰 예산 금액대별 분포 <span style="font-size:14px;font-weight:700;color:#e65100;">(${getFilterLabel()})</span></div>${renderBudgetSection(stats)}</div></div>`;
+  html+=`<div id="jump-transfer">`+renderRecentTransfers(stats)+`</div>`;
+  html+=`<div id="jump-member">`+renderMemberStat(stats)+`</div>`;
+  html+=`<div id="jump-contact">`+renderContactStat(stats)+`</div>`;
+  html+=`<div id="jump-recall">`+renderTodayRecall(stats)+`</div>`;
+  html+=`<div id="jump-check">`+renderCheckSection(rows)+`</div>`;
+  html+=`<div id="jump-list">`+renderListSection(rows)+`</div>`;
   document.getElementById('dashContent').innerHTML=html;
   setTimeout(()=>{if(typeof rtReset==='function')rtReset();},50);
   initCharts(stats);renderMemberTableBody(stats.memberStats||[]);
@@ -972,7 +987,7 @@ let _checkLogData=[]; // 서버에서 로드한 체크로그
 
 function classifyCheckItem(r){
   const cats=[];
-  const isGmg=VALID_GRADES.includes(r.grade);
+  const isGmg=VALID_GRADES.includes(r.grade)&&r.grade!=='이관완료';
   const hasRecall=!!(r.recalls&&r.recalls.length);
   if(isGmg){
     if(r.recalls&&r.recalls.length>=5) cats.push('컨택5회+');
@@ -1029,36 +1044,45 @@ function renderCheckSection(rows){
   const archiveItems=_checkLogData.filter(l=>l.status==='보관');
 
   const renderNeedCard=({r,cat,key})=>{
-    return`<div class="np-row" style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
-      <span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">${cat}</span>
-      <div style="flex:1;min-width:120px;"><strong style="font-size:12px;">${r.company}</strong></div>
-      <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;">👤 ${r.manager}</div>
-      <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;">${gradeBadge(r.grade)}</div>
-      <button onclick='checkConfirm(${JSON.stringify({company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cat}).replace(/'/g,"&apos;")})' style="padding:4px 12px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">✔ 확인</button>
+    return`<div class="np-row" style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
+      <button onclick='checkConfirm(${JSON.stringify({company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cat}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
+      <span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${cat}</span>
+      <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${r.company}</strong></div>
+      <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
+      <div style="font-size:11px;white-space:nowrap;flex-shrink:0;">${gradeBadge(r.grade)}</div>
     </div>`;
   };
   const renderLogCard=(l,showArchiveBtn)=>{
-    return`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
-      <span style="background:${CHECK_CAT_COLOR[l.category]}1a;color:${CHECK_CAT_COLOR[l.category]};border:1px solid ${CHECK_CAT_COLOR[l.category]}55;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap;">${l.category}</span>
-      <div style="flex:1;min-width:120px;"><strong style="font-size:12px;">${l.company}</strong></div>
-      <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;">👤 ${l.manager}</div>
-      <div style="font-size:11px;color:var(--text-muted);white-space:nowrap;">✅ ${l.actor} · ${l.actedAt}</div>
-      ${showArchiveBtn?`<button onclick='checkArchive(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 12px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">📌 보관</button>`:`<button onclick='checkDelete(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 12px;border-radius:14px;border:1px solid #c62828;background:var(--surface);color:#c62828;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;">🗑 삭제</button>`}
+    const actionBtn=showArchiveBtn
+      ?`<button onclick='checkArchive(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📌 보관</button>`
+      :`<button onclick='checkDelete(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #c62828;background:var(--surface);color:#c62828;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗑 삭제</button>`;
+    return`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
+      ${actionBtn}
+      <span style="background:${CHECK_CAT_COLOR[l.category]}1a;color:${CHECK_CAT_COLOR[l.category]};border:1px solid ${CHECK_CAT_COLOR[l.category]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${l.category}</span>
+      <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${l.company}</strong></div>
+      <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${l.manager}</div>
+      <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${l.actedAt.slice(5,16)}</div>
     </div>`;
   };
 
-  const emptyMsg=(msg)=>`<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px;">${msg}</div>`;
+  const emptyMsg=(msg)=>`<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px;grid-column:1/-1;">${msg}</div>`;
+  const grid2=(itemsHtml)=>`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">${itemsHtml}</div>`;
 
   return`<div class="sec" style="margin-bottom:14px;">
-    <div class="sec-hd sh-r" style="margin-bottom:12px;">📋 CHECK 가망건</div>
-    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:0;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div class="sec-hd sh-r" style="margin-bottom:0;">📋 CHECK 가망건 <span style="font-size:16px;font-weight:800;color:#c62828;">[${getFilterLabel()}]</span></div>
+    </div>
+    <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:12px;">
       <button id="ct_need" onclick="switchCheckTab('need')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:700;color:#c62828;border-bottom:3px solid #c62828;cursor:pointer;margin-bottom:-2px;">🔴 체크 필요 <span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${needItems.length}</span></button>
       <button id="ct_done" onclick="switchCheckTab('done')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">✅ 확인완료 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${doneItems.length}</span></button>
       <button id="ct_archive" onclick="switchCheckTab('archive')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">📌 보관 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${archiveItems.length}</span></button>
     </div>
-    <div id="ctb_need">${needItems.length?needItems.map(renderNeedCard).join(''):emptyMsg('체크할 가망건이 없습니다')}</div>
-    <div id="ctb_done" style="display:none;">${doneItems.length?doneItems.map(l=>renderLogCard(l,true)).join(''):emptyMsg('확인완료 항목이 없습니다')}</div>
-    <div id="ctb_archive" style="display:none;">${archiveItems.length?archiveItems.map(l=>renderLogCard(l,false)).join(''):emptyMsg('보관된 항목이 없습니다')}</div>
+    <div id="ctb_need">${needItems.length?grid2(needItems.map(renderNeedCard).join('')):emptyMsg('체크할 가망건이 없습니다')}</div>
+    <div id="ctb_done" style="display:none;">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 확인완료 항목은 처리일로부터 2주가 지나면 이 목록에서 자동으로 사라집니다 (기록은 계속 보관됩니다)</div>
+      ${doneItems.length?grid2(doneItems.map(l=>renderLogCard(l,true)).join('')):emptyMsg('확인완료 항목이 없습니다')}
+    </div>
+    <div id="ctb_archive" style="display:none;">${archiveItems.length?grid2(archiveItems.map(l=>renderLogCard(l,false)).join('')):emptyMsg('보관된 항목이 없습니다')}</div>
   </div>`;
 }
 
@@ -1097,17 +1121,10 @@ async function checkDelete(item){
   }catch(e){toast('❌ '+e.message,'err');}
 }
 function refreshCheckSectionOnly(){
-  const dc=document.getElementById('dashContent');if(!dc)return;
-  const secs=dc.querySelectorAll('.sec');
-  secs.forEach(sec=>{
-    const hd=sec.querySelector('.sec-hd.sh-r');
-    if(hd&&hd.textContent.includes('CHECK 가망건')){
-      const rows=CURRENT_FILTER==='all'?CURRENT_ROWS:(()=>{const allNames=Object.values(ORG_MAP).flatMap(bu=>Object.values(bu).flat());const isMember=allNames.includes(CURRENT_FILTER);return isMember?CURRENT_ROWS.filter(r=>r.manager===CURRENT_FILTER):CURRENT_ROWS.filter(r=>r.bu===CURRENT_FILTER||r.team===CURRENT_FILTER);})();
-      const tmp=document.createElement('div');tmp.innerHTML=renderCheckSection(rows);
-      if(tmp.firstElementChild) sec.replaceWith(tmp.firstElementChild);
-      switchCheckTab(_checkTab);
-    }
-  });
+  const wrap=document.getElementById('jump-check');if(!wrap)return;
+  const rows=CURRENT_FILTER==='all'?CURRENT_ROWS:(()=>{const allNames=Object.values(ORG_MAP).flatMap(bu=>Object.values(bu).flat());const isMember=allNames.includes(CURRENT_FILTER);return isMember?CURRENT_ROWS.filter(r=>r.manager===CURRENT_FILTER):CURRENT_ROWS.filter(r=>r.bu===CURRENT_FILTER||r.team===CURRENT_FILTER);})();
+  wrap.innerHTML=renderCheckSection(rows);
+  switchCheckTab(_checkTab);
 }
 
 function renderKPI(s){const gm=s.gradeMap;const done=(gm['이관완료']||0);const open=(gm['권한오픈']||0)+(gm['권한+브리핑']||0);const active=(gm['단기']||0)+(gm['장기']||0);return`<div class="g6" style="margin-bottom:14px;"><div class="card"><div class="card-lbl">📋 활성 가망건</div><div class="card-val cv-blue">${s.total}건</div><div class="card-sub">전체 DB ${s.totalAll||s.total}건 중</div></div><div class="card"><div class="card-lbl">✅ 이관완료</div><div class="card-val cv-green">${done}건</div><div class="card-sub">${s.total>0?(done/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-g" style="width:${s.total>0?done/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">🔓 권한오픈+브리핑</div><div class="card-val cv-purple">${open}건</div><div class="card-sub">${s.total>0?(open/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-p" style="width:${s.total>0?open/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">📅 단기+장기</div><div class="card-val cv-orange">${active}건</div><div class="card-sub">${s.total>0?(active/s.total*100).toFixed(1):0}%</div><div class="pbar"><div class="pb pb-o" style="width:${s.total>0?active/s.total*100:0}%"></div></div></div><div class="card"><div class="card-lbl">📞 재콜 현황</div><div class="card-val cv-red">${s.todayRecalls.length}건</div><div class="card-sub">오늘 · 놓친 ${s.missedRecalls?.length||0}건</div></div><div class="card"><div class="card-lbl">💰 예산 합계</div><div class="card-val cv-purple">${fmtB(s.totalBudget)}</div></div></div>`;}
@@ -1317,6 +1334,19 @@ function showAddMsg(msg,type){const el=document.getElementById('addMsg');el.text
 document.addEventListener('click',e=>{const modal=document.getElementById('memberMgmtModal');if(modal&&e.target===modal)closeMemberMgmt();});
 
 // ── 세션 복구 ─────────────────────────────────
+function jumpTo(id){
+  const el=document.getElementById(id);
+  if(!el){toast('해당 섹션이 없습니다','err');return;}
+  const header=document.querySelector('.header');
+  const navWrap=document.getElementById('navWrap');
+  const dateBar=document.getElementById('stickyDateBar');
+  const headerH=header?header.offsetHeight:0;
+  const navH=(navWrap&&navWrap.style.display!=='none')?navWrap.offsetHeight:0;
+  const dateH=(dateBar&&dateBar.style.display!=='none')?dateBar.offsetHeight:0;
+  const offset=headerH+navH+dateH+16;
+  const top=el.getBoundingClientRect().top+window.pageYOffset-offset;
+  window.scrollTo({top,behavior:'smooth'});
+}
 function updateStickyBarTop(){
   const header=document.querySelector('.header');
   const navWrap=document.getElementById('navWrap');
