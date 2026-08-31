@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.55</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.56</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -63,6 +63,8 @@ body{font-family:'Pretendard','Segoe UI',sans-serif;background:var(--bg);color:v
 .jump-fab-item{width:52px;height:52px;border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.15);transition:transform .15s;border:none;color:#fff;font-size:9px;font-weight:700;line-height:1.3;text-align:center;padding:2px;position:relative;}
 .jump-fab-item.fab-popup::after{content:'↗';position:absolute;top:-4px;right:-4px;width:16px;height:16px;background:#fff;color:#333;border-radius:50%;font-size:9px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 1px 3px rgba(0,0,0,.3);}
 .fab-popup-group{background:rgba(255,255,255,.12);border:1px dashed rgba(255,255,255,.5);border-radius:12px;padding:6px;display:flex;flex-direction:column;gap:8px;}
+.nav-summary-bar{background:var(--surface);padding:10px 16px;border-radius:12px 12px 0 0;box-shadow:var(--card-shadow);cursor:pointer;display:flex;align-items:center;transition:background .15s;}
+.nav-summary-bar:hover{background:var(--surface2);}
 #sidePanel{transform:translateX(100%);transition:transform .25s ease;}
 #sidePanel.open{transform:translateX(0);}
 @keyframes fabBlink{0%,100%{box-shadow:0 2px 8px rgba(0,0,0,.15),0 0 0 0 rgba(198,40,40,.6);}50%{box-shadow:0 2px 8px rgba(0,0,0,.15),0 0 0 8px rgba(198,40,40,0);}}
@@ -247,7 +249,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.55</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.56</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -285,11 +287,12 @@ tr:hover td{background:var(--surface2);}
     </div>
     <div id="tabContent_db">
       <div id="navWrap" style="display:none;position:sticky;z-index:90;margin-bottom:14px;">
-        <div style="background:var(--surface);padding:10px 16px;border-radius:12px 12px 0 0;box-shadow:var(--card-shadow);cursor:pointer;display:flex;align-items:center;" id="navSummaryBar" onclick="toggleNavExpand()">
-          <div style="display:flex;align-items:center;gap:8px;">
+        <div class="nav-summary-bar" id="navSummaryBar" onclick="toggleNavExpand()">
+          <div style="display:flex;align-items:center;gap:8px;width:100%;">
             <span class="nav-lbl">📌</span>
             <span id="navSummaryText" style="font-size:13px;font-weight:600;color:var(--text);">전체</span>
-            <span id="navExpandArr" style="margin-left:auto;font-size:12px;color:var(--text-sub);transition:transform .2s;">▼</span>
+            <span style="margin-left:auto;font-size:11px;color:var(--text-muted);">필터 펼치기/접기</span>
+            <span id="navExpandArr" style="font-size:12px;color:var(--text-sub);transition:transform .2s;">▼</span>
           </div>
         </div>
         <div id="navExpandBody" class="cbody" style="background:var(--surface);border-radius:0 0 12px 12px;box-shadow:var(--card-shadow);">
@@ -465,7 +468,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v556';
+const LS_VER='v557';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1511,9 +1514,11 @@ function updateStickyBarTop(){
 function toggleNavExpand(){
   const body=document.getElementById('navExpandBody');
   const arr=document.getElementById('navExpandArr');
+  const dateBar=document.getElementById('stickyDateBar');
   if(!body)return;
   const collapsed=body.classList.toggle('collapsed');
   if(arr) arr.style.transform=collapsed?'rotate(-90deg)':'rotate(0deg)';
+  if(dateBar) dateBar.style.display=collapsed?'none':'block';
   setTimeout(updateStickyBarTop,50);
 }
 function updateNavSummary(){
