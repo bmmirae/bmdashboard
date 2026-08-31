@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.59</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.60</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -250,7 +250,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.59</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.60</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -468,7 +468,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v560';
+const LS_VER='v561';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1132,6 +1132,28 @@ function renderCheckSection(rows){
 
   const emptyMsg=(msg)=>`<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px;grid-column:1/-1;">${msg}</div>`;
   const grid2=(itemsHtml)=>`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">${itemsHtml}</div>`;
+  const PAGE_SIZE=10;
+  window._checkPageState=window._checkPageState||{nongmg:1,gmg:1,done:1,archive:1};
+  const paginated=(items,pageKey,renderFn)=>{
+    if(!items.length) return emptyMsg('해당 항목이 없습니다');
+    const totalPages=Math.max(1,Math.ceil(items.length/PAGE_SIZE));
+    let page=window._checkPageState[pageKey]||1;
+    if(page>totalPages)page=totalPages;
+    window._checkPageState[pageKey]=page;
+    const start=(page-1)*PAGE_SIZE;
+    const pageItems=items.slice(start,start+PAGE_SIZE);
+    let html=grid2(pageItems.map(renderFn).join(''));
+    if(totalPages>1){
+      html+='<div style="display:flex;justify-content:center;gap:4px;margin-top:12px;flex-wrap:wrap;">';
+      html+=`<button onclick="changeCheckPage('${pageKey}',${page-1})" ${page<=1?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:${page<=1?'var(--text-muted)':'var(--text)'};font-size:11px;cursor:${page<=1?'default':'pointer'};">‹</button>`;
+      for(let p=1;p<=totalPages;p++){
+        html+=`<button onclick="changeCheckPage('${pageKey}',${p})" style="padding:4px 10px;border-radius:6px;border:1px solid ${p===page?'#3949ab':'var(--border)'};background:${p===page?'#3949ab':'var(--surface)'};color:${p===page?'#fff':'var(--text)'};font-size:11px;font-weight:${p===page?'700':'400'};cursor:pointer;">${p}</button>`;
+      }
+      html+=`<button onclick="changeCheckPage('${pageKey}',${page+1})" ${page>=totalPages?'disabled':''} style="padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:${page>=totalPages?'var(--text-muted)':'var(--text)'};font-size:11px;cursor:${page>=totalPages?'default':'pointer'};">›</button>`;
+      html+='</div>';
+    }
+    return html;
+  };
 
   return`<div class="sec" style="margin-bottom:14px;">
     <div class="chd" style="margin-bottom:12px;flex-wrap:wrap;gap:8px;" onclick="toggleC('checkBody')">
@@ -1156,19 +1178,19 @@ function renderCheckSection(rows){
       html+='</div>';
       html+=`<div id="ctSubSec_nongmg" class="ct-sub-sec">`;
       html+=`<div style="font-size:12px;font-weight:700;color:#7b1fa2;margin:4px 0 8px;display:flex;align-items:center;gap:6px;"><span style="width:4px;height:14px;background:#7b1fa2;border-radius:2px;display:inline-block;"></span>비가망건 (${nonGmgItems.length})</div>`;
-      html+=nonGmgItems.length?grid2(nonGmgItems.map(renderNeedCard).join('')):emptyMsg('해당 항목이 없습니다');
+      html+=paginated(nonGmgItems,'nongmg',renderNeedCard);
       html+='</div>';
       html+=`<div id="ctSubSec_gmg" class="ct-sub-sec">`;
       html+=`<div style="font-size:12px;font-weight:700;color:#1565c0;margin:16px 0 8px;display:flex;align-items:center;gap:6px;"><span style="width:4px;height:14px;background:#1565c0;border-radius:2px;display:inline-block;"></span>가망건 (${gmgItems.length})</div>`;
-      html+=gmgItems.length?grid2(gmgItems.map(renderNeedCard).join('')):emptyMsg('해당 항목이 없습니다');
+      html+=paginated(gmgItems,'gmg',renderNeedCard);
       html+='</div>';
       return html;
     })()}</div>
     <div id="ctb_done" style="display:none;">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 확인완료 항목은 처리일로부터 2주가 지나면 자동으로 사라집니다. 계속 추적이 필요한 건은 📌 보관으로 옮겨주세요.</div>
-      ${doneItems.length?grid2(doneItems.map(l=>renderLogCard(l,true)).join('')):emptyMsg('확인완료 항목이 없습니다')}
+      ${paginated(doneItems,'done',l=>renderLogCard(l,true))}
     </div>
-    <div id="ctb_archive" style="display:none;">${archiveItems.length?grid2(archiveItems.map(l=>renderLogCard(l,false)).join('')):emptyMsg('보관된 항목이 없습니다')}</div>
+    <div id="ctb_archive" style="display:none;">${paginated(archiveItems,'archive',l=>renderLogCard(l,false))}</div>
     </div>
   </div>`;
 }
@@ -1241,6 +1263,11 @@ async function saveCheckMemo(item){
     if(res&&res.success){toast('📝 메모 저장 완료');await loadCheckLog();refreshCheckSectionOnly();}
     else toast('❌ '+(res.error||'저장 실패'),'err');
   }catch(e){toast('❌ '+e.message,'err');}
+}
+function changeCheckPage(pageKey,page){
+  window._checkPageState=window._checkPageState||{};
+  window._checkPageState[pageKey]=page;
+  refreshCheckSectionOnly();
 }
 function refreshCheckSectionOnly(){
   const wrap=document.getElementById('jump-check');if(!wrap)return;
