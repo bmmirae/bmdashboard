@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.46</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.49</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -241,7 +241,7 @@ tr:hover td{background:var(--surface2);}
 <div id="dashScreen" style="display:none;">
   <div class="header">
     <div class="header-left">
-      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.46</span></h1>
+      <h1>📊 미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.49</span></h1>
       <div class="scope" id="headerScope">-</div>
     </div>
     <div class="header-right">
@@ -449,7 +449,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v547';
+const LS_VER='v550';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -988,7 +988,8 @@ let _checkLogData=[]; // 서버에서 로드한 체크로그
 
 function classifyCheckItem(r){
   const cats=[]; // {cat, reason}
-  const isGmg=VALID_GRADES.includes(r.grade)&&r.grade!=='이관완료';
+  if(r.grade==='이관완료') return cats; // 이관완료는 CHECK 대상에서 완전 제외
+  const isGmg=VALID_GRADES.includes(r.grade);
   const hasRecall=!!(r.recalls&&r.recalls.length);
   if(isGmg){
     if(r.recalls&&r.recalls.length>=5) cats.push({cat:'컨택5회+',reason:'재콜 '+r.recalls.length+'회 진행 중 (5회 이상)'});
@@ -1051,7 +1052,7 @@ function renderCheckSection(rows){
       <div style="display:flex;align-items:center;gap:6px;">
         <button onclick='checkConfirm(${JSON.stringify({company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cat}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
         <span class="recall-tip" style="cursor:help;"><span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${cat}</span><span class="tip-content">${(reason||'').replace(/</g,'&lt;')}</span></span>
-        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${r.company}</strong></div>
+        <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${r.company}</strong>${r.url?`<span onclick="openUrl('${r.url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
         <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
         <div style="font-size:11px;white-space:nowrap;flex-shrink:0;">${gradeBadge(r.grade)}</div>
       </div>
@@ -1066,10 +1067,12 @@ function renderCheckSection(rows){
     const actionBtn=showArchiveBtn
       ?`<button onclick='checkArchive(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📌 보관</button>`
       :`<button onclick='checkDelete(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #c62828;background:var(--surface);color:#c62828;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗑 삭제</button>`;
+    const matched=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
+    const url=matched?matched.url:'';
     return`<div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
       ${actionBtn}
       <span style="background:${CHECK_CAT_COLOR[l.category]}1a;color:${CHECK_CAT_COLOR[l.category]};border:1px solid ${CHECK_CAT_COLOR[l.category]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${l.category}</span>
-      <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${l.company}</strong></div>
+      <div style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><strong style="font-size:12px;">${l.company}</strong>${url?`<span onclick="openUrl('${url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
       <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${l.manager}</div>
       <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${l.actedAt.slice(5,16)}</div>
     </div>`;
@@ -1087,7 +1090,18 @@ function renderCheckSection(rows){
       <button id="ct_done" onclick="switchCheckTab('done')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">✅ 확인완료 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${doneItems.length}</span></button>
       <button id="ct_archive" onclick="switchCheckTab('archive')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">📌 보관 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${archiveItems.length}</span></button>
     </div>
-    <div id="ctb_need">${needItems.length?grid2(needItems.map(renderNeedCard).join('')):emptyMsg('체크할 가망건이 없습니다')}</div>
+    <div id="ctb_need">${(()=>{
+      if(!needItems.length) return emptyMsg('체크할 가망건이 없습니다');
+      const GMG_CATS=['컨택5회+','신규3일','컨택정체'];
+      const gmgItems=needItems.filter(it=>GMG_CATS.includes(it.cat));
+      const nonGmgItems=needItems.filter(it=>!GMG_CATS.includes(it.cat));
+      let html='';
+      html+=`<div style="font-size:12px;font-weight:700;color:#1565c0;margin:4px 0 8px;display:flex;align-items:center;gap:6px;"><span style="width:4px;height:14px;background:#1565c0;border-radius:2px;display:inline-block;"></span>가망건 (${gmgItems.length})</div>`;
+      html+=gmgItems.length?grid2(gmgItems.map(renderNeedCard).join('')):emptyMsg('해당 항목이 없습니다');
+      html+=`<div style="font-size:12px;font-weight:700;color:#7b1fa2;margin:16px 0 8px;display:flex;align-items:center;gap:6px;"><span style="width:4px;height:14px;background:#7b1fa2;border-radius:2px;display:inline-block;"></span>비가망건 (${nonGmgItems.length})</div>`;
+      html+=nonGmgItems.length?grid2(nonGmgItems.map(renderNeedCard).join('')):emptyMsg('해당 항목이 없습니다');
+      return html;
+    })()}</div>
     <div id="ctb_done" style="display:none;">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 확인완료 항목은 처리일로부터 2주가 지나면 이 목록에서 자동으로 사라집니다 (기록은 계속 보관됩니다)</div>
       ${doneItems.length?grid2(doneItems.map(l=>renderLogCard(l,true)).join('')):emptyMsg('확인완료 항목이 없습니다')}
