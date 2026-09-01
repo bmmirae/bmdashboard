@@ -162,6 +162,22 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
   0%,100% { box-shadow:0 0 3px 1px rgba(255,215,0,.5); }
   50% { box-shadow:0 0 9px 3px rgba(255,215,0,.95); }
 }
+.badge-platinum {
+  position:relative;
+  background:linear-gradient(90deg, #dbe9ff, #3b6fd6, #1a3c7a, #3b6fd6, #dbe9ff);
+  background-size:300% 100%;
+  color:#eaf1ff;
+  font-weight:800;
+  animation:platinum-shimmer 2.5s linear infinite, platinum-glow 1.6s ease-in-out infinite;
+}
+@keyframes platinum-shimmer {
+  0% { background-position:300% 0; }
+  100% { background-position:-300% 0; }
+}
+@keyframes platinum-glow {
+  0%,100% { box-shadow:0 0 3px 1px rgba(59,111,214,.5); }
+  50% { box-shadow:0 0 9px 3px rgba(59,111,214,.95); }
+}
 
 .metric-row { margin-bottom:8px; }
 .metric-label { display:flex; justify-content:space-between; font-size:11px; color:var(--text-dim); margin-bottom:4px; }
@@ -484,7 +500,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.9.5';
+const DASHBOARD_VERSION = 'v8.0.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1044,6 +1060,22 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     return d >= monthStartStr && d <= monthEndStr;
   });
 
+  // 전월 이관/피이관 총액 — 전월 이관 1천만원 이상(+ 피이관보다 큼) 달성 시 당월 미션 전체 면제
+  const PREV_MONTH_EXEMPT_AMOUNT = 10000000;
+  const prevMonthDate = new Date(wyYear, wyMonth - 2, 1);
+  const prevMonthStart = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth(), 1);
+  const prevMonthEnd = new Date(prevMonthDate.getFullYear(), prevMonthDate.getMonth() + 1, 0);
+  const prevMonthStartStr = dateStr(prevMonthStart);
+  const prevMonthEndStr = dateStr(prevMonthEnd);
+  const prevMonthSales = STATE.sales.filter(s => {
+    const d = String(s['날짜']).substring(0, 10);
+    return d >= prevMonthStartStr && d <= prevMonthEndStr;
+  });
+  const prevMonthReverseSales = STATE.reverseSales.filter(s => {
+    const d = String(s['날짜']).substring(0, 10);
+    return d >= prevMonthStartStr && d <= prevMonthEndStr;
+  });
+
   // 지난주 주간 이관목표(200만) 달성 여부 + 매출캡업 체크 여부 맵 — 콜미션 면제 판단용 (재귀 1단계로 제한)
   // 단, 지난주가 이번 주와 다른 달이면(월 경계) 이월시키지 않음 — 혜택/미션 결과는 달이 바뀌면 리셋
   let prevWeekSalesAchievedMap = {};
@@ -1109,6 +1141,13 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     // 월간이관이 300만원을 채워도, 월간피이관이 더 크면(순유출) 달성으로 인정하지 않음
     const monthlyExempt = monthlyTotal >= MONTHLY_EXEMPT_AMOUNT && monthlyTotal >= monthlyReverseTotal;
 
+    // 전월 이관 1천만원 이상(+ 피이관보다 큼) 달성 시 당월 콜+이관 미션 전체 면제
+    const myPrevMonthSales = prevMonthSales.filter(s => s['사원명'] === name);
+    const prevMonthTotal = myPrevMonthSales.reduce((sum, s) => sum + (Number(s['금액']) || 0), 0);
+    const myPrevMonthReverseSales = prevMonthReverseSales.filter(s => s['사원명'] === name);
+    const prevMonthReverseTotal = myPrevMonthReverseSales.reduce((sum, s) => sum + (Number(s['금액']) || 0), 0);
+    const prevMonthExempt = prevMonthTotal >= PREV_MONTH_EXEMPT_AMOUNT && prevMonthTotal >= prevMonthReverseTotal;
+
     const hasCallGoal = dailyGoal > 0 && weekGoalMin > 0;
     const callPct = hasCallGoal ? (totalMin / weekGoalMin * 100) : -1;
     const salesPct = weekSalesGoal > 0 ? (totalSalesAmt / weekSalesGoal * 100) : 0;
@@ -1120,8 +1159,8 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
 
     const exemptViaSales = salesPct >= 100 || prevWeekSalesAchievedMap[name] === true;
     const exemptViaCapUp = capUpOverride || prevWeekCapUpMap[name] === true;
-    // 주간 이관 200만원 달성 또는 매출 20%↑ 캡업 체크 시 그 주 + 다음 주 콜미션 면제
-    const callGoalExempt = !skipExempt && hasCallGoal && (exemptViaSales || exemptViaCapUp);
+    // 주간 이관 200만원 달성 또는 매출 20%↑ 캡업 체크 시 그 주 + 다음 주 콜미션 면제. 전월 1천만원 이관 달성 시 당월 콜 전체 면제.
+    const callGoalExempt = !skipExempt && hasCallGoal && (exemptViaSales || exemptViaCapUp || prevMonthExempt);
     const realCallAchieved = hasCallGoal && callPct >= 100; // 면제 여부와 무관한 실제 통화 달성 여부
     const callAchieved = hasCallGoal ? (callGoalExempt ? true : callPct >= 100) : false; // 패널티 회차 계산 등에 쓰이는 값(면제 포함)
 
@@ -1134,10 +1173,11 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     agentData[name] = {
       dailyGoal, weekGoalMin, totalMin, totalSec, callCount, outCount,
       weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt, monthlyReverseTotal, penaltyMin, penaltyRows,
+      prevMonthTotal, prevMonthReverseTotal, prevMonthExempt,
       weekSalesCount: mySales.length, monthSalesCount: myMonthSales.length,
       hasCallGoal, callPct, salesPct, callGoalExempt, capUpOverride, exemptViaCapUp,
       callAchieved, realCallAchieved,
-      salesAchieved: monthlyExempt || salesPct >= 100,
+      salesAchieved: monthlyExempt || salesPct >= 100 || prevMonthExempt,
       prospectTodayNew: prospect.todayNew || 0,
       prospectWeekNew: prospect.weekNew || 0,
       prospectMonthNew: prospect.monthNew || 0,
@@ -1250,7 +1290,7 @@ function computeMissStreak(name, currentOffset) {
       if (getWeekYearMonth(range.start) !== prevMonth) continue;
       const data = computeAgentDataForRange(range.start, range.end, offset)[name];
       if (!data || data.dailyGoal === 0) continue;
-      if (data.capUpOverride) continue;
+      if (data.capUpOverride || data.prevMonthExempt) continue;
       const bothMissed = !data.callAchieved && !data.salesAchieved;
       if (bothMissed) { carriedStage += 1; carriedMissedOffset = offset; }
     }
@@ -1265,7 +1305,7 @@ function computeMissStreak(name, currentOffset) {
     if (getWeekYearMonth(range.start) !== targetYearMonth) continue; // 다른 달이면 건너뜀 (월 경계 리셋)
     const data = computeAgentDataForRange(range.start, range.end, offset)[name];
     if (!data || data.dailyGoal === 0) continue;
-    if (data.capUpOverride) continue; // 매출 캡업 체크된 주는 회차 계산에서 완전히 제외 (이력 안 남김)
+    if (data.capUpOverride || data.prevMonthExempt) continue; // 매출 캡업 체크 또는 전월 1천만 이관 면제된 주는 회차 계산에서 완전히 제외 (이력 안 남김)
     const bothMissed = !data.callAchieved && !data.salesAchieved;
     if (bothMissed) { stage += 1; lastMissedOffset = offset; }
     // 완전 달성이거나 부분 달성이면 회차 변화 없음 (한 번 오른 회차는 유지)
@@ -1519,6 +1559,9 @@ function renderPersonCard(name, d) {
   let badge = '';
   if (d.dailyGoal === 0) {
     badge += `<span class="person-badge badge-sparkle">✨ 1억 이상 매출 달성자</span> `;
+  }
+  if (d.prevMonthExempt) {
+    badge += `<span class="person-badge badge-platinum">💎 전월 1천만원 이상 이관자</span> `;
   }
   if (d.penaltyMin > 0 && d.missStreak === 0) {
     badge += `<span class="person-badge badge-leave">⚠️ 패널티 +${d.penaltyMin}분</span> `;
