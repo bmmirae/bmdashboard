@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.76</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.77</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.76</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.77</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -500,7 +500,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v577';
+const LS_VER='v578';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1111,8 +1111,10 @@ function renderCheckSection(rows){
       if(!logEntry) needItems.push({r,cat,reason,key});
     });
   });
-  const doneItems=_checkLogData.filter(l=>l.status==='확인완료');
-  const archiveItems=_checkLogData.filter(l=>l.status==='보관');
+  // 현재 필터(본부/팀/인원) 범위에 속한 담당자만 체크로그에서 걸러냄
+  const scopedManagers=new Set(rows.map(r=>r.manager));
+  const doneItems=_checkLogData.filter(l=>l.status==='확인완료'&&scopedManagers.has(l.manager));
+  const archiveItems=_checkLogData.filter(l=>l.status==='보관'&&scopedManagers.has(l.manager));
 
   // 플로팅 배너 CHECK 버튼 깜빡임 토글
   setTimeout(()=>{
@@ -1125,7 +1127,7 @@ function renderCheckSection(rows){
     const mRange=getMonthRange();
     const processedThisMonth=_checkLogData.filter(l=>{
       const d=(l.actedAt||'').slice(0,10);
-      return (l.status==='확인완료'||l.status==='보관')&&d>=mRange.start&&d<=mRange.end;
+      return (l.status==='확인완료'||l.status==='보관')&&d>=mRange.start&&d<=mRange.end&&scopedManagers.has(l.manager);
     });
     const processedCount=processedThisMonth.length;
     // 평균 처리일: firstCall(가망건 최초 등록일) ~ 처리일 사이 근사치
