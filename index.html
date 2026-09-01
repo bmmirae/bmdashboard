@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.79</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.80</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.79</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.80</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -500,7 +500,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v580';
+const LS_VER='v581';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1080,6 +1080,7 @@ function classifyCheckItem(r){
 }
 
 const CHECK_CAT_COLOR={'컨택5회+':'#1565c0','신규3일':'#2e7d32','컨택정체':'#c62828','비가망P':'#7b1fa2','숨은가망':'#e65100'};
+const GMG_CATS_GLOBAL=['컨택5회+','신규3일','컨택정체'];
 
 function getCheckKey(r,cat){return r.company+'|||'+r.manager+'|||'+(normalizeDate(r.firstCall)||'')+'|||'+cat;}
 
@@ -1350,9 +1351,33 @@ function renderCheckSection(rows){
     })()}</div>
     <div id="ctb_done" style="display:none;">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 확인완료 항목은 처리일로부터 2주가 지나면 자동으로 사라집니다. 계속 추적이 필요한 건은 📌 보관으로 옮겨주세요.</div>
-      ${paginated(doneItems,'done',l=>renderLogCard(l,true))}
+      ${(()=>{
+        if(!doneItems.length) return emptyMsg('확인완료 항목이 없습니다');
+        const doneNonGmg=doneItems.filter(l=>!GMG_CATS_GLOBAL.includes(l.category));
+        const doneGmg=doneItems.filter(l=>GMG_CATS_GLOBAL.includes(l.category));
+        let h='<div style="display:flex;gap:6px;margin-bottom:12px;">';
+        h+=`<button id="ctDoneSub_all" onclick="switchCheckLogSub('done','all')" class="nbtn na" style="font-size:11px;">전체</button>`;
+        h+=`<button id="ctDoneSub_nongmg" onclick="switchCheckLogSub('done','nongmg')" class="nbtn" style="font-size:11px;">비가망건 (${doneNonGmg.length})</button>`;
+        h+=`<button id="ctDoneSub_gmg" onclick="switchCheckLogSub('done','gmg')" class="nbtn" style="font-size:11px;">가망건 (${doneGmg.length})</button>`;
+        h+='</div>';
+        h+=`<div id="ctDoneSubSec_nongmg" class="ct-sub-sec">`+paginated(doneNonGmg,'done_nongmg',l=>renderLogCard(l,true))+`</div>`;
+        h+=`<div id="ctDoneSubSec_gmg" class="ct-sub-sec">`+paginated(doneGmg,'done_gmg',l=>renderLogCard(l,true))+`</div>`;
+        return h;
+      })()}
     </div>
-    <div id="ctb_archive" style="display:none;">${paginated(archiveItems,'archive',l=>renderLogCard(l,false))}</div>
+    <div id="ctb_archive" style="display:none;">${(()=>{
+      if(!archiveItems.length) return emptyMsg('보관된 항목이 없습니다');
+      const archNonGmg=archiveItems.filter(l=>!GMG_CATS_GLOBAL.includes(l.category));
+      const archGmg=archiveItems.filter(l=>GMG_CATS_GLOBAL.includes(l.category));
+      let h='<div style="display:flex;gap:6px;margin-bottom:12px;">';
+      h+=`<button id="ctArchSub_all" onclick="switchCheckLogSub('archive','all')" class="nbtn na" style="font-size:11px;">전체</button>`;
+      h+=`<button id="ctArchSub_nongmg" onclick="switchCheckLogSub('archive','nongmg')" class="nbtn" style="font-size:11px;">비가망건 (${archNonGmg.length})</button>`;
+      h+=`<button id="ctArchSub_gmg" onclick="switchCheckLogSub('archive','gmg')" class="nbtn" style="font-size:11px;">가망건 (${archGmg.length})</button>`;
+      h+='</div>';
+      h+=`<div id="ctArchSubSec_nongmg" class="ct-sub-sec">`+paginated(archNonGmg,'arch_nongmg',l=>renderLogCard(l,false))+`</div>`;
+      h+=`<div id="ctArchSubSec_gmg" class="ct-sub-sec">`+paginated(archGmg,'arch_gmg',l=>renderLogCard(l,false))+`</div>`;
+      return h;
+    })()}</div>
     </div>
   </div>`;
 }
@@ -1372,6 +1397,18 @@ function switchCheckSub(sub){
   if(nonGmgSec) nonGmgSec.style.display=(sub==='all'||sub==='nongmg')?'block':'none';
   ['all','nongmg','gmg'].forEach(s=>{
     const btn=document.getElementById('ctSub_'+s);
+    if(btn) btn.classList.toggle('na',s===sub);
+  });
+}
+// 확인완료(done) / 보관(archive) 탭 전용 가망건·비가망건 서브탭 전환
+function switchCheckLogSub(tab,sub){
+  const prefix=tab==='done'?'ctDone':'ctArch';
+  const gmgSec=document.getElementById(prefix+'SubSec_gmg');
+  const nonGmgSec=document.getElementById(prefix+'SubSec_nongmg');
+  if(gmgSec) gmgSec.style.display=(sub==='all'||sub==='gmg')?'block':'none';
+  if(nonGmgSec) nonGmgSec.style.display=(sub==='all'||sub==='nongmg')?'block':'none';
+  ['all','nongmg','gmg'].forEach(s=>{
+    const btn=document.getElementById(prefix+'Sub_'+s);
     if(btn) btn.classList.toggle('na',s===sub);
   });
 }
