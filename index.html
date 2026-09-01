@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.77</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.78</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.77</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.78</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -500,7 +500,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v578';
+const LS_VER='v579';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1102,15 +1102,20 @@ async function loadCheckLog(){
 }
 
 function renderCheckSection(rows){
-  const needItems=[];
+  // 같은 업체(company+manager+firstCall)에 여러 조건이 동시 해당하면 카드 하나로 묶어서 배지만 여러 개 표시
+  const needMap=new Map();
   rows.forEach(r=>{
     const cats=classifyCheckItem(r);
-    cats.forEach(({cat,reason})=>{
-      const key=getCheckKey(r,cat);
+    const unlogged=cats.filter(({cat})=>{
       const logEntry=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===(normalizeDate(r.firstCall)||'')&&l.category===cat);
-      if(!logEntry) needItems.push({r,cat,reason,key});
+      return !logEntry;
     });
+    if(unlogged.length){
+      const rowKey=r.company+'|||'+r.manager+'|||'+(normalizeDate(r.firstCall)||'');
+      needMap.set(rowKey,{r,cats:unlogged});
+    }
   });
+  const needItems=[...needMap.values()];
   // 현재 필터(본부/팀/인원) 범위에 속한 담당자만 체크로그에서 걸러냄
   const scopedManagers=new Set(rows.map(r=>r.manager));
   const doneItems=_checkLogData.filter(l=>l.status==='확인완료'&&scopedManagers.has(l.manager));
@@ -1225,13 +1230,17 @@ function renderCheckSection(rows){
     </div>`;
   };
 
-  const renderNeedCard=({r,cat,reason,key})=>{
+  const renderNeedCard=({r,cats})=>{
     const recallCnt=r.recalls?r.recalls.length:0;
     const fc=fmtRecallDate(normalizeDate(r.firstCall));
+    const badgesHtml=cats.map(({cat,reason})=>
+      `<span class="recall-tip" style="cursor:help;"><span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${cat}</span><span class="tip-content">${(reason||'').replace(/</g,'&lt;')}</span></span>`
+    ).join('');
+    const confirmItem={company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cats:cats.map(c=>c.cat)};
     return`<div class="np-row" style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
-      <div style="display:flex;align-items:center;gap:6px;">
-        <button onclick='checkConfirm(this,${JSON.stringify({company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cat}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
-        <span class="recall-tip" style="cursor:help;"><span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${cat}</span><span class="tip-content">${(reason||'').replace(/</g,'&lt;')}</span></span>
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <button onclick='checkConfirm(this,${JSON.stringify(confirmItem).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
+        ${badgesHtml}
         <div onclick='jumpToCompanyInList(${JSON.stringify(r.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${r.company}</strong>${r.url?`<span onclick="event.stopPropagation();openUrl('${r.url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
         <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
         <div style="font-size:11px;white-space:nowrap;flex-shrink:0;">${gradeBadge(r.grade)}</div>
@@ -1321,8 +1330,9 @@ function renderCheckSection(rows){
     <div id="ctb_need">${(()=>{
       if(!needItems.length) return emptyMsg('체크할 가망건이 없습니다');
       const GMG_CATS=['컨택5회+','신규3일','컨택정체'];
-      const gmgItems=needItems.filter(it=>GMG_CATS.includes(it.cat));
-      const nonGmgItems=needItems.filter(it=>!GMG_CATS.includes(it.cat));
+      // 각 아이템의 cats는 항상 같은 그룹(가망건 or 비가망건)끼리만 묶임 (classifyCheckItem이 분리해서 반환하므로)
+      const gmgItems=needItems.filter(it=>GMG_CATS.includes(it.cats[0].cat));
+      const nonGmgItems=needItems.filter(it=>!GMG_CATS.includes(it.cats[0].cat));
       let html='<div style="display:flex;gap:6px;margin-bottom:12px;">';
       html+=`<button id="ctSub_all" onclick="switchCheckSub('all')" class="nbtn na" style="font-size:11px;">전체</button>`;
       html+=`<button id="ctSub_nongmg" onclick="switchCheckSub('nongmg')" class="nbtn" style="font-size:11px;">비가망건 (${nonGmgItems.length})</button>`;
@@ -1383,9 +1393,13 @@ async function checkConfirm(btn,item){
     btn.disabled=true;btn.style.opacity='0.5';btn.style.cursor='default';btn.textContent='처리 중...';
   }
   try{
-    const res=await callServer('serverSaveCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:item.cat,status:'확인완료'});
-    if(res&&res.success){toast('✅ 확인되었습니다');await loadCheckLog();refreshCheckSectionOnly();}
-    else{toast('❌ '+(res.error||'처리 실패'),'err');if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';btn.textContent='✔ 확인';}}
+    // 한 업체에 여러 조건(cats)이 동시에 걸린 경우 전부 확인완료로 순차 저장
+    const catList=item.cats||[item.cat];
+    for(const cat of catList){
+      const res=await callServer('serverSaveCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:cat,status:'확인완료'});
+      if(!res||!res.success) throw new Error((res&&res.error)||'처리 실패');
+    }
+    toast('✅ 확인되었습니다');await loadCheckLog();refreshCheckSectionOnly();
   }catch(e){toast('❌ '+e.message,'err');if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';btn.textContent='✔ 확인';}}
 }
 async function checkArchive(item){
