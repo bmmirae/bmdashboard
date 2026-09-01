@@ -484,7 +484,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.9.4';
+const DASHBOARD_VERSION = 'v7.9.5';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1045,15 +1045,19 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
   });
 
   // 지난주 주간 이관목표(200만) 달성 여부 + 매출캡업 체크 여부 맵 — 콜미션 면제 판단용 (재귀 1단계로 제한)
+  // 단, 지난주가 이번 주와 다른 달이면(월 경계) 이월시키지 않음 — 혜택/미션 결과는 달이 바뀌면 리셋
   let prevWeekSalesAchievedMap = {};
   let prevWeekCapUpMap = {};
   if (!skipExempt && offsetHint !== undefined && offsetHint > 0) {
     const prevRange = computeWeekRangeForOffset(offsetHint - 1);
-    const prevData = computeAgentDataForRange(prevRange.start, prevRange.end, offsetHint - 1, true);
-    Object.keys(prevData).forEach(n => {
-      prevWeekSalesAchievedMap[n] = prevData[n].salesPct >= 100;
-      prevWeekCapUpMap[n] = !!prevData[n].capUpOverride;
-    });
+    const prevYearMonth = getWeekYearMonth(prevRange.start);
+    if (prevYearMonth === weekYearMonth) {
+      const prevData = computeAgentDataForRange(prevRange.start, prevRange.end, offsetHint - 1, true);
+      Object.keys(prevData).forEach(n => {
+        prevWeekSalesAchievedMap[n] = prevData[n].salesPct >= 100;
+        prevWeekCapUpMap[n] = !!prevData[n].capUpOverride;
+      });
+    }
   }
 
   const agentData = {};
