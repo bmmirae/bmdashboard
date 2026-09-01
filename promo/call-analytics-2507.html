@@ -484,7 +484,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.9.2';
+const DASHBOARD_VERSION = 'v7.9.4';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -741,7 +741,7 @@ async function loadAllData() {
     const wsStr = STATE.weekStart ? fmtDateStr(STATE.weekStart) : null;
     const weStr = STATE.weekEnd ? fmtDateStr(STATE.weekEnd) : null;
     const [res] = await Promise.all([
-      fetch(API_URL + '?action=all'),
+      fetch(API_URL + '?action=all&_=' + Date.now(), { cache: 'no-store' }),
       loadProspectData(wsStr, weStr)
     ]);
     const data = await res.json();
@@ -981,9 +981,10 @@ function parseExcelFile(file) {
 // 저장된(더 아래에 있는) 값을 우선. 이력이 없으면 현재 설정값(fallback)을 그대로 씀.
 function resolveDailyGoal(name, rangeStart, fallback) {
   const yearMonth = getWeekYearMonth(rangeStart);
+  const targetName = String(name).trim();
   const entries = STATE.goalHistory
-    .map((g, idx) => ({ ym: String(g['적용월']).trim(), goal: g['일목표분'], name: g['사원명'], idx }))
-    .filter(g => g.name === name && g.ym <= yearMonth);
+    .map((g, idx) => ({ ym: String(g['적용월']).trim(), goal: g['일목표분'], name: String(g['사원명']).trim(), idx }))
+    .filter(g => g.name === targetName && g.ym <= yearMonth);
   if (entries.length === 0) return fallback;
   entries.sort((a, b) => b.ym.localeCompare(a.ym) || b.idx - a.idx); // 적용월 내림차순, 동률이면 더 나중 행 우선
   return Number(entries[0].goal) || 0;
