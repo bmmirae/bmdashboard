@@ -31,6 +31,8 @@
   --gold-bg: rgba(184,134,11,.12);
   --orange: #d2691e;
   --orange-bg: rgba(210,105,30,.12);
+  --platinum: #2952a3;
+  --platinum-bg: rgba(59,111,214,.12);
   --shadow: 0 1px 3px rgba(20,20,40,.08);
 }
 html[data-theme="dark"] {
@@ -55,6 +57,8 @@ html[data-theme="dark"] {
   --gold-bg: rgba(255,215,0,.15);
   --orange: #fb923c;
   --orange-bg: rgba(251,146,60,.18);
+  --platinum: #7ba3ff;
+  --platinum-bg: rgba(59,111,214,.20);
   --shadow: none;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -500,7 +504,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.0.1';
+const DASHBOARD_VERSION = 'v8.1.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1795,6 +1799,8 @@ function renderMissionSummaryTable() {
       monthlyTotal: d.monthlyTotal,
       monthlyReverseTotal: d.monthlyReverseTotal,
       monthlyExempt: d.monthlyExempt,
+      prevMonthTotal: d.prevMonthTotal,
+      prevMonthExempt: d.prevMonthExempt,
       salesCount,
       prospectTotal: prospect.weekNew || 0,
       prospectWeekPromoNew: prospect.weekPromoNew || 0
@@ -1808,7 +1814,10 @@ function renderMissionSummaryTable() {
       const ia = EXEMPT_ORDER.indexOf(a.name), ib = EXEMPT_ORDER.indexOf(b.name);
       return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
     });
-  const rankedList = list.filter(r => r.dailyGoal > 0);
+  // 전월 1천만원 이상 이관자(당월 미션 전체 면제, dailyGoal>0인 사람만 — 0인 사람은 이미 위 박스에 있음)
+  const prevMonthList = list.filter(r => r.prevMonthExempt && r.dailyGoal > 0)
+    .sort((a, b) => b.prevMonthTotal - a.prevMonthTotal);
+  const rankedList = list.filter(r => r.dailyGoal > 0 && !r.prevMonthExempt);
 
   // 월 300만원 이상 "실질" 달성자(피이관 차감 후에도 유효한 경우만): 월간이관 내림차순 (1위부터) → 나머지 이어서
   const monthlyAchievers = rankedList.filter(r => r.monthlyExempt)
@@ -1882,6 +1891,34 @@ function renderMissionSummaryTable() {
       html += `
         <div class="mission-row" style="grid-template-columns:${COLS};">
           <div class="mission-rank">✨</div>
+          <div class="mission-team">${row.team}</div>
+          <div class="mission-name">${row.name}</div>
+          <div class="mission-call">
+            <div class="mission-call-label">${c.callLabel}</div>
+            ${c.barHtml}
+          </div>
+          <div class="mission-sales-cell" style="${c.weekCellStyle}">${formatWon(row.weekSalesAmt)}</div>
+          <div class="mission-sales-cell" style="${c.monthCellStyle}">${formatWon(row.monthlyTotal)}</div>
+          <div class="mission-sales-cell" style="${c.benefitCellStyle}">${c.monthlyBenefit < 0 ? '-' : ''}${formatWon(Math.abs(c.monthlyBenefit))}</div>
+          <div class="mission-sales-cell">${row.salesCount}건 / ${row.prospectTotal}건</div>
+        </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── 전월 1천만원 이상 이관자 섹션 (플래티넘 테두리) ──
+  if (prevMonthList.length > 0) {
+    html += `
+      <div style="border:2px solid var(--platinum); border-radius:10px; padding:10px 8px; margin-bottom:14px; background:var(--platinum-bg);">
+        <div style="font-size:12px;font-weight:800;color:var(--platinum);margin-bottom:6px;padding:0 4px;">💎 전월 1천만원 이상 이관자</div>
+        <div class="mission-row head" style="grid-template-columns:${COLS};">
+          <div>순위</div><div>소속</div><div>이름</div><div>통화시간</div><div>주간이관</div><div>월간이관</div><div>월간베네핏</div><div>주간 이관/가망</div>
+        </div>`;
+    prevMonthList.forEach(row => {
+      const c = renderMissionCell(row);
+      html += `
+        <div class="mission-row" style="grid-template-columns:${COLS};">
+          <div class="mission-rank">💎</div>
           <div class="mission-team">${row.team}</div>
           <div class="mission-name">${row.name}</div>
           <div class="mission-call">
