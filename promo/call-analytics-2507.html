@@ -500,7 +500,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.0.0';
+const DASHBOARD_VERSION = 'v8.0.1';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1604,7 +1604,7 @@ function renderPersonCard(name, d) {
   if (d.capUpOverride) {
     badge += `<span class="person-badge" style="background:var(--blue-bg,transparent);color:var(--blue);border:1px solid var(--blue)">🚀 이번주 매출 캡업 체크됨</span> `;
   }
-  if (d.callGoalExempt) {
+  if (d.callGoalExempt && !d.prevMonthExempt) {
     badge += `<span class="person-badge" style="background:var(--gold-bg);color:var(--gold)">🎯 콜미션 면제(${d.exemptViaCapUp ? '매출캡업' : '이관200만'})</span> `;
   }
   if (d.leaveDays.length > 0) {
@@ -1630,6 +1630,7 @@ function renderPersonCard(name, d) {
     achClass = 'ach-sales';
     achBadge = `<span class="person-badge" style="background:var(--purple-bg);color:var(--purple)">💰 이관 달성${d.callGoalExempt ? ' (콜 면제)' : ''}</span>`;
   }
+  if (d.prevMonthExempt) achBadge = ''; // 플래티넘 배지가 이미 완전 면제를 뜻하므로 중복 표시 생략
 
   let callBar = '';
   if (d.dailyGoal === 0) {
