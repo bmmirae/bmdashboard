@@ -484,7 +484,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v7.9.1';
+const DASHBOARD_VERSION = 'v7.9.2';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1214,16 +1214,47 @@ function computeWeekRangeForOffset(offset) {
 // 규칙: 완전 미달성(콜+이관 모두 실패) 주를 만나면 +1 (누적). 단, 매출 20%↑ 캡업 체크(capUpOverride)된 주는
 // 콜·이관을 못 채웠어도 완전 미달성으로 안 치고 그냥 넘어감 (회차 자체가 안 생김). 완전 달성 주를 만나도
 // 회차는 내려가지 않고 그대로 유지(이력으로 남김). 부분 달성은 회차 변화 없음.
-// 목표 예외 인원(dailyGoal=0)은 계산에서 제외. 달이 바뀌면 회차는 0부터 다시 시작(월 경계에서 리셋).
+// 목표 예외 인원(dailyGoal=0)은 계산에서 제외.
+// 달이 바뀌면: 그 달의 "첫 주"에는 지난달 마지막 시점의 최종 회차(3회차든 4회차든 그 숫자 그대로)가 1회성으로
+// 이월되어 표시됨(그 회차에 맞는 조치를 이번 주에 수행). 단, 그 달의 두 번째 주부터는 이 이월 숫자와
+// 완전히 무관하게, 이번 달 자체에서 발생한 미달성만 0부터 새로 셈(이월 숫자에 이어붙여 누적되지 않음).
 // 반환값: { stage, lastMissedOffset } — lastMissedOffset은 현재 stage를 만든(가장 최근 완전 미달성) 주의 offset
 function computeMissStreak(name, currentOffset) {
   if (currentOffset <= 0) return { stage: 0, lastMissedOffset: null };
   const currentRange = computeWeekRangeForOffset(currentOffset);
   const targetYearMonth = getWeekYearMonth(currentRange.start);
+  const lookbackLimit = Math.min(currentOffset, 12);
 
+  // 이번 달에 속한 주가 lookback 범위 안에 하나도 없으면, 지금 보고 있는 주가 "이번 달의 첫 주"라는 뜻
+  let firstOffsetOfMonth = null;
+  for (let offset = currentOffset - lookbackLimit; offset < currentOffset; offset++) {
+    if (getWeekYearMonth(computeWeekRangeForOffset(offset).start) === targetYearMonth) { firstOffsetOfMonth = offset; break; }
+  }
+  const isFirstWeekOfMonth = (firstOffsetOfMonth === null);
+
+  if (isFirstWeekOfMonth) {
+    // 지난달 마지막 주 "그 주 결과까지 포함"한 최종 회차를 지난달 스코프로 재계산해서 그대로 이월(1회성 표시)
+    const prevOffset = currentOffset - 1;
+    if (prevOffset < 0) return { stage: 0, lastMissedOffset: null };
+    const prevMonth = getWeekYearMonth(computeWeekRangeForOffset(prevOffset).start);
+    let carriedStage = 0;
+    let carriedMissedOffset = null;
+    for (let offset = prevOffset - lookbackLimit; offset <= prevOffset; offset++) {
+      if (offset < 0) continue;
+      const range = computeWeekRangeForOffset(offset);
+      if (getWeekYearMonth(range.start) !== prevMonth) continue;
+      const data = computeAgentDataForRange(range.start, range.end, offset)[name];
+      if (!data || data.dailyGoal === 0) continue;
+      if (data.capUpOverride) continue;
+      const bothMissed = !data.callAchieved && !data.salesAchieved;
+      if (bothMissed) { carriedStage += 1; carriedMissedOffset = offset; }
+    }
+    return { stage: carriedStage, lastMissedOffset: carriedMissedOffset };
+  }
+
+  // 이번 달 두 번째 주 이후: 이월 숫자와 무관하게 이번 달 자체 미달성만 0부터 새로 누적
   let stage = 0;
   let lastMissedOffset = null;
-  const lookbackLimit = Math.min(currentOffset, 12);
   for (let offset = currentOffset - lookbackLimit; offset < currentOffset; offset++) {
     const range = computeWeekRangeForOffset(offset);
     if (getWeekYearMonth(range.start) !== targetYearMonth) continue; // 다른 달이면 건너뜀 (월 경계 리셋)
