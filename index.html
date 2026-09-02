@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.81</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.82</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.81</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.82</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -500,7 +500,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v582';
+const LS_VER='v583';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -1586,7 +1586,9 @@ function renderMemberStat(s){
   const ms=s.memberStats||[];
   const titleList=[...new Set(ms.map(m=>m.title).filter(Boolean))].sort();
   const sortOpts=[['total','전체순'],['금월가망건','금월가망건순'],['이관완료','이관완료순'],['권한오픈','권한오픈순'],['단기','단기+장기순'],['name','이름순']];
+  const periodLabel=(DATE_FROM||DATE_TO)?`${DATE_FROM||'시작'} ~ ${DATE_TO||'현재'} 기준 (최근 재콜/등록일 기준 필터링됨)`:'전체 기간 누적 (첫 등록일부터 현재까지)';
   return`<div class="sec"><div class="chd" onclick="toggleC('ms')"><span style="display:flex;align-items:center;gap:8px;"><span class="sh-p">👤</span><span class="sh-p">담당자별 가망건 현황</span><span style="font-size:11px;font-weight:400;color:var(--text-sub);">${ms.length}명</span></span><span class="carr" id="msA">▼</span></div><div class="cbody" id="ms">
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;display:flex;align-items:center;gap:4px;">📅 <strong style="color:var(--text-sub);">집계 기간:</strong> ${periodLabel}</div>
     <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;padding:10px 12px;background:var(--surface2);border-radius:10px;">
       <span style="font-size:11px;font-weight:600;color:var(--text);align-self:center;">🔍 필터</span>
       <select id="msTitle" onchange="renderMemberCardBody()" style="padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;"><option value="">직급 전체</option>${titleList.map(t=>`<option value="${t}">${t}</option>`).join('')}</select>
