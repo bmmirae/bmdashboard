@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.82</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.83</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.82</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.83</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -500,7 +500,7 @@ function renderPerformance(res){
 function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(parts[0]);PERF_MONTH=parseInt(parts[1]);PERF_DATA=null;loadPerformance();}
 
 // ── localStorage 캐시 ─────────────────────────
-const LS_VER='v583';
+const LS_VER='v584';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
 function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
@@ -985,11 +985,12 @@ function initNPTrendChart(labels,total,promo,dbAll){
     },
     options:{
       responsive:true,maintainAspectRatio:false,
+      layout:{padding:{top:22}},
       plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+'건'}}},
       scales:{
         x:{grid:{display:false},ticks:{font:{size:11}}},
-        y:{beginAtZero:true,position:'left',ticks:{stepSize:1,font:{size:10}},grid:{color:'var(--border)'},title:{display:true,text:'신규/P',font:{size:10}}},
-        y1:{beginAtZero:true,position:'right',ticks:{stepSize:1,font:{size:10},color:'#e65100'},grid:{display:false},title:{display:true,text:'DB 전체',font:{size:10},color:'#e65100'}}
+        y:{beginAtZero:true,position:'left',suggestedMax:Math.ceil(Math.max(1,...total,...promo)*1.15),ticks:{stepSize:1,font:{size:10}},grid:{color:'var(--border)'},title:{display:true,text:'신규/P',font:{size:10}}},
+        y1:{beginAtZero:true,position:'right',suggestedMax:Math.ceil(Math.max(1,...dbAll)*1.15),ticks:{stepSize:1,font:{size:10},color:'#e65100'},grid:{display:false},title:{display:true,text:'DB 전체',font:{size:10},color:'#e65100'}}
       },
       onClick:(e,els)=>{
         if(!els.length)return;
@@ -1749,7 +1750,7 @@ function initCharts(s){setTimeout(()=>{const gc=document.getElementById('gradeCh
       }else{
         datasets=grpOrder.map((name,i)=>({label:name,data:keys.map(k=>(grp[k]&&grp[k][name])||0),backgroundColor:GRP_COLORS[i%GRP_COLORS.length],borderRadius:4}));
       }
-      chartBudget=new Chart(bc.getContext('2d'),{type:'bar',data:{labels:keys.map(k=>k.replace('만원','')),datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:datasets.length>1,position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+'건'}}},scales:{x:{stacked:false},y:{beginAtZero:true,ticks:{stepSize:1}}}}});
+      chartBudget=new Chart(bc.getContext('2d'),{type:'bar',data:{labels:keys.map(k=>k.replace('만원','')),datasets},options:{responsive:true,maintainAspectRatio:false,layout:{padding:{top:20}},plugins:{legend:{display:datasets.length>1,position:'bottom',labels:{font:{size:10},boxWidth:10,padding:8}},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+ctx.parsed.y+'건'}}},scales:{x:{stacked:false},y:{beginAtZero:true,suggestedMax:Math.ceil(Math.max(1,...datasets.flatMap(d=>d.data))*1.15),ticks:{stepSize:1}}}}});
     }},100);}
 
 // ── PNG 저장 ───────────────────────────────────
