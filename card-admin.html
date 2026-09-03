@@ -128,7 +128,10 @@ function shareKakao(){
   if(!SELECTED||!SELECTED.slug){toast('❌ slug가 없어 공유할 수 없습니다');return;}
   if(!window.Kakao||!Kakao.isInitialized()){toast('❌ 카카오 공유 설정을 확인해주세요');return;}
   const shareUrl=CARD_PUBLIC_URL+'?slug='+encodeURIComponent(SELECTED.slug);
-  const orgLabel=(SELECTED.본부||'')+' '+(SELECTED.팀||'');
+  // 팀명에 이미 본부 접두사(BM2-/BM3-)가 들어있으면 중복 제거하고 순번만 남김
+  const teamRaw=SELECTED.팀||'';
+  const teamShort=teamRaw.replace(/^BM\d-/,'').replace(/^BM\d본부/,'');
+  const orgLabel=(SELECTED.본부||'')+' '+teamShort;
   Kakao.Share.sendDefault({
     objectType:'feed',
     content:{
