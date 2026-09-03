@@ -17,8 +17,11 @@ body{font-family:'Pretendard','Segoe UI',sans-serif;background:var(--bg);color:v
 .header .sub{font-size:12px;opacity:.8;margin-top:2px;}
 .container{max-width:1200px;margin:0 auto;padding:20px 24px;}
 .card{background:var(--surface);border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:14px;}
-.emp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
-.emp-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s;}
+.bu-group{margin-bottom:18px;}
+.bu-title{font-size:14px;font-weight:800;color:var(--brand-blue);margin-bottom:8px;padding-bottom:6px;border-bottom:2px solid var(--brand-blue);}
+.team-title{font-size:12px;font-weight:700;color:var(--text-sub);margin:10px 0 6px;}
+.emp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
+.emp-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s;position:relative;}
 .emp-item:hover{border-color:var(--brand-blue);}
 .emp-item.active{border-color:var(--brand-blue);background:#eef0fe;}
 .emp-item .name{font-size:14px;font-weight:700;}
@@ -26,7 +29,7 @@ body{font-family:'Pretendard','Segoe UI',sans-serif;background:var(--bg);color:v
 .emp-item .status{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
 .status-active{background:#e8f5e9;color:#2e7d32;}
 .status-inactive{background:#f0f0f0;color:var(--text-muted);}
-.status-empty{background:#fff3e0;color:#e65100;}
+.add-btn{padding:6px 14px;border-radius:16px;border:1.5px dashed var(--brand-blue);background:#fff;color:var(--brand-blue);font-size:12px;font-weight:700;cursor:pointer;margin-bottom:14px;}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
 .form-grid .full{grid-column:1/-1;}
 label{display:block;font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:5px;}
@@ -60,8 +63,11 @@ textarea{resize:vertical;min-height:60px;}
 
   <div id="mainScreen" style="display:none;">
     <div class="card">
-      <div style="font-size:14px;font-weight:700;margin-bottom:10px;">👥 팀원 목록</div>
-      <div class="emp-list" id="empList"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:14px;font-weight:700;">👥 명함 목록</div>
+        <button class="add-btn" onclick="openAddForm()" style="margin-bottom:0;">+ 신규 인원 추가</button>
+      </div>
+      <div id="empListWrap"></div>
     </div>
 
     <div class="card" id="formCard" style="display:none;">
@@ -73,12 +79,20 @@ textarea{resize:vertical;min-height:60px;}
         </div>
       </div>
       <div class="form-grid">
-        <div><label>이름</label><input type="text" id="f_name" readonly style="background:#f0f0f0;"></div>
-        <div><label>slug (URL 식별자, 영문-하이픈)</label><input type="text" id="f_slug" placeholder="kim-yunseop"></div>
+        <div>
+          <label>본부</label>
+          <select id="f_bu" onchange="onBuChange()"></select>
+        </div>
+        <div>
+          <label>팀</label>
+          <select id="f_team"></select>
+        </div>
+        <div><label>이름</label><input type="text" id="f_name" placeholder="홍길동"></div>
+        <div><label>직함</label><input type="text" id="f_title" placeholder="예: BM3본부장"></div>
+        <div><label>slug (URL 식별자, 영문-하이픈)</label><input type="text" id="f_slug" placeholder="hong-gildong"></div>
         <div><label>카드 타입</label>
           <select id="f_type"><option value="텍스트">텍스트 버전</option><option value="사진">프로필사진 버전</option></select>
         </div>
-        <div><label>직함</label><input type="text" id="f_title" placeholder="예: BM3본부장"></div>
         <div class="full"><label>소개문구</label><textarea id="f_intro" placeholder="1~2문장으로 소개해주세요"></textarea></div>
         <div><label>직통번호</label><input type="tel" id="f_office" placeholder="051-000-0000"></div>
         <div><label>모바일</label><input type="tel" id="f_mobile" placeholder="010-0000-0000"></div>
@@ -119,7 +133,8 @@ function toast(msg){
 }
 
 let CARDS=[];
-let SELECTED=null;
+let ADDABLE_ORGS=[];
+let SELECTED=null; // 현재 폼에 로드된 카드(수정 시) 또는 null(신규 추가 모드)
 
 async function init(){
   if(!ROLE||!TOKEN){
@@ -132,33 +147,96 @@ async function init(){
     return;
   }
   CARDS=res.cards||[];
+  ADDABLE_ORGS=res.addableOrgs||[];
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainScreen').style.display='block';
-  document.getElementById('scopeInfo').textContent=CARDS.length+'명의 팀원 명함을 관리할 수 있습니다';
+  document.getElementById('scopeInfo').textContent=CARDS.length+'개의 명함을 관리할 수 있습니다';
   renderEmpList();
 }
 
 function renderEmpList(){
-  const wrap=document.getElementById('empList');
-  if(!CARDS.length){wrap.innerHTML='<div class="empty-msg">관리 가능한 팀원이 없습니다</div>';return;}
-  wrap.innerHTML=CARDS.map((c,i)=>{
-    const hasSlug=!!c.slug;
-    const isActive=c.활성여부==='Y';
-    const statusHtml=!hasSlug?'<span class="status status-empty">미등록</span>':isActive?'<span class="status status-active">활성</span>':'<span class="status status-inactive">비활성</span>';
-    return`<div class="emp-item" onclick="selectEmp(${i})" id="emp_${i}">
-      <div class="name">${c.이름}</div>
-      <div class="meta">${c.본부} · ${c.팀} ${c.직함?'· '+c.직함:''}</div>
-      ${statusHtml}
-    </div>`;
-  }).join('');
+  const wrap=document.getElementById('empListWrap');
+  if(!CARDS.length){wrap.innerHTML='<div class="empty-msg">등록된 명함이 없습니다. 위 [+ 신규 인원 추가] 버튼으로 시작하세요.</div>';return;}
+
+  // 본부 > 팀 순으로 그룹핑
+  const grouped={};
+  CARDS.forEach(c=>{
+    const bu=c.본부||'미지정';const team=c.팀||'미지정';
+    if(!grouped[bu])grouped[bu]={};
+    if(!grouped[bu][team])grouped[bu][team]=[];
+    grouped[bu][team].push(c);
+  });
+
+  let html='';
+  Object.keys(grouped).sort().forEach(bu=>{
+    html+=`<div class="bu-group"><div class="bu-title">📁 ${bu}</div>`;
+    Object.keys(grouped[bu]).sort().forEach(team=>{
+      const items=grouped[bu][team];
+      html+=`<div class="team-title">${team} (${items.length}명)</div><div class="emp-list">`;
+      items.forEach(c=>{
+        const idx=CARDS.indexOf(c);
+        const isActive=c.활성여부==='Y';
+        const statusHtml=isActive?'<span class="status status-active">활성</span>':'<span class="status status-inactive">비활성</span>';
+        html+=`<div class="emp-item" onclick="selectCard(${idx})" id="emp_${idx}">
+          <div class="name">${c.이름}</div>
+          <div class="meta">${c.직함||'-'}</div>
+          ${statusHtml}
+        </div>`;
+      });
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  wrap.innerHTML=html;
 }
 
-function selectEmp(i){
+function populateBuTeamSelect(){
+  const buSel=document.getElementById('f_bu');
+  const buSet=[...new Set(ADDABLE_ORGS.map(o=>o.bu))];
+  buSel.innerHTML=buSet.map(bu=>`<option value="${bu}">${bu}</option>`).join('');
+}
+
+function onBuChange(){
+  const bu=document.getElementById('f_bu').value;
+  const teamSel=document.getElementById('f_team');
+  const teams=ADDABLE_ORGS.filter(o=>o.bu===bu).map(o=>o.team);
+  teamSel.innerHTML=teams.map(t=>`<option value="${t}">${t}</option>`).join('');
+}
+
+function openAddForm(){
+  if(!ADDABLE_ORGS.length){toast('❌ 신규 추가 가능한 본부/팀이 없습니다');return;}
+  SELECTED=null;
+  document.querySelectorAll('.emp-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('formCard').style.display='block';
+  document.getElementById('formTitle').textContent='신규 명함 추가';
+  populateBuTeamSelect();
+  onBuChange();
+  document.getElementById('f_name').value='';
+  document.getElementById('f_slug').value='';
+  document.getElementById('f_type').value='텍스트';
+  document.getElementById('f_title').value='';
+  document.getElementById('f_intro').value='';
+  document.getElementById('f_office').value='';
+  document.getElementById('f_mobile').value='';
+  document.getElementById('f_email').value='';
+  document.getElementById('f_photo').value='';
+  document.getElementById('f_insta').value='';
+  document.getElementById('f_blog').value='';
+  document.getElementById('f_active').checked=false;
+  document.getElementById('deleteBtn').style.display='none';
+  document.getElementById('formCard').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function selectCard(i){
   SELECTED=CARDS[i];
   document.querySelectorAll('.emp-item').forEach(el=>el.classList.remove('active'));
-  document.getElementById('emp_'+i).classList.add('active');
+  const el=document.getElementById('emp_'+i);if(el)el.classList.add('active');
   document.getElementById('formCard').style.display='block';
   document.getElementById('formTitle').textContent=SELECTED.이름+' 명함 정보';
+  populateBuTeamSelect();
+  document.getElementById('f_bu').value=SELECTED.본부||'';
+  onBuChange();
+  document.getElementById('f_team').value=SELECTED.팀||'';
   document.getElementById('f_name').value=SELECTED.이름||'';
   document.getElementById('f_slug').value=SELECTED.slug||'';
   document.getElementById('f_type').value=SELECTED.카드타입||'텍스트';
@@ -171,7 +249,7 @@ function selectEmp(i){
   document.getElementById('f_insta').value=SELECTED.인스타그램||'';
   document.getElementById('f_blog').value=SELECTED.블로그||'';
   document.getElementById('f_active').checked=SELECTED.활성여부==='Y';
-  document.getElementById('deleteBtn').style.display=SELECTED.slug?'inline-block':'none';
+  document.getElementById('deleteBtn').style.display='inline-block';
   document.getElementById('formCard').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
@@ -182,12 +260,16 @@ function closeForm(){
 }
 
 async function saveCard(){
-  if(!SELECTED)return;
+  const name=document.getElementById('f_name').value.trim();
+  if(!name){toast('❌ 이름을 입력해주세요');return;}
   const slug=document.getElementById('f_slug').value.trim();
   if(slug&&!/^[a-z0-9-]+$/.test(slug)){toast('❌ slug는 영문 소문자/숫자/하이픈만 사용 가능합니다');return;}
   const card={
-    사번: SELECTED.사번, slug, 카드타입: document.getElementById('f_type').value,
-    본부: SELECTED.본부, 팀: SELECTED.팀, 이름: SELECTED.이름,
+    cardId: SELECTED?SELECTED.cardId:'',
+    slug, 카드타입: document.getElementById('f_type').value,
+    본부: document.getElementById('f_bu').value,
+    팀: document.getElementById('f_team').value,
+    이름: name,
     직함: document.getElementById('f_title').value.trim(),
     소개문구: document.getElementById('f_intro').value.trim(),
     직통번호: document.getElementById('f_office').value.trim(),
@@ -210,7 +292,7 @@ async function saveCard(){
 
 async function deleteCard(){
   if(!SELECTED||!confirm(SELECTED.이름+'님의 명함 정보를 삭제하시겠습니까?'))return;
-  const res=await callServer('serverDeleteCard',{role:ROLE,token:TOKEN,empId:SELECTED.사번});
+  const res=await callServer('serverDeleteCard',{role:ROLE,token:TOKEN,cardId:SELECTED.cardId});
   if(res&&res.success){
     toast('🗑 삭제되었습니다');
     await init();
