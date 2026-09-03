@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💳 전자명함 관리</title>
+<style>
+:root{
+  --brand-blue:#0B13E7; --brand-red:#F00303;
+  --bg:#f4f5f8; --surface:#fff; --surface2:#f8f9fb; --border:#e6e6e6;
+  --text:#111; --text-sub:#555; --text-muted:#999;
+}
+*{box-sizing:border-box;}
+body{font-family:'Pretendard','Segoe UI',sans-serif;background:var(--bg);color:var(--text);margin:0;padding:0;}
+.header{background:linear-gradient(135deg,#0B13E7,#080ead);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;}
+.header h1{font-size:18px;font-weight:700;margin:0;}
+.header .sub{font-size:12px;opacity:.8;margin-top:2px;}
+.container{max-width:1200px;margin:0 auto;padding:20px 24px;}
+.card{background:var(--surface);border-radius:12px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:14px;}
+.emp-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.emp-item{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .15s;}
+.emp-item:hover{border-color:var(--brand-blue);}
+.emp-item.active{border-color:var(--brand-blue);background:#eef0fe;}
+.emp-item .name{font-size:14px;font-weight:700;}
+.emp-item .meta{font-size:11px;color:var(--text-sub);margin-top:2px;}
+.emp-item .status{display:inline-block;margin-top:6px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
+.status-active{background:#e8f5e9;color:#2e7d32;}
+.status-inactive{background:#f0f0f0;color:var(--text-muted);}
+.status-empty{background:#fff3e0;color:#e65100;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-grid .full{grid-column:1/-1;}
+label{display:block;font-size:12px;font-weight:600;color:var(--text-sub);margin-bottom:5px;}
+input[type=text],input[type=url],input[type=email],input[type=tel],textarea,select{
+  width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;color:var(--text);font-size:13px;font-family:inherit;
+}
+textarea{resize:vertical;min-height:60px;}
+.btn{padding:9px 18px;border-radius:8px;border:none;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-primary{background:var(--brand-blue);color:#fff;}
+.btn-danger{background:#fff;color:#c62828;border:1px solid #c62828;}
+.btn-ghost{background:#fff;color:var(--text-sub);border:1px solid var(--border);}
+.toggle-row{display:flex;align-items:center;gap:8px;}
+.empty-msg{text-align:center;color:var(--text-muted);padding:40px;font-size:14px;}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;display:none;}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>💳 전자명함 관리</h1>
+    <div class="sub" id="scopeInfo">-</div>
+  </div>
+  <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
+</div>
+
+<div class="container">
+  <div id="loginScreen" class="card" style="max-width:400px;margin:60px auto;text-align:center;">
+    <div style="font-size:14px;color:var(--text-sub);">로그인 정보를 확인하는 중...</div>
+  </div>
+
+  <div id="mainScreen" style="display:none;">
+    <div class="card">
+      <div style="font-size:14px;font-weight:700;margin-bottom:10px;">👥 팀원 목록</div>
+      <div class="emp-list" id="empList"></div>
+    </div>
+
+    <div class="card" id="formCard" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:700;" id="formTitle">명함 정보</div>
+        <div class="toggle-row">
+          <label style="margin:0;">활성화</label>
+          <input type="checkbox" id="f_active" style="width:18px;height:18px;">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div><label>이름</label><input type="text" id="f_name" readonly style="background:#f0f0f0;"></div>
+        <div><label>slug (URL 식별자, 영문-하이픈)</label><input type="text" id="f_slug" placeholder="kim-yunseop"></div>
+        <div><label>카드 타입</label>
+          <select id="f_type"><option value="텍스트">텍스트 버전</option><option value="사진">프로필사진 버전</option></select>
+        </div>
+        <div><label>직함</label><input type="text" id="f_title" placeholder="예: BM3본부장"></div>
+        <div class="full"><label>소개문구</label><textarea id="f_intro" placeholder="1~2문장으로 소개해주세요"></textarea></div>
+        <div><label>직통번호</label><input type="tel" id="f_office" placeholder="051-000-0000"></div>
+        <div><label>모바일</label><input type="tel" id="f_mobile" placeholder="010-0000-0000"></div>
+        <div><label>이메일</label><input type="email" id="f_email" placeholder="name@toup.net"></div>
+        <div><label>프로필사진 URL</label><input type="url" id="f_photo" placeholder="https://..."></div>
+        <div><label>인스타그램 (전체 URL)</label><input type="url" id="f_insta" placeholder="https://instagram.com/..."></div>
+        <div><label>블로그 (전체 URL)</label><input type="url" id="f_blog" placeholder="https://..."></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:18px;">
+        <button class="btn btn-primary" onclick="saveCard()">💾 저장</button>
+        <button class="btn btn-danger" id="deleteBtn" onclick="deleteCard()" style="display:none;">🗑 명함 삭제</button>
+        <button class="btn btn-ghost" onclick="closeForm()">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
+
+function getParam(name){
+  return new URLSearchParams(window.location.search).get(name) || '';
+}
+const ROLE = getParam('role');
+const TOKEN = getParam('token');
+
+function callServer(fnName, params){
+  const url = API_URL+'?action='+encodeURIComponent(fnName)+'&params='+encodeURIComponent(JSON.stringify(params||{}));
+  return fetch(url).then(r=>r.json()).then(res=>typeof res==='string'?JSON.parse(res):res).catch(e=>({success:false,error:e.message}));
+}
+
+function toast(msg){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.style.display='block';
+  setTimeout(()=>{el.style.display='none';},2200);
+}
+
+let CARDS=[];
+let SELECTED=null;
+
+async function init(){
+  if(!ROLE||!TOKEN){
+    document.getElementById('loginScreen').innerHTML='<div style="color:#c62828;font-size:14px;">로그인 정보가 없습니다. 대시보드에서 다시 열어주세요.</div>';
+    return;
+  }
+  const res=await callServer('serverGetCardList',{role:ROLE,token:TOKEN});
+  if(!res||!res.success){
+    document.getElementById('loginScreen').innerHTML='<div style="color:#c62828;font-size:14px;">'+(res&&res.error||'로드 실패')+'</div>';
+    return;
+  }
+  CARDS=res.cards||[];
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('mainScreen').style.display='block';
+  document.getElementById('scopeInfo').textContent=CARDS.length+'명의 팀원 명함을 관리할 수 있습니다';
+  renderEmpList();
+}
+
+function renderEmpList(){
+  const wrap=document.getElementById('empList');
+  if(!CARDS.length){wrap.innerHTML='<div class="empty-msg">관리 가능한 팀원이 없습니다</div>';return;}
+  wrap.innerHTML=CARDS.map((c,i)=>{
+    const hasSlug=!!c.slug;
+    const isActive=c.활성여부==='Y';
+    const statusHtml=!hasSlug?'<span class="status status-empty">미등록</span>':isActive?'<span class="status status-active">활성</span>':'<span class="status status-inactive">비활성</span>';
+    return`<div class="emp-item" onclick="selectEmp(${i})" id="emp_${i}">
+      <div class="name">${c.이름}</div>
+      <div class="meta">${c.본부} · ${c.팀} ${c.직함?'· '+c.직함:''}</div>
+      ${statusHtml}
+    </div>`;
+  }).join('');
+}
+
+function selectEmp(i){
+  SELECTED=CARDS[i];
+  document.querySelectorAll('.emp-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById('emp_'+i).classList.add('active');
+  document.getElementById('formCard').style.display='block';
+  document.getElementById('formTitle').textContent=SELECTED.이름+' 명함 정보';
+  document.getElementById('f_name').value=SELECTED.이름||'';
+  document.getElementById('f_slug').value=SELECTED.slug||'';
+  document.getElementById('f_type').value=SELECTED.카드타입||'텍스트';
+  document.getElementById('f_title').value=SELECTED.직함||'';
+  document.getElementById('f_intro').value=SELECTED.소개문구||'';
+  document.getElementById('f_office').value=SELECTED.직통번호||'';
+  document.getElementById('f_mobile').value=SELECTED.모바일||'';
+  document.getElementById('f_email').value=SELECTED.이메일||'';
+  document.getElementById('f_photo').value=SELECTED.프로필사진URL||'';
+  document.getElementById('f_insta').value=SELECTED.인스타그램||'';
+  document.getElementById('f_blog').value=SELECTED.블로그||'';
+  document.getElementById('f_active').checked=SELECTED.활성여부==='Y';
+  document.getElementById('deleteBtn').style.display=SELECTED.slug?'inline-block':'none';
+  document.getElementById('formCard').scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function closeForm(){
+  document.getElementById('formCard').style.display='none';
+  document.querySelectorAll('.emp-item').forEach(el=>el.classList.remove('active'));
+  SELECTED=null;
+}
+
+async function saveCard(){
+  if(!SELECTED)return;
+  const slug=document.getElementById('f_slug').value.trim();
+  if(slug&&!/^[a-z0-9-]+$/.test(slug)){toast('❌ slug는 영문 소문자/숫자/하이픈만 사용 가능합니다');return;}
+  const card={
+    사번: SELECTED.사번, slug, 카드타입: document.getElementById('f_type').value,
+    본부: SELECTED.본부, 팀: SELECTED.팀, 이름: SELECTED.이름,
+    직함: document.getElementById('f_title').value.trim(),
+    소개문구: document.getElementById('f_intro').value.trim(),
+    직통번호: document.getElementById('f_office').value.trim(),
+    모바일: document.getElementById('f_mobile').value.trim(),
+    프로필사진URL: document.getElementById('f_photo').value.trim(),
+    이메일: document.getElementById('f_email').value.trim(),
+    인스타그램: document.getElementById('f_insta').value.trim(),
+    블로그: document.getElementById('f_blog').value.trim(),
+    활성여부: document.getElementById('f_active').checked?'Y':'N'
+  };
+  const res=await callServer('serverSaveCard',{role:ROLE,token:TOKEN,card});
+  if(res&&res.success){
+    toast('✅ 저장되었습니다');
+    await init();
+    closeForm();
+  }else{
+    toast('❌ '+(res&&res.error||'저장 실패'));
+  }
+}
+
+async function deleteCard(){
+  if(!SELECTED||!confirm(SELECTED.이름+'님의 명함 정보를 삭제하시겠습니까?'))return;
+  const res=await callServer('serverDeleteCard',{role:ROLE,token:TOKEN,empId:SELECTED.사번});
+  if(res&&res.success){
+    toast('🗑 삭제되었습니다');
+    await init();
+    closeForm();
+  }else{
+    toast('❌ '+(res&&res.error||'삭제 실패'));
+  }
+}
+
+init();
+</script>
+</body>
+</html>
