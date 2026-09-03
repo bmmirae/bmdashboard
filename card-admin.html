@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
 <title>💳 전자명함 관리</title>
 <style>
 :root{
@@ -101,8 +102,9 @@ textarea{resize:vertical;min-height:60px;}
         <div><label>인스타그램 (전체 URL)</label><input type="url" id="f_insta" placeholder="https://instagram.com/..."></div>
         <div><label>블로그 (전체 URL)</label><input type="url" id="f_blog" placeholder="https://..."></div>
       </div>
-      <div style="display:flex;gap:8px;margin-top:18px;">
+      <div style="display:flex;gap:8px;margin-top:18px;flex-wrap:wrap;">
         <button class="btn btn-primary" onclick="saveCard()">💾 저장</button>
+        <button class="btn" id="kakaoShareBtn" onclick="shareKakao()" style="display:none;background:#FEE500;color:#191919;">📤 카톡 공유</button>
         <button class="btn btn-danger" id="deleteBtn" onclick="deleteCard()" style="display:none;">🗑 명함 삭제</button>
         <button class="btn btn-ghost" onclick="closeForm()">취소</button>
       </div>
@@ -114,6 +116,32 @@ textarea{resize:vertical;min-height:60px;}
 
 <script>
 const API_URL = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
+const CARD_PUBLIC_URL = 'https://card.bm1mirae.workers.dev/';
+const KAKAO_JS_KEY = '98820d6175e23c3b51b9ecd07cf4ffe0';
+const DEFAULT_SHARE_IMAGE = 'https://card.bm1mirae.workers.dev/assets/logo-square.png';
+
+if (window.Kakao && !Kakao.isInitialized()) {
+  Kakao.init(KAKAO_JS_KEY);
+}
+
+function shareKakao(){
+  if(!SELECTED||!SELECTED.slug){toast('❌ slug가 없어 공유할 수 없습니다');return;}
+  if(!window.Kakao||!Kakao.isInitialized()){toast('❌ 카카오 공유 설정을 확인해주세요');return;}
+  const shareUrl=CARD_PUBLIC_URL+'?slug='+encodeURIComponent(SELECTED.slug);
+  const orgLabel=(SELECTED.본부||'')+' '+(SELECTED.팀||'');
+  Kakao.Share.sendDefault({
+    objectType:'feed',
+    content:{
+      title: SELECTED.이름,
+      description: `미래아이엔씨 · ${orgLabel} ${SELECTED.직함||''}`.trim(),
+      imageUrl: SELECTED.프로필사진URL || DEFAULT_SHARE_IMAGE,
+      link:{ mobileWebUrl:shareUrl, webUrl:shareUrl }
+    },
+    buttons:[
+      { title:'명함 확인', link:{ mobileWebUrl:shareUrl, webUrl:shareUrl } }
+    ]
+  });
+}
 
 function getParam(name){
   return new URLSearchParams(window.location.search).get(name) || '';
@@ -224,6 +252,7 @@ function openAddForm(){
   document.getElementById('f_blog').value='';
   document.getElementById('f_active').checked=false;
   document.getElementById('deleteBtn').style.display='none';
+  document.getElementById('kakaoShareBtn').style.display='none';
   document.getElementById('formCard').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
@@ -250,6 +279,7 @@ function selectCard(i){
   document.getElementById('f_blog').value=SELECTED.블로그||'';
   document.getElementById('f_active').checked=SELECTED.활성여부==='Y';
   document.getElementById('deleteBtn').style.display='inline-block';
+  document.getElementById('kakaoShareBtn').style.display=SELECTED.slug&&SELECTED.활성여부==='Y'?'inline-block':'none';
   document.getElementById('formCard').scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
