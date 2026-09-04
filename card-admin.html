@@ -7,13 +7,15 @@
   [v1.3] 실시간 미리보기 패널 추가 (파일럿 index.html과 동일한 디자인, 본부+팀 중복표기 수정 반영)
   [v1.4] BM1본부→BM본부로 변경, 팀 구분 없이 본부 단위 운영 지원 (팀 필수값 검증 제거, 팀 드롭다운 자동 비활성화)
   [v1.5] 프로필사진 파일 업로드 기능 추가 (구글드라이브 자동저장+공개URL 발급, POST 방식 통신)
+  [v1.6] 프로필사진 URL 지우기(연동 해제) 버튼 추가 — Drive 파일은 그대로 두고 URL 값만 비움
+  [v1.7] 프로필사진 규격 안내문구 추가 (정면 증명사진, 정사각형 비율, 권장 사이즈 400~600px) — 텍스트 안내만, 검증 로직은 없음
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v1.5</title>
+<title>💳 전자명함 관리 v1.7</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -90,7 +92,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.5</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.7</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -143,8 +145,10 @@ textarea{resize:vertical;min-height:60px;}
             <div style="display:flex;gap:6px;align-items:center;">
               <input type="url" id="f_photo" placeholder="https://..." style="flex:1;">
               <button type="button" class="btn btn-ghost" id="photoUploadBtn" onclick="document.getElementById('photoFileInput').click()" style="padding:9px 12px;white-space:nowrap;">📷 선택</button>
+              <button type="button" class="btn btn-ghost" id="photoClearBtn" onclick="clearPhoto()" style="padding:9px 12px;white-space:nowrap;color:#c62828;">✕ 지우기</button>
               <input type="file" id="photoFileInput" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
             </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📌 정면 증명사진 권장 · 정사각형(1:1) 비율 · 400~600px</div>
             <div id="photoUploadStatus" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></div>
           </div>
           <div><label>인스타그램 (전체 URL)</label><input type="url" id="f_insta" placeholder="https://instagram.com/..."></div>
@@ -287,6 +291,12 @@ function handlePhotoUpload(event){
     }
   };
   reader.readAsDataURL(file);
+}
+
+function clearPhoto(){
+  document.getElementById('f_photo').value='';
+  document.getElementById('photoUploadStatus').textContent='';
+  updatePreview();
 }
 
 function toast(msg){
