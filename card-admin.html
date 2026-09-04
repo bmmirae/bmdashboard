@@ -5,13 +5,14 @@
   [v1.1] 명함DB를 인원DB와 독립 구조로 재설계 (cardId 자체발급), 부서별 그룹핑, 신규인원 추가(BM1/BM운영 포함, 권한별 범위)
   [v1.2] 카카오톡 공유 기능 추가 (파일럿과 동일한 공유카드 포맷)
   [v1.3] 실시간 미리보기 패널 추가 (파일럿 index.html과 동일한 디자인, 본부+팀 중복표기 수정 반영)
+  [v1.4] BM1본부→BM본부로 변경, 팀 구분 없이 본부 단위 운영 지원 (팀 필수값 검증 제거, 팀 드롭다운 자동 비활성화)
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v1.3</title>
+<title>💳 전자명함 관리 v1.4</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -88,7 +89,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.3</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.4</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -308,7 +309,14 @@ function onBuChange(){
   const bu=document.getElementById('f_bu').value;
   const teamSel=document.getElementById('f_team');
   const teams=ADDABLE_ORGS.filter(o=>o.bu===bu).map(o=>o.team);
-  teamSel.innerHTML=teams.map(t=>`<option value="${t}">${t}</option>`).join('');
+  // 팀 구분이 없는 본부(예: BM본부)는 팀 선택을 비활성화하고 "해당없음"만 표시
+  if(teams.length===1 && teams[0]===''){
+    teamSel.innerHTML='<option value="">해당없음 (본부 단위 운영)</option>';
+    teamSel.disabled=true;
+  }else{
+    teamSel.disabled=false;
+    teamSel.innerHTML=teams.map(t=>`<option value="${t}">${t}</option>`).join('');
+  }
 }
 
 function orgLabelPreview(bu, teamRaw){
