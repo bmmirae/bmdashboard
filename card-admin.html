@@ -1,10 +1,17 @@
 <!DOCTYPE html>
+<!--
+  전자명함 관리 (card-admin.html) 버전 이력
+  [v1.0] 최초 구현 - 팀원 목록(사번 기준) 조회/저장/삭제
+  [v1.1] 명함DB를 인원DB와 독립 구조로 재설계 (cardId 자체발급), 부서별 그룹핑, 신규인원 추가(BM1/BM운영 포함, 권한별 범위)
+  [v1.2] 카카오톡 공유 기능 추가 (파일럿과 동일한 공유카드 포맷)
+  [v1.3] 실시간 미리보기 패널 추가 (파일럿 index.html과 동일한 디자인, 본부+팀 중복표기 수정 반영)
+-->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리</title>
+<title>💳 전자명함 관리 v1.3</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -81,7 +88,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리</h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.3</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
