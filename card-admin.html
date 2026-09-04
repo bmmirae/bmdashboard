@@ -6,13 +6,14 @@
   [v1.2] 카카오톡 공유 기능 추가 (파일럿과 동일한 공유카드 포맷)
   [v1.3] 실시간 미리보기 패널 추가 (파일럿 index.html과 동일한 디자인, 본부+팀 중복표기 수정 반영)
   [v1.4] BM1본부→BM본부로 변경, 팀 구분 없이 본부 단위 운영 지원 (팀 필수값 검증 제거, 팀 드롭다운 자동 비활성화)
+  [v1.5] 프로필사진 파일 업로드 기능 추가 (구글드라이브 자동저장+공개URL 발급, POST 방식 통신)
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v1.4</title>
+<title>💳 전자명함 관리 v1.5</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -89,7 +90,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.4</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.5</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -137,7 +138,15 @@ textarea{resize:vertical;min-height:60px;}
           <div><label>직통번호</label><input type="tel" id="f_office" placeholder="051-000-0000"></div>
           <div><label>모바일</label><input type="tel" id="f_mobile" placeholder="010-0000-0000"></div>
           <div><label>이메일</label><input type="email" id="f_email" placeholder="name@toup.net"></div>
-          <div><label>프로필사진 URL</label><input type="url" id="f_photo" placeholder="https://..."></div>
+          <div>
+            <label>프로필사진</label>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input type="url" id="f_photo" placeholder="https://..." style="flex:1;">
+              <button type="button" class="btn btn-ghost" id="photoUploadBtn" onclick="document.getElementById('photoFileInput').click()" style="padding:9px 12px;white-space:nowrap;">📷 선택</button>
+              <input type="file" id="photoFileInput" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
+            </div>
+            <div id="photoUploadStatus" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></div>
+          </div>
           <div><label>인스타그램 (전체 URL)</label><input type="url" id="f_insta" placeholder="https://instagram.com/..."></div>
           <div><label>블로그 (전체 URL)</label><input type="url" id="f_blog" placeholder="https://..."></div>
         </div>
@@ -233,6 +242,51 @@ const TOKEN = getParam('token');
 function callServer(fnName, params){
   const url = API_URL+'?action='+encodeURIComponent(fnName)+'&params='+encodeURIComponent(JSON.stringify(params||{}));
   return fetch(url).then(r=>r.json()).then(res=>typeof res==='string'?JSON.parse(res):res).catch(e=>({success:false,error:e.message}));
+}
+
+// 사진 업로드처럼 대용량 데이터는 GET URL 길이 제한에 걸리므로 POST로 전송
+function callServerPost(fnName, params){
+  return fetch(API_URL, {
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'}, // Apps Script는 application/json 프리플라이트를 피하려면 text/plain 권장
+    body: JSON.stringify({ action: fnName, params: params||{} })
+  }).then(r=>r.json()).then(res=>typeof res==='string'?JSON.parse(res):res).catch(e=>({success:false,error:e.message}));
+}
+
+function handlePhotoUpload(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  if(!file.type.startsWith('image/')){toast('❌ 이미지 파일만 업로드 가능합니다');return;}
+  if(file.size>3*1024*1024){toast('❌ 3MB 이하 이미지만 업로드 가능합니다');return;}
+
+  const statusEl=document.getElementById('photoUploadStatus');
+  const btn=document.getElementById('photoUploadBtn');
+  statusEl.textContent='업로드 중...';
+  btn.disabled=true;
+
+  const reader=new FileReader();
+  reader.onload=async function(){
+    // data:image/jpeg;base64,xxxxx 형태에서 base64 부분만 추출
+    const base64Data=reader.result.split(',')[1];
+    try{
+      const res=await callServerPost('serverUploadCardPhoto',{
+        role:ROLE, token:TOKEN,
+        base64Data, mimeType:file.type, fileName:file.name
+      });
+      if(res&&res.success){
+        document.getElementById('f_photo').value=res.url;
+        statusEl.textContent='✅ 업로드 완료';
+        updatePreview();
+      }else{
+        statusEl.textContent='❌ '+(res&&res.error||'업로드 실패');
+      }
+    }catch(e){
+      statusEl.textContent='❌ '+e.message;
+    }finally{
+      btn.disabled=false;
+    }
+  };
+  reader.readAsDataURL(file);
 }
 
 function toast(msg){
