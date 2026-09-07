@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.87</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.88</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.87</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.88</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -1117,7 +1117,7 @@ function getNeedItemsFor(rowsSubset){
     const cats=classifyCheckItem(r);
     const unlogged=cats.filter(({cat})=>{
       const logEntry=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===(normalizeDate(r.firstCall)||'')&&l.category===cat);
-      return !logEntry;
+      return !logEntry||!logEntry.status; // 상태(확인완료/보관)가 비어있으면(본부확인만 있는 행) 여전히 체크필요로 취급
     });
     if(unlogged.length){
       const rowKey=r.company+'|||'+r.manager+'|||'+(normalizeDate(r.firstCall)||'');
@@ -1287,9 +1287,17 @@ function renderCheckSection(rows){
       `<span class="recall-tip" style="cursor:help;"><span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${cat}</span><span class="tip-content">${(reason||'').replace(/</g,'&lt;')}</span></span>`
     ).join('');
     const confirmItem={company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cats:cats.map(c=>c.cat)};
+    const hqOn=isHqLevel&&cats.some(({cat})=>{
+      const logEntry=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===(normalizeDate(r.firstCall)||'')&&l.category===cat);
+      return logEntry&&logEntry.hqChecked==='Y';
+    });
+    const hqBtn=isHqLevel
+      ?`<button onclick='toggleHqCheck(this,${JSON.stringify(confirmItem).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid ${hqOn?'#3949ab':'var(--border)'};background:${hqOn?'#3949ab':'var(--surface)'};color:${hqOn?'#fff':'var(--text-sub)'};font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🏢 본부확인${hqOn?' ✓':''}</button>`
+      :'';
     return`<div class="np-row" style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
         <button onclick='checkConfirm(this,${JSON.stringify(confirmItem).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
+        ${hqBtn}
         ${badgesHtml}
         <div onclick='jumpToCompanyInList(${JSON.stringify(r.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${r.company}</strong>${r.url?`<span onclick="event.stopPropagation();openUrl('${r.url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
         <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
@@ -1308,7 +1316,7 @@ function renderCheckSection(rows){
       ?`<button onclick='checkArchive(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📌 보관</button>`
       :`<button onclick='checkDelete(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #c62828;background:var(--surface);color:#c62828;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗑 삭제</button>`;
     const hqOn=l.hqChecked==='Y';
-    const hqBtn=isHqLevel
+    const hqBtn=(isHqLevel&&l.status!=='보관')
       ?`<button onclick='toggleHqCheck(this,${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid ${hqOn?'#3949ab':'var(--border)'};background:${hqOn?'#3949ab':'var(--surface)'};color:${hqOn?'#fff':'var(--text-sub)'};font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🏢 본부확인${hqOn?' ✓':''}</button>`
       :'';
     const closeBtn=showArchiveBtn
@@ -1322,7 +1330,7 @@ function renderCheckSection(rows){
       <div style="display:flex;align-items:center;gap:6px;">
         ${actionBtn}
         ${hqBtn}
-        ${isHqLevel?`<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">[${l.status}]</span>`:''}
+        ${isHqLevel?`<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">[${l.status||'체크필요'}]</span>`:''}
         <span style="background:${CHECK_CAT_COLOR[l.category]}1a;color:${CHECK_CAT_COLOR[l.category]};border:1px solid ${CHECK_CAT_COLOR[l.category]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${l.category}</span>
         <div onclick='jumpToCompanyInList(${JSON.stringify(l.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${l.company}</strong>${url?`<span onclick="event.stopPropagation();openUrl('${url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
         <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${l.manager}</div>
@@ -1512,9 +1520,14 @@ async function checkArchive(item){
 async function toggleHqCheck(btn,item){
   if(btn){if(btn.disabled)return;btn.disabled=true;btn.style.opacity='0.5';}
   try{
-    const res=await callServer('serverToggleHqCheck',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:item.cat});
-    if(res&&res.success){toast(res.hqChecked==='Y'?'🏢 본부확인 처리':'본부확인 해제');await loadCheckLog();refreshCheckSectionOnly();}
-    else{toast('❌ '+(res.error||'처리 실패'),'err');if(btn){btn.disabled=false;btn.style.opacity='1';}}
+    const catList=item.cats||[item.cat];
+    let lastRes=null;
+    for(const cat of catList){
+      const res=await callServer('serverToggleHqCheck',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:cat});
+      if(!res||!res.success) throw new Error((res&&res.error)||'처리 실패');
+      lastRes=res;
+    }
+    toast(lastRes&&lastRes.hqChecked==='Y'?'🏢 본부확인 처리':'본부확인 해제');await loadCheckLog();refreshCheckSectionOnly();
   }catch(e){toast('❌ '+e.message,'err');if(btn){btn.disabled=false;btn.style.opacity='1';}}
 }
 async function checkDelete(item){
