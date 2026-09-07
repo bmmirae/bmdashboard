@@ -504,7 +504,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.1.0';
+const DASHBOARD_VERSION = 'v8.1.1';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1051,7 +1051,10 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
 
   const weekYearMonth = getWeekYearMonth(rangeStart);
   const [wyYear, wyMonth] = weekYearMonth.split('-').map(Number);
-  const monthStart = new Date(wyYear, wyMonth - 1, 1);
+  // 월간 집계 시작일 수동 보정(일회성) — 8/31이 9월 첫 주로 취급되면서, 월간 이관 집계도 8/31부터 포함되도록 당김.
+  // 8월 쪽 월간 집계는 그대로 두므로(중복 허용), 8/31 이관건이 8월·9월 실적에 둘 다 잡힐 수 있음(의도된 동작).
+  const MONTH_AGGREGATE_START_OVERRIDE = { '2026-09': new Date(2026, 7, 31) };
+  const monthStart = MONTH_AGGREGATE_START_OVERRIDE[weekYearMonth] || new Date(wyYear, wyMonth - 1, 1);
   const monthEnd = new Date(wyYear, wyMonth, 0);
   const monthStartStr = dateStr(monthStart);
   const monthEndStr = dateStr(monthEnd);
