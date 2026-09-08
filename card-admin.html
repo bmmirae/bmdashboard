@@ -12,13 +12,14 @@
   [v1.8] 카카오공유를 기본템플릿(sendDefault)에서 커스텀템플릿(sendCustom, templateId 136952)으로 교체 — 프로필=회사로고 고정, 이미지아이템=사진+직함+소속, 이름/소개문구는 메시지 제목/본문
   [v1.9] 포트폴리오(PDF) 업로드 필드 추가 — 프로필사진 업로드와 동일 패턴, 10MB 이하 PDF만 허용
   [v2.0] 포트폴리오를 2슬롯으로 확장 + 슬롯별 표시문구 커스터마이징 가능하도록 변경
+  [v2.1] 소개문구 줄바꿈이 미리보기/공개페이지에 그대로 반영되도록 수정 (white-space:pre-line)
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v2.0</title>
+<title>💳 전자명함 관리 v2.1</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -81,7 +82,7 @@ textarea{resize:vertical;min-height:60px;}
 .pv-section{padding:16px 22px;border-bottom:1px solid var(--line);}
 .pv-section h2{display:flex;align-items:center;font-size:11.5px;font-weight:600;color:var(--slate);margin:0 0 10px;}
 .pv-section h2::before{content:"";display:inline-block;width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid var(--brand-red);margin-right:7px;}
-.pv-bio{font-size:13px;line-height:1.6;color:#1F2937;margin:0;}
+.pv-bio{font-size:13px;line-height:1.6;color:#1F2937;margin:0;white-space:pre-line;}
 .pv-contact-row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px;}
 .pv-contact-row .pv-label{color:var(--slate);}
 .pv-contact-row .pv-value{color:var(--ink);font-weight:500;}
@@ -95,7 +96,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.0</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.1</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
