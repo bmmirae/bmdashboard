@@ -10,13 +10,14 @@
   [v1.6] 프로필사진 URL 지우기(연동 해제) 버튼 추가 — Drive 파일은 그대로 두고 URL 값만 비움
   [v1.7] 프로필사진 규격 안내문구 추가 (정면 증명사진, 정사각형 비율, 권장 사이즈 400~600px) — 텍스트 안내만, 검증 로직은 없음
   [v1.8] 카카오공유를 기본템플릿(sendDefault)에서 커스텀템플릿(sendCustom, templateId 136952)으로 교체 — 프로필=회사로고 고정, 이미지아이템=사진+직함+소속, 이름/소개문구는 메시지 제목/본문
+  [v1.9] 포트폴리오(PDF) 업로드 필드 추가 — 프로필사진 업로드와 동일 패턴, 10MB 이하 PDF만 허용
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v1.8</title>
+<title>💳 전자명함 관리 v1.9</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -93,7 +94,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.8</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.9</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -151,6 +152,17 @@ textarea{resize:vertical;min-height:60px;}
             </div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📌 정면 증명사진 권장 · 정사각형(1:1) 비율 · 400~600px</div>
             <div id="photoUploadStatus" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></div>
+          </div>
+          <div class="full">
+            <label>포트폴리오 (PDF)</label>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input type="url" id="f_portfolio" placeholder="https://..." style="flex:1;">
+              <button type="button" class="btn btn-ghost" id="portfolioUploadBtn" onclick="document.getElementById('portfolioFileInput').click()" style="padding:9px 12px;white-space:nowrap;">📄 선택</button>
+              <button type="button" class="btn btn-ghost" id="portfolioClearBtn" onclick="clearPortfolio()" style="padding:9px 12px;white-space:nowrap;color:#c62828;">✕ 지우기</button>
+              <input type="file" id="portfolioFileInput" accept="application/pdf" style="display:none;" onchange="handlePortfolioUpload(event)">
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📌 PDF 파일만 가능 · 10MB 이하</div>
+            <div id="portfolioUploadStatus" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></div>
           </div>
           <div><label>인스타그램 (전체 URL)</label><input type="url" id="f_insta" placeholder="https://instagram.com/..."></div>
           <div><label>블로그 (전체 URL)</label><input type="url" id="f_blog" placeholder="https://..."></div>
@@ -297,6 +309,46 @@ function clearPhoto(){
   document.getElementById('f_photo').value='';
   document.getElementById('photoUploadStatus').textContent='';
   updatePreview();
+}
+
+function handlePortfolioUpload(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  if(file.type!=='application/pdf'){toast('❌ PDF 파일만 업로드 가능합니다');return;}
+  if(file.size>10*1024*1024){toast('❌ 10MB 이하 PDF만 업로드 가능합니다');return;}
+
+  const statusEl=document.getElementById('portfolioUploadStatus');
+  const btn=document.getElementById('portfolioUploadBtn');
+  statusEl.textContent='업로드 중...';
+  btn.disabled=true;
+
+  const reader=new FileReader();
+  reader.onload=async function(){
+    // data:application/pdf;base64,xxxxx 형태에서 base64 부분만 추출
+    const base64Data=reader.result.split(',')[1];
+    try{
+      const res=await callServerPost('serverUploadCardPortfolio',{
+        role:ROLE, token:TOKEN,
+        base64Data, mimeType:file.type, fileName:file.name
+      });
+      if(res&&res.success){
+        document.getElementById('f_portfolio').value=res.url;
+        statusEl.textContent='✅ 업로드 완료';
+      }else{
+        statusEl.textContent='❌ '+(res&&res.error||'업로드 실패');
+      }
+    }catch(e){
+      statusEl.textContent='❌ '+e.message;
+    }finally{
+      btn.disabled=false;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearPortfolio(){
+  document.getElementById('f_portfolio').value='';
+  document.getElementById('portfolioUploadStatus').textContent='';
 }
 
 function toast(msg){
@@ -448,6 +500,9 @@ function openAddForm(){
   document.getElementById('f_mobile').value='';
   document.getElementById('f_email').value='';
   document.getElementById('f_photo').value='';
+  document.getElementById('photoUploadStatus').textContent='';
+  document.getElementById('f_portfolio').value='';
+  document.getElementById('portfolioUploadStatus').textContent='';
   document.getElementById('f_insta').value='';
   document.getElementById('f_blog').value='';
   document.getElementById('f_active').checked=false;
@@ -477,6 +532,8 @@ function selectCard(i){
   document.getElementById('f_mobile').value=SELECTED.모바일||'';
   document.getElementById('f_email').value=SELECTED.이메일||'';
   document.getElementById('f_photo').value=SELECTED.프로필사진URL||'';
+  document.getElementById('portfolioUploadStatus').textContent='';
+  document.getElementById('f_portfolio').value=SELECTED.포트폴리오URL||'';
   document.getElementById('f_insta').value=SELECTED.인스타그램||'';
   document.getElementById('f_blog').value=SELECTED.블로그||'';
   document.getElementById('f_active').checked=SELECTED.활성여부==='Y';
@@ -509,6 +566,7 @@ async function saveCard(){
     직통번호: document.getElementById('f_office').value.trim(),
     모바일: document.getElementById('f_mobile').value.trim(),
     프로필사진URL: document.getElementById('f_photo').value.trim(),
+    포트폴리오URL: document.getElementById('f_portfolio').value.trim(),
     이메일: document.getElementById('f_email').value.trim(),
     인스타그램: document.getElementById('f_insta').value.trim(),
     블로그: document.getElementById('f_blog').value.trim(),
