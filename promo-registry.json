@@ -5,6 +5,12 @@
       "label": "2026년 7월 CALL 분석",
       "file": "promo/call-analytics-2507.html",
       "active": true
+    },
+    {
+      "id": "2026-09-other-media",
+      "label": "기타매체 달리자! (9~10월)",
+      "file": "promo/other-media-2609.html",
+      "active": true
     }
   ],
   "BM2": {
