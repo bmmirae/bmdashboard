@@ -9,13 +9,14 @@
   [v1.5] 프로필사진 파일 업로드 기능 추가 (구글드라이브 자동저장+공개URL 발급, POST 방식 통신)
   [v1.6] 프로필사진 URL 지우기(연동 해제) 버튼 추가 — Drive 파일은 그대로 두고 URL 값만 비움
   [v1.7] 프로필사진 규격 안내문구 추가 (정면 증명사진, 정사각형 비율, 권장 사이즈 400~600px) — 텍스트 안내만, 검증 로직은 없음
+  [v1.8] 카카오공유를 기본템플릿(sendDefault)에서 커스텀템플릿(sendCustom, templateId 136952)으로 교체 — 프로필=회사로고 고정, 이미지아이템=사진+직함+소속, 이름/소개문구는 메시지 제목/본문
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v1.7</title>
+<title>💳 전자명함 관리 v1.8</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -92,7 +93,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.7</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v1.8</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -223,17 +224,16 @@ function shareKakao(){
   const teamRaw=SELECTED.팀||'';
   const teamShort=teamRaw.replace(/^BM\d-/,'').replace(/^BM\d본부/,'');
   const orgLabel=(SELECTED.본부||'')+' '+teamShort;
-  Kakao.Share.sendDefault({
-    objectType:'feed',
-    content:{
-      title: SELECTED.이름,
-      description: `미래아이엔씨 · ${orgLabel} ${SELECTED.직함||''}`.trim(),
-      imageUrl: SELECTED.프로필사진URL || DEFAULT_SHARE_IMAGE,
-      link:{ mobileWebUrl:shareUrl, webUrl:shareUrl }
-    },
-    buttons:[
-      { title:'명함 확인', link:{ mobileWebUrl:shareUrl, webUrl:shareUrl } }
-    ]
+  Kakao.Share.sendCustom({
+    templateId: 136952,
+    templateArgs: {
+      name: SELECTED.이름 || '',
+      title: SELECTED.직함 || '',
+      org: orgLabel || '',
+      bio: SELECTED.소개문구 || '',
+      photo: SELECTED.프로필사진URL || DEFAULT_SHARE_IMAGE,
+      link: shareUrl
+    }
   });
 }
 
