@@ -20,13 +20,14 @@
   [v2.6] 히어로 플로팅 카드 배경을 더 투명하게(0.86→0.68), 처음 표시될 때 페이드인+슬라이드업 모션 추가
   [v2.7] 플로팅 카드 배경 투명도 추가 조정 (0.68→0.5)
   [v2.8] 버그수정 — 히어로사진(세로형) 미등록 시 정사각형 프로필사진으로 대체 표시하던 fallback 제거 (텍스트버전 사진이 프로필사진버전에 반영되는 것처럼 보이던 문제)
+  [v2.9] 텍스트버전 전환 시 세로형사진/태그 자동 비우기 기능 제거 — 카드타입을 왔다갔다 해도 각 버전 데이터가 유지되도록 변경
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v2.8</title>
+<title>💳 전자명함 관리 v2.9</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -113,7 +114,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.8</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.9</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -372,21 +373,11 @@ function clearPhoto(){
   updatePreview();
 }
 
-// [v2.4] 카드타입 선택에 따라 히어로사진/태그 필드 표시 여부 토글 + 텍스트버전으로 전환 시 두 필드 자동 비움
+// [v2.9] 카드타입 선택에 따라 히어로사진/태그 필드 표시 여부만 토글 — 자동 비우기는 제거 (전환해도 각 버전 데이터가 유지되도록)
 function onCardTypeChange(){
   const isPhoto = document.getElementById('f_type').value === '사진';
   document.getElementById('heroPhotoField').style.display = isPhoto ? 'block' : 'none';
   document.getElementById('tagField').style.display = isPhoto ? 'block' : 'none';
-  if(!isPhoto){
-    const heroEl=document.getElementById('f_hero_photo');
-    const tagEl=document.getElementById('f_tag');
-    if(heroEl.value.trim()||tagEl.value.trim()){
-      heroEl.value='';
-      tagEl.value='';
-      document.getElementById('heroPhotoUploadStatus').textContent='';
-      toast('ℹ️ 텍스트 버전으로 전환되어 세로형 사진/태그를 비웠습니다');
-    }
-  }
   updatePreview();
 }
 
