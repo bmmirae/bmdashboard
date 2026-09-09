@@ -15,13 +15,14 @@
   [v2.1] 소개문구 줄바꿈이 미리보기/공개페이지에 그대로 반영되도록 수정 (white-space:pre-line)
   [v2.2] 프로필사진 버전 전용 세로형 히어로사진 필드 분리 + 태그 필드 신설(스키마에 없던 죽은 필드였음) + 실시간 미리보기 카드타입 분기 + 카톡공유 이름·직함 한 줄 결합/히어로사진 사용
   [v2.3] 인물사진 상단(머리) 잘림 방지를 위해 아바타/히어로사진 크롭 기준점을 중앙→상단으로 변경 (object-position:center top)
+  [v2.4] 직원 목록에 카드타입 배지(📷 프로필) 추가, 텍스트버전 전환 시 세로형사진/태그 자동 비움
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v2.3</title>
+<title>💳 전자명함 관리 v2.4</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -107,7 +108,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.3</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.4</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -364,11 +365,21 @@ function clearPhoto(){
   updatePreview();
 }
 
-// [v2.2] 카드타입 선택에 따라 히어로사진/태그 필드 표시 여부 토글
+// [v2.4] 카드타입 선택에 따라 히어로사진/태그 필드 표시 여부 토글 + 텍스트버전으로 전환 시 두 필드 자동 비움
 function onCardTypeChange(){
   const isPhoto = document.getElementById('f_type').value === '사진';
   document.getElementById('heroPhotoField').style.display = isPhoto ? 'block' : 'none';
   document.getElementById('tagField').style.display = isPhoto ? 'block' : 'none';
+  if(!isPhoto){
+    const heroEl=document.getElementById('f_hero_photo');
+    const tagEl=document.getElementById('f_tag');
+    if(heroEl.value.trim()||tagEl.value.trim()){
+      heroEl.value='';
+      tagEl.value='';
+      document.getElementById('heroPhotoUploadStatus').textContent='';
+      toast('ℹ️ 텍스트 버전으로 전환되어 세로형 사진/태그를 비웠습니다');
+    }
+  }
   updatePreview();
 }
 
@@ -504,10 +515,11 @@ function renderEmpList(){
         const idx=CARDS.indexOf(c);
         const isActive=c.활성여부==='Y';
         const statusHtml=isActive?'<span class="status status-active">활성</span>':'<span class="status status-inactive">비활성</span>';
+        const typeHtml=c.카드타입==='사진'?'<span class="status" style="background:#e3e8fd;color:#3949ab;">📷 프로필</span>':'';
         html+=`<div class="emp-item" onclick="selectCard(${idx})" id="emp_${idx}">
           <div class="name">${c.이름}</div>
           <div class="meta">${c.직함||'-'}</div>
-          ${statusHtml}
+          ${statusHtml} ${typeHtml}
         </div>`;
       });
       html+='</div>';
