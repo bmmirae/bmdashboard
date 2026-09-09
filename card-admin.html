@@ -14,13 +14,14 @@
   [v2.0] 포트폴리오를 2슬롯으로 확장 + 슬롯별 표시문구 커스터마이징 가능하도록 변경
   [v2.1] 소개문구 줄바꿈이 미리보기/공개페이지에 그대로 반영되도록 수정 (white-space:pre-line)
   [v2.2] 프로필사진 버전 전용 세로형 히어로사진 필드 분리 + 태그 필드 신설(스키마에 없던 죽은 필드였음) + 실시간 미리보기 카드타입 분기 + 카톡공유 이름·직함 한 줄 결합/히어로사진 사용
+  [v2.3] 인물사진 상단(머리) 잘림 방지를 위해 아바타/히어로사진 크롭 기준점을 중앙→상단으로 변경 (object-position:center top)
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v2.2</title>
+<title>💳 전자명함 관리 v2.3</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -72,12 +73,12 @@ textarea{resize:vertical;min-height:60px;}
 .pv-brand-kr{font-size:12px;font-weight:600;color:var(--ink);}
 .pv-identity{display:flex;align-items:center;gap:14px;padding:14px 22px 18px;}
 .pv-avatar{flex-shrink:0;width:56px;height:56px;border-radius:50%;background:var(--brand-blue);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Noto Serif KR',serif;font-weight:700;font-size:21px;overflow:hidden;}
-.pv-avatar img{width:100%;height:100%;object-fit:cover;}
+.pv-avatar img{width:100%;height:100%;object-fit:cover;object-position:center top;}
 .pv-name{font-family:'Noto Serif KR',serif;font-weight:700;font-size:19px;margin:0 0 5px;}
 .pv-title-line{font-size:12.5px;color:var(--slate);}
 .pv-title-line .pv-team{color:var(--ink);font-weight:500;}
 .pv-hero-wrap{position:relative;}
-.pv-hero-photo{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:#DADADA;}
+.pv-hero-photo{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:center top;display:block;background:#DADADA;}
 .pv-hero-overlay{position:relative;margin:-64px 16px 0;background:rgba(14,14,20,0.86);backdrop-filter:blur(8px);border-radius:16px;padding:16px 18px 18px;color:#fff;}
 .pv-hero-name{font-family:'Noto Serif KR',serif;font-weight:700;font-size:19px;margin:0 0 5px;color:#fff;}
 .pv-hero-title-line{font-size:12px;color:rgba(255,255,255,0.72);}
@@ -106,7 +107,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.2</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.3</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
