@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.88</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.89</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -441,6 +441,36 @@ function renderRecallChips(recalls){
   return`<span>${first5}<span id="rc_more_${uid}"><span onclick="toggleRecallMore('${uid}')" style="display:inline-block;font-size:11px;color:#1565c0;cursor:pointer;font-weight:600;margin-left:2px;background:#e8f4fd;border:1px solid #90caf9;border-radius:5px;padding:2px 7px;">+${extra} 더보기 ▼</span></span><span id="rc_rest_${uid}" style="display:none;">${rest}<span onclick="toggleRecallMore('${uid}')" style="display:inline-block;font-size:11px;color:#1565c0;cursor:pointer;font-weight:600;margin-left:2px;background:#e8f4fd;border:1px solid #90caf9;border-radius:5px;padding:2px 7px;">▲ 접기</span></span></span>`;
 }
 function toggleRecallMore(uid){const more=document.getElementById('rc_more_'+uid);const rest=document.getElementById('rc_rest_'+uid);if(!more||!rest)return;const h=rest.style.display==='none';more.style.display=h?'none':'inline';rest.style.display=h?'inline':'none';}
+
+// [v5.9] 보관 카드 전용: 보관 처리 시점(sinceDateTime) 이후에 새로 달린 재콜만 주황색으로 강조 표시
+function renderRecallChipsMarked(recalls,sinceDateTime){
+  if(!recalls||!recalls.length)return'<span style="color:var(--text-muted);">-</span>';
+  const sinceDate=sinceDateTime?String(sinceDateTime).slice(0,10):'';
+  const td2=today();
+  const sorted=[...recalls].filter(rc=>{const d=typeof rc==='object'?normalizeDate(rc.date)||'':normalizeDate(String(rc).slice(0,10))||'';if(!d||!/^\d{4}-\d{2}-\d{2}$/.test(d))return true;return d<=td2;}).sort((a,b)=>{const da=typeof a==='object'?(a.date||''):normalizeDate(String(a).slice(0,10))||'';const db=typeof b==='object'?(b.date||''):normalizeDate(String(b).slice(0,10))||'';return db.localeCompare(da);});
+  const makeChip=rc=>{
+    let dateStr='',memo='';
+    if(typeof rc==='object'&&rc!==null){dateStr=rc.date||'';memo=rc.memo||'';}else{dateStr=String(rc);}
+    const label=fmtRecallDate(dateStr);
+    const d=normalizeDate(dateStr)||'';
+    const isNew=!!(sinceDate&&d&&d>sinceDate);
+    const bg=isNew?'#fff3e0':(memo?'#e8f4fd':'var(--surface2)');
+    const border=isNew?'#ffb74d':(memo?'#90caf9':'var(--border)');
+    const color=isNew?'#e65100':(memo?'#1565c0':'var(--text-sub)');
+    const weight=(isNew||memo)?'700':'400';
+    const badge=isNew?'🆕 ':'';
+    const memoIcon=memo?' 💬':'';
+    const inner=`<span style="display:inline-block;font-size:11px;background:${bg};border:1px solid ${border};border-radius:5px;padding:2px 8px;margin:1px 2px;color:${color};font-weight:${weight};cursor:${memo?'help':'default'};">${badge}${label}${memoIcon}</span>`;
+    if(!memo)return inner;
+    return`<span class="recall-tip">${inner}<span class="tip-content">${memo.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</span></span>`;
+  };
+  if(sorted.length<=5)return sorted.map(makeChip).join('');
+  const uid='rcm_'+Math.random().toString(36).slice(2,7);
+  const first5=sorted.slice(0,5).map(makeChip).join('');
+  const rest=sorted.slice(5).map(makeChip).join('');
+  const extra=sorted.length-5;
+  return`<span>${first5}<span id="rc_more_${uid}"><span onclick="toggleRecallMore('${uid}')" style="display:inline-block;font-size:11px;color:#1565c0;cursor:pointer;font-weight:600;margin-left:2px;background:#e8f4fd;border:1px solid #90caf9;border-radius:5px;padding:2px 7px;">+${extra} 더보기 ▼</span></span><span id="rc_rest_${uid}" style="display:none;">${rest}<span onclick="toggleRecallMore('${uid}')" style="display:inline-block;font-size:11px;color:#1565c0;cursor:pointer;font-weight:600;margin-left:2px;background:#e8f4fd;border:1px solid #90caf9;border-radius:5px;padding:2px 7px;">▲ 접기</span></span></span>`;
+}
 
 // ── 메인 탭 전환 ─────────────────────────────
 let CURRENT_MAIN_TAB='db';
@@ -1114,13 +1144,18 @@ function getNeedItemsFor(rowsSubset){
   // 같은 업체(company+manager+firstCall)에 여러 조건이 동시 해당하면 하나로 묶어서 반환
   const needMap=new Map();
   rowsSubset.forEach(r=>{
+    const fc=normalizeDate(r.firstCall)||'';
+    // [v5.9] 업체 단위 보관 처리: 이 업체가 어떤 카테고리로든 한 번 보관되었으면
+    // 이후 등급 변경 등으로 다른 카테고리에 새로 해당되어도 체크필요에 다시 노출하지 않음
+    const isArchivedCompany=_checkLogData.some(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.status==='보관');
+    if(isArchivedCompany) return;
     const cats=classifyCheckItem(r);
     const unlogged=cats.filter(({cat})=>{
-      const logEntry=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===(normalizeDate(r.firstCall)||'')&&l.category===cat);
+      const logEntry=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.category===cat);
       return !logEntry||!logEntry.status; // 상태(확인완료/보관)가 비어있으면(본부확인만 있는 행) 여전히 체크필요로 취급
     });
     if(unlogged.length){
-      const rowKey=r.company+'|||'+r.manager+'|||'+(normalizeDate(r.firstCall)||'');
+      const rowKey=r.company+'|||'+r.manager+'|||'+fc;
       needMap.set(rowKey,{r,cats:unlogged});
     }
   });
@@ -1294,9 +1329,12 @@ function renderCheckSection(rows){
     const hqBtn=isHqLevel
       ?`<button onclick='toggleHqCheck(this,${JSON.stringify(confirmItem).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid ${hqOn?'#3949ab':'var(--border)'};background:${hqOn?'#3949ab':'var(--surface)'};color:${hqOn?'#fff':'var(--text-sub)'};font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🏢 본부확인${hqOn?' ✓':''}</button>`
       :'';
+    // [v5.9] 체크필요 → 보관 직행 버튼 (필수 코멘트 입력 후 확정)
+    const arcUid='need_'+(r.company+'_'+r.manager+'_'+(normalizeDate(r.firstCall)||'')).replace(/[^a-zA-Z0-9가-힣]/g,'_');
     return`<div class="np-row" style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
       <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
         <button onclick='checkConfirm(this,${JSON.stringify(confirmItem).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
+        <button onclick='openArchiveBox("${arcUid}")' style="padding:4px 10px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📌 보관</button>
         ${hqBtn}
         ${badgesHtml}
         <div onclick='jumpToCompanyInList(${JSON.stringify(r.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${r.company}</strong>${r.url?`<span onclick="event.stopPropagation();openUrl('${r.url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
@@ -1309,11 +1347,20 @@ function renderCheckSection(rows){
         <span>🔁 재콜 ${recallCnt}회</span>
       </div>
       ${cats.some(c=>c.cat==='숨은가망')?`<div style="padding-left:2px;">${renderLongMemoChips(r.recalls)}</div>`:''}
+      <div id="arcBox_${arcUid}" style="display:none;margin-top:2px;padding:8px;background:#f3e5f5;border:1px solid #ce93d8;border-radius:8px;">
+        <div style="font-size:11px;color:#6a1b9a;font-weight:600;margin-bottom:4px;">📌 보관 사유를 입력해주세요 (필수)</div>
+        <textarea id="arcTa_${arcUid}" placeholder="예: 예산 보류, 장기 관망 등" style="width:100%;min-height:48px;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;resize:vertical;box-sizing:border-box;background:var(--surface);color:var(--text);"></textarea>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button id="arcBtn_${arcUid}" onclick='confirmArchiveBox("${arcUid}",${JSON.stringify(confirmItem).replace(/'/g,"&apos;")})' style="padding:4px 12px;border-radius:14px;border:none;background:#7b1fa2;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">보관 확정</button>
+          <button onclick='closeArchiveBox("${arcUid}")' style="padding:4px 12px;border-radius:14px;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);font-size:11px;cursor:pointer;">취소</button>
+        </div>
+      </div>
     </div>`;
   };
   const renderLogCard=(l,showArchiveBtn)=>{
+    const arcUid='arc_'+getCheckKey({company:l.company,manager:l.manager,firstCall:l.firstCall},l.category).replace(/[^a-zA-Z0-9가-힣]/g,'_');
     const actionBtn=showArchiveBtn
-      ?`<button onclick='checkArchive(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📌 보관</button>`
+      ?`<button onclick='openArchiveBox("${arcUid}")' style="padding:4px 10px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📌 보관</button>`
       :`<button onclick='checkDelete(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #c62828;background:var(--surface);color:#c62828;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗑 삭제</button>`;
     const hqOn=l.hqChecked==='Y';
     const hqBtn=(isHqLevel&&l.status!=='보관')
@@ -1337,7 +1384,7 @@ function renderCheckSection(rows){
         <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${l.actedAt.slice(5,16)}</div>
         ${closeBtn}
       </div>
-      ${l.category==='숨은가망'&&matched?`<div style="padding-left:2px;">${renderLongMemoChips(matched.recalls)}</div>`:''}
+      ${(!showArchiveBtn&&matched&&matched.recalls&&matched.recalls.length)?`<div style="padding-left:2px;">${renderRecallChipsMarked(matched.recalls,l.actedAt)}</div>`:(l.category==='숨은가망'&&matched?`<div style="padding-left:2px;">${renderLongMemoChips(matched.recalls)}</div>`:'')}
       <div id="memoView_${memoKey}" style="display:${hasMemo?'flex':'none'};align-items:flex-start;gap:6px;padding-left:2px;">
         <span style="font-size:10px;color:var(--text-muted);flex-shrink:0;margin-top:1px;">📝</span>
         <span style="font-size:11px;color:var(--text-sub);flex:1;white-space:pre-wrap;">${(l.memo||'').replace(/</g,'&lt;')}</span>
@@ -1353,6 +1400,14 @@ function renderCheckSection(rows){
           <button onclick="hideMemoInput('${memoKey}',${hasMemo})" style="padding:4px 10px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);font-size:10px;cursor:pointer;white-space:nowrap;">취소</button>
         </div>
       </div>
+      ${showArchiveBtn?`<div id="arcBox_${arcUid}" style="display:none;padding:8px;background:#f3e5f5;border:1px solid #ce93d8;border-radius:8px;">
+        <div style="font-size:11px;color:#6a1b9a;font-weight:600;margin-bottom:4px;">📌 보관 사유를 입력해주세요 (필수)</div>
+        <textarea id="arcTa_${arcUid}" placeholder="예: 예산 보류, 장기 관망 등" style="width:100%;min-height:48px;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;resize:vertical;box-sizing:border-box;background:var(--surface);color:var(--text);"></textarea>
+        <div style="display:flex;gap:6px;margin-top:6px;">
+          <button id="arcBtn_${arcUid}" onclick='confirmArchiveBox("${arcUid}",${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 12px;border-radius:14px;border:none;background:#7b1fa2;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">보관 확정</button>
+          <button onclick='closeArchiveBox("${arcUid}")' style="padding:4px 12px;border-radius:14px;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);font-size:11px;cursor:pointer;">취소</button>
+        </div>
+      </div>`:''}
     </div>`;
   };
 
@@ -1510,12 +1565,33 @@ async function checkConfirm(btn,item){
     toast('✅ 확인되었습니다');await loadCheckLog();refreshCheckSectionOnly();
   }catch(e){toast('❌ '+e.message,'err');if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';btn.textContent='✔ 확인';}}
 }
-async function checkArchive(item){
+// [v5.9] 보관 처리는 반드시 코멘트를 입력해야 진행되도록 인라인 박스 방식으로 변경
+function openArchiveBox(uid){
+  const box=document.getElementById('arcBox_'+uid);
+  if(box){box.style.display='block';const ta=document.getElementById('arcTa_'+uid);if(ta)ta.focus();}
+}
+function closeArchiveBox(uid){
+  const box=document.getElementById('arcBox_'+uid);
+  if(box)box.style.display='none';
+}
+async function confirmArchiveBox(uid,item){
+  const ta=document.getElementById('arcTa_'+uid);
+  const memo=ta?ta.value.trim():'';
+  if(!memo){toast('❌ 보관 사유(코멘트)를 입력해주세요','err');if(ta)ta.focus();return;}
+  const btn=document.getElementById('arcBtn_'+uid);
+  if(btn){if(btn.disabled)return;btn.disabled=true;btn.style.opacity='0.5';btn.style.cursor='default';btn.textContent='처리 중...';}
   try{
-    const res=await callServer('serverSaveCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:item.cat,status:'보관'});
-    if(res&&res.success){toast('📌 보관함으로 이동');await loadCheckLog();refreshCheckSectionOnly();}
-    else toast('❌ '+(res.error||'처리 실패'),'err');
-  }catch(e){toast('❌ '+e.message,'err');}
+    // 체크필요 카드에서 온 경우 여러 조건(cats)을 한 번에, 개별 로그 카드는 단일 조건(cat)만 보관 처리
+    const catList=item.cats||[item.cat];
+    for(const cat of catList){
+      const res=await callServer('serverSaveCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:cat,status:'보관',memo});
+      if(!res||!res.success) throw new Error((res&&res.error)||'처리 실패');
+    }
+    toast('📌 보관함으로 이동');await loadCheckLog();refreshCheckSectionOnly();
+  }catch(e){
+    toast('❌ '+e.message,'err');
+    if(btn){btn.disabled=false;btn.style.opacity='1';btn.style.cursor='pointer';btn.textContent='보관 확정';}
+  }
 }
 async function toggleHqCheck(btn,item){
   if(btn){if(btn.disabled)return;btn.disabled=true;btn.style.opacity='0.5';}
