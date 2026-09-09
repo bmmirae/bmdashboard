@@ -19,13 +19,14 @@
   [v2.5] 카톡공유 사진을 Cloudflare Worker 크롭 프록시(/crop, gravity=top)에 통과시켜 카카오 자체 크롭으로 인한 머리 잘림 방지
   [v2.6] 히어로 플로팅 카드 배경을 더 투명하게(0.86→0.68), 처음 표시될 때 페이드인+슬라이드업 모션 추가
   [v2.7] 플로팅 카드 배경 투명도 추가 조정 (0.68→0.5)
+  [v2.8] 버그수정 — 히어로사진(세로형) 미등록 시 정사각형 프로필사진으로 대체 표시하던 fallback 제거 (텍스트버전 사진이 프로필사진버전에 반영되는 것처럼 보이던 문제)
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v2.7</title>
+<title>💳 전자명함 관리 v2.8</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -112,7 +113,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.7</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.8</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -587,7 +588,7 @@ function updatePreview(){
   if(isPhotoType){
     document.getElementById('pv_identity').style.display = 'none';
     document.getElementById('pv_heroWrap').style.display = 'block';
-    document.getElementById('pv_heroPhoto').src = heroPhoto || photo || '';
+    document.getElementById('pv_heroPhoto').src = heroPhoto || '';
     document.getElementById('pv_hero_name').textContent = name;
     document.getElementById('pv_hero_team').textContent = org || '-';
     document.getElementById('pv_hero_title').textContent = title || '-';
