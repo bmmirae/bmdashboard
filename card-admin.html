@@ -13,13 +13,14 @@
   [v1.9] 포트폴리오(PDF) 업로드 필드 추가 — 프로필사진 업로드와 동일 패턴, 10MB 이하 PDF만 허용
   [v2.0] 포트폴리오를 2슬롯으로 확장 + 슬롯별 표시문구 커스터마이징 가능하도록 변경
   [v2.1] 소개문구 줄바꿈이 미리보기/공개페이지에 그대로 반영되도록 수정 (white-space:pre-line)
+  [v2.2] 프로필사진 버전 전용 세로형 히어로사진 필드 분리 + 태그 필드 신설(스키마에 없던 죽은 필드였음) + 실시간 미리보기 카드타입 분기 + 카톡공유 이름·직함 한 줄 결합/히어로사진 사용
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v2.1</title>
+<title>💳 전자명함 관리 v2.2</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -75,6 +76,15 @@ textarea{resize:vertical;min-height:60px;}
 .pv-name{font-family:'Noto Serif KR',serif;font-weight:700;font-size:19px;margin:0 0 5px;}
 .pv-title-line{font-size:12.5px;color:var(--slate);}
 .pv-title-line .pv-team{color:var(--ink);font-weight:500;}
+.pv-hero-wrap{position:relative;}
+.pv-hero-photo{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:#DADADA;}
+.pv-hero-overlay{position:relative;margin:-64px 16px 0;background:rgba(14,14,20,0.86);backdrop-filter:blur(8px);border-radius:16px;padding:16px 18px 18px;color:#fff;}
+.pv-hero-name{font-family:'Noto Serif KR',serif;font-weight:700;font-size:19px;margin:0 0 5px;color:#fff;}
+.pv-hero-title-line{font-size:12px;color:rgba(255,255,255,0.72);}
+.pv-hero-title-line .pv-hero-team{color:#fff;font-weight:500;}
+.pv-hero-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:10px;}
+.pv-hero-tag{font-size:10px;font-weight:500;padding:3px 10px;border-radius:12px;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.28);color:#fff;}
+.pv-hero-portfolio{font-size:11px;color:rgba(255,255,255,0.85);margin-top:10px;}
 .pv-actions{display:flex;border-top:1px solid var(--line);border-bottom:1px solid var(--line);}
 .pv-actions div{flex:1;padding:11px 4px;font-size:10.5px;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;border-right:1px solid var(--line);}
 .pv-actions div:last-child{border-right:none;}
@@ -96,7 +106,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.1</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.2</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -138,7 +148,7 @@ textarea{resize:vertical;min-height:60px;}
           <div><label>직함</label><input type="text" id="f_title" placeholder="예: BM3본부장"></div>
           <div><label>slug (URL 식별자, 영문-하이픈)</label><input type="text" id="f_slug" placeholder="hong-gildong"></div>
           <div><label>카드 타입</label>
-            <select id="f_type"><option value="텍스트">텍스트 버전</option><option value="사진">프로필사진 버전</option></select>
+            <select id="f_type" onchange="onCardTypeChange()"><option value="텍스트">텍스트 버전</option><option value="사진">프로필사진 버전</option></select>
           </div>
           <div class="full"><label>소개문구</label><textarea id="f_intro" placeholder="1~2문장으로 소개해주세요"></textarea></div>
           <div><label>직통번호</label><input type="tel" id="f_office" placeholder="051-000-0000"></div>
@@ -152,8 +162,24 @@ textarea{resize:vertical;min-height:60px;}
               <button type="button" class="btn btn-ghost" id="photoClearBtn" onclick="clearPhoto()" style="padding:9px 12px;white-space:nowrap;color:#c62828;">✕ 지우기</button>
               <input type="file" id="photoFileInput" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
             </div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📌 정면 증명사진 권장 · 정사각형(1:1) 비율 · 400~600px</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📌 정면 증명사진 권장 · 정사각형(1:1) 비율 · 400~600px · 카톡공유·아바타에 사용</div>
             <div id="photoUploadStatus" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></div>
+          </div>
+          <div class="full" id="heroPhotoField" style="display:none;">
+            <label>프로필사진 (세로형 — 프로필사진 버전 전용)</label>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <input type="url" id="f_hero_photo" placeholder="https://..." style="flex:1;">
+              <button type="button" class="btn btn-ghost" id="heroPhotoUploadBtn" onclick="document.getElementById('heroPhotoFileInput').click()" style="padding:9px 12px;white-space:nowrap;">📷 선택</button>
+              <button type="button" class="btn btn-ghost" id="heroPhotoClearBtn" onclick="clearHeroPhoto()" style="padding:9px 12px;white-space:nowrap;color:#c62828;">✕ 지우기</button>
+              <input type="file" id="heroPhotoFileInput" accept="image/*" style="display:none;" onchange="handleHeroPhotoUpload(event)">
+            </div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📌 세로형(3:4) 반신 인물사진 권장 · 프로필사진 버전의 히어로 배경 + 이 카드의 카톡공유 사진으로 사용됩니다 (위 정사각형 사진과는 별개)</div>
+            <div id="heroPhotoUploadStatus" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></div>
+          </div>
+          <div id="tagField" style="display:none;">
+            <label>태그 (최대 2개, 쉼표로 구분)</label>
+            <input type="text" id="f_tag" placeholder="예: 네이버 검색광고, 쇼핑광고 운영">
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📌 프로필사진 버전 히어로 카드에 칩 형태로 표시됩니다</div>
           </div>
           <div class="full">
             <label>포트폴리오 1</label>
@@ -198,7 +224,16 @@ textarea{resize:vertical;min-height:60px;}
               <img src="https://card.bm1mirae.workers.dev/assets/logo.png" alt="미래아이엔씨">
               <span class="pv-brand-kr">(주)미래아이엔씨</span>
             </div>
-            <div class="pv-identity">
+            <div class="pv-hero-wrap" id="pv_heroWrap" style="display:none;">
+              <img class="pv-hero-photo" id="pv_heroPhoto" src="" alt="">
+              <div class="pv-hero-overlay">
+                <h1 class="pv-hero-name" id="pv_hero_name">-</h1>
+                <div class="pv-hero-title-line"><span class="pv-hero-team" id="pv_hero_team">-</span> <span id="pv_hero_title">-</span></div>
+                <div class="pv-hero-tags" id="pv_hero_tags" style="display:none;"></div>
+                <div class="pv-hero-portfolio" id="pv_hero_portfolio" style="display:none;">📎 포트폴리오 링크 표시됨</div>
+              </div>
+            </div>
+            <div class="pv-identity" id="pv_identity">
               <div class="pv-avatar" id="pv_avatar">?</div>
               <div>
                 <h1 class="pv-name" id="pv_name">-</h1>
@@ -250,14 +285,17 @@ function shareKakao(){
   const teamRaw=SELECTED.팀||'';
   const teamShort=teamRaw.replace(/^BM\d-/,'').replace(/^BM\d본부/,'');
   const orgLabel=(SELECTED.본부||'')+' '+teamShort;
+  // [v2.2] 이름+직함을 한 줄로 합쳐서 표기(동일 크기), 사진(프로필사진 버전)은 세로형 히어로사진을 카톡공유 사진으로 사용
+  const nameWithTitle=(SELECTED.이름||'')+(SELECTED.직함?(' '+SELECTED.직함):'');
+  const sharePhoto=(SELECTED.카드타입==='사진'&&SELECTED.히어로사진URL)?SELECTED.히어로사진URL:(SELECTED.프로필사진URL||DEFAULT_SHARE_IMAGE);
   Kakao.Share.sendCustom({
     templateId: 136952,
     templateArgs: {
-      name: SELECTED.이름 || '',
-      title: SELECTED.직함 || '',
+      name: nameWithTitle || '',
+      title: '',
       org: orgLabel || '',
       bio: SELECTED.소개문구 || '',
-      photo: SELECTED.프로필사진URL || DEFAULT_SHARE_IMAGE,
+      photo: sharePhoto,
       link: shareUrl
     }
   });
@@ -322,6 +360,55 @@ function handlePhotoUpload(event){
 function clearPhoto(){
   document.getElementById('f_photo').value='';
   document.getElementById('photoUploadStatus').textContent='';
+  updatePreview();
+}
+
+// [v2.2] 카드타입 선택에 따라 히어로사진/태그 필드 표시 여부 토글
+function onCardTypeChange(){
+  const isPhoto = document.getElementById('f_type').value === '사진';
+  document.getElementById('heroPhotoField').style.display = isPhoto ? 'block' : 'none';
+  document.getElementById('tagField').style.display = isPhoto ? 'block' : 'none';
+  updatePreview();
+}
+
+function handleHeroPhotoUpload(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  if(!file.type.startsWith('image/')){toast('❌ 이미지 파일만 업로드 가능합니다');return;}
+  if(file.size>3*1024*1024){toast('❌ 3MB 이하 이미지만 업로드 가능합니다');return;}
+
+  const statusEl=document.getElementById('heroPhotoUploadStatus');
+  const btn=document.getElementById('heroPhotoUploadBtn');
+  statusEl.textContent='업로드 중...';
+  btn.disabled=true;
+
+  const reader=new FileReader();
+  reader.onload=async function(){
+    const base64Data=reader.result.split(',')[1];
+    try{
+      const res=await callServerPost('serverUploadCardPhoto',{
+        role:ROLE, token:TOKEN,
+        base64Data, mimeType:file.type, fileName:file.name
+      });
+      if(res&&res.success){
+        document.getElementById('f_hero_photo').value=res.url;
+        statusEl.textContent='✅ 업로드 완료';
+        updatePreview();
+      }else{
+        statusEl.textContent='❌ '+(res&&res.error||'업로드 실패');
+      }
+    }catch(e){
+      statusEl.textContent='❌ '+e.message;
+    }finally{
+      btn.disabled=false;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearHeroPhoto(){
+  document.getElementById('f_hero_photo').value='';
+  document.getElementById('heroPhotoUploadStatus').textContent='';
   updatePreview();
 }
 
@@ -466,28 +553,54 @@ function updatePreview(){
   const mobile = document.getElementById('f_mobile').value.trim();
   const email = document.getElementById('f_email').value.trim();
   const photo = document.getElementById('f_photo').value.trim();
+  const heroPhoto = document.getElementById('f_hero_photo').value.trim();
+  const tag = document.getElementById('f_tag').value.trim();
+  const isPhotoType = document.getElementById('f_type').value === '사진';
 
   const org = orgLabelPreview(bu, team);
 
-  document.getElementById('pv_name').textContent = name;
-  document.getElementById('pv_team').textContent = org || '-';
-  document.getElementById('pv_title').textContent = title || '-';
   document.getElementById('pv_bio').textContent = intro || '소개 문구가 아직 등록되지 않았습니다.';
   document.getElementById('pv_mobile').textContent = mobile || '-';
   document.getElementById('pv_office').textContent = office || '-';
   document.getElementById('pv_email').textContent = email || '-';
   document.getElementById('pv_org').textContent = '미래아이엔씨 · ' + (org || '-');
 
-  const avatar = document.getElementById('pv_avatar');
-  if(photo){
-    avatar.innerHTML = `<img src="${photo}" alt="${name}">`;
+  if(isPhotoType){
+    document.getElementById('pv_identity').style.display = 'none';
+    document.getElementById('pv_heroWrap').style.display = 'block';
+    document.getElementById('pv_heroPhoto').src = heroPhoto || photo || '';
+    document.getElementById('pv_hero_name').textContent = name;
+    document.getElementById('pv_hero_team').textContent = org || '-';
+    document.getElementById('pv_hero_title').textContent = title || '-';
+
+    const tagList = tag.split(',').map(t=>t.trim()).filter(Boolean).slice(0,2);
+    const tagsEl = document.getElementById('pv_hero_tags');
+    if(tagList.length){
+      tagsEl.innerHTML = tagList.map(t=>`<span class="pv-hero-tag">${t}</span>`).join('');
+      tagsEl.style.display = 'flex';
+    }else{
+      tagsEl.style.display = 'none';
+    }
+
+    const hasPortfolio = !!(document.getElementById('f_portfolio1_url').value.trim() || document.getElementById('f_portfolio2_url').value.trim());
+    document.getElementById('pv_hero_portfolio').style.display = hasPortfolio ? 'block' : 'none';
   }else{
-    avatar.textContent = (name || '?').charAt(0);
+    document.getElementById('pv_identity').style.display = 'flex';
+    document.getElementById('pv_heroWrap').style.display = 'none';
+    document.getElementById('pv_name').textContent = name;
+    document.getElementById('pv_team').textContent = org || '-';
+    document.getElementById('pv_title').textContent = title || '-';
+    const avatar = document.getElementById('pv_avatar');
+    if(photo){
+      avatar.innerHTML = `<img src="${photo}" alt="${name}">`;
+    }else{
+      avatar.textContent = (name || '?').charAt(0);
+    }
   }
 }
 
 function bindPreviewEvents(){
-  ['f_name','f_title','f_intro','f_office','f_mobile','f_email','f_photo','f_bu','f_team'].forEach(id=>{
+  ['f_name','f_title','f_intro','f_office','f_mobile','f_email','f_photo','f_hero_photo','f_tag','f_portfolio1_url','f_portfolio2_url','f_bu','f_team','f_type'].forEach(id=>{
     const el=document.getElementById(id);
     if(el && !el.dataset.previewBound){
       el.addEventListener('input', updatePreview);
@@ -515,6 +628,11 @@ function openAddForm(){
   document.getElementById('f_email').value='';
   document.getElementById('f_photo').value='';
   document.getElementById('photoUploadStatus').textContent='';
+  document.getElementById('f_hero_photo').value='';
+  document.getElementById('heroPhotoUploadStatus').textContent='';
+  document.getElementById('f_tag').value='';
+  document.getElementById('heroPhotoField').style.display='none';
+  document.getElementById('tagField').style.display='none';
   document.getElementById('f_portfolio1_title').value='';
   document.getElementById('f_portfolio1_url').value='';
   document.getElementById('portfolio1UploadStatus').textContent='';
@@ -550,6 +668,11 @@ function selectCard(i){
   document.getElementById('f_mobile').value=SELECTED.모바일||'';
   document.getElementById('f_email').value=SELECTED.이메일||'';
   document.getElementById('f_photo').value=SELECTED.프로필사진URL||'';
+  document.getElementById('heroPhotoUploadStatus').textContent='';
+  document.getElementById('f_hero_photo').value=SELECTED.히어로사진URL||'';
+  document.getElementById('f_tag').value=SELECTED.태그||'';
+  document.getElementById('heroPhotoField').style.display=SELECTED.카드타입==='사진'?'block':'none';
+  document.getElementById('tagField').style.display=SELECTED.카드타입==='사진'?'block':'none';
   document.getElementById('portfolio1UploadStatus').textContent='';
   document.getElementById('f_portfolio1_title').value=SELECTED.포트폴리오제목||'';
   document.getElementById('f_portfolio1_url').value=SELECTED.포트폴리오URL||'';
@@ -588,6 +711,8 @@ async function saveCard(){
     직통번호: document.getElementById('f_office').value.trim(),
     모바일: document.getElementById('f_mobile').value.trim(),
     프로필사진URL: document.getElementById('f_photo').value.trim(),
+    히어로사진URL: document.getElementById('f_hero_photo').value.trim(),
+    태그: document.getElementById('f_tag').value.trim(),
     포트폴리오URL: document.getElementById('f_portfolio1_url').value.trim(),
     포트폴리오제목: document.getElementById('f_portfolio1_title').value.trim(),
     포트폴리오2URL: document.getElementById('f_portfolio2_url').value.trim(),
