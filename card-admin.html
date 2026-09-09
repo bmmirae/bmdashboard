@@ -16,13 +16,14 @@
   [v2.2] 프로필사진 버전 전용 세로형 히어로사진 필드 분리 + 태그 필드 신설(스키마에 없던 죽은 필드였음) + 실시간 미리보기 카드타입 분기 + 카톡공유 이름·직함 한 줄 결합/히어로사진 사용
   [v2.3] 인물사진 상단(머리) 잘림 방지를 위해 아바타/히어로사진 크롭 기준점을 중앙→상단으로 변경 (object-position:center top)
   [v2.4] 직원 목록에 카드타입 배지(📷 프로필) 추가, 텍스트버전 전환 시 세로형사진/태그 자동 비움
+  [v2.5] 카톡공유 사진을 Cloudflare Worker 크롭 프록시(/crop, gravity=top)에 통과시켜 카카오 자체 크롭으로 인한 머리 잘림 방지
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v2.4</title>
+<title>💳 전자명함 관리 v2.5</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -108,7 +109,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.4</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v2.5</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -287,9 +288,11 @@ function shareKakao(){
   const teamRaw=SELECTED.팀||'';
   const teamShort=teamRaw.replace(/^BM\d-/,'').replace(/^BM\d본부/,'');
   const orgLabel=(SELECTED.본부||'')+' '+teamShort;
-  // [v2.2] 이름+직함을 한 줄로 합쳐서 표기(동일 크기), 사진(프로필사진 버전)은 세로형 히어로사진을 카톡공유 사진으로 사용
+  // [v2.5] 이름+직함을 한 줄로 합쳐서 표기(동일 크기), 사진(프로필사진 버전)은 세로형 히어로사진을 카톡공유 사진으로 사용
   const nameWithTitle=(SELECTED.이름||'')+(SELECTED.직함?(' '+SELECTED.직함):'');
-  const sharePhoto=(SELECTED.카드타입==='사진'&&SELECTED.히어로사진URL)?SELECTED.히어로사진URL:(SELECTED.프로필사진URL||DEFAULT_SHARE_IMAGE);
+  const rawPhoto=(SELECTED.카드타입==='사진'&&SELECTED.히어로사진URL)?SELECTED.히어로사진URL:SELECTED.프로필사진URL;
+  // 원본 사진을 크롭 프록시(/crop, gravity=top)에 통과시켜 카톡 자체 크롭으로 머리가 잘리는 문제 방지
+  const sharePhoto=rawPhoto?('https://card.bm1mirae.workers.dev/crop?src='+encodeURIComponent(rawPhoto)+'&w=800&h=800&g=top'):DEFAULT_SHARE_IMAGE;
   Kakao.Share.sendCustom({
     templateId: 136952,
     templateArgs: {
