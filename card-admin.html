@@ -26,13 +26,15 @@
   [v3.2] 색 대비 대신 입체감(테두리+그림자로 떠있는 카드)으로 방향 전환 — 배경은 연한 그레이 유지, 마진/패딩 재계산해서 다른 섹션과 좌우 정렬 일치시킴
   [v3.3] 프로필사진 버전: 상단 로고줄 제거하고 파란 줄 바로 아래에 사진이 오도록 변경, 로고는 플로팅 카드 안 오른쪽으로 이동 (첫 화면에 연락처저장 버튼이 보이도록 세로 길이 단축 목적)
   [v3.4] 로고 파일이 흰 배경 포함이라 어색하게 보이던 문제 수정 — 흰 원형 배지(둥근 테두리+그림자)로 의도적으로 감싸서 자연스럽게 처리
+  [v3.5] AI 원본파일에서 진짜 투명배경 아이콘(logo-icon-transparent.png)을 새로 추출 — 흰 배지 우회처리 제거, 카드 배경에 직접 노출, 크기 확대(34px→52px)
+  [v3.6] 아이콘 단독 대신 풀 워드마크 로고(logo-full-dark.png) 사용으로 변경 — 로고 내 검정색("I&C") 부분이 어두운 카드 배경에 묻히던 문제를 흰색으로 치환해서 해결
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v3.4</title>
+<title>💳 전자명함 관리 v3.6</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -93,8 +95,8 @@ textarea{resize:vertical;min-height:60px;}
 .pv-hero-wrap{position:relative;}
 .pv-hero-photo{width:100%;aspect-ratio:3/4;object-fit:cover;object-position:center top;display:block;background:#DADADA;}
 @keyframes pvHeroOverlayIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
-.pv-hero-overlay{position:relative;margin:-64px 16px 0;background:rgba(14,14,20,0.5);backdrop-filter:blur(8px);border-radius:16px;padding:16px 46px 18px 18px;color:#fff;animation:pvHeroOverlayIn 0.6s ease-out;}
-.pv-hero-logo-mark{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:28px;height:28px;border-radius:50%;background:#fff;padding:3px;box-sizing:border-box;object-fit:contain;box-shadow:0 2px 10px rgba(0,0,0,0.3);}
+.pv-hero-overlay{position:relative;margin:-64px 16px 0;background:rgba(14,14,20,0.5);backdrop-filter:blur(8px);border-radius:16px;padding:16px 90px 18px 18px;color:#fff;animation:pvHeroOverlayIn 0.6s ease-out;}
+.pv-hero-logo-mark{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:auto;height:28px;}
 .pv-hero-name{font-family:'Noto Serif KR',serif;font-weight:700;font-size:19px;margin:0 0 5px;color:#fff;}
 .pv-hero-title-line{font-size:12px;color:rgba(255,255,255,0.72);}
 .pv-hero-title-line .pv-hero-team{color:#fff;font-weight:500;}
@@ -123,7 +125,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v3.4</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v3.6</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -244,7 +246,7 @@ textarea{resize:vertical;min-height:60px;}
             <div class="pv-hero-wrap" id="pv_heroWrap" style="display:none;">
               <img class="pv-hero-photo" id="pv_heroPhoto" src="" alt="">
               <div class="pv-hero-overlay">
-                <img class="pv-hero-logo-mark" src="https://card.bm1mirae.workers.dev/assets/logo.png" alt="미래아이엔씨">
+                <img class="pv-hero-logo-mark" src="https://card.bm1mirae.workers.dev/assets/logo-full-dark.png" alt="미래아이엔씨">
                 <h1 class="pv-hero-name" id="pv_hero_name">-</h1>
                 <div class="pv-hero-title-line"><span class="pv-hero-team" id="pv_hero_team">-</span> <span id="pv_hero_title">-</span></div>
                 <div class="pv-hero-tags" id="pv_hero_tags" style="display:none;"></div>
