@@ -146,9 +146,21 @@
   .podium-name.rank1{border:2px solid var(--gold-500); font-size:15px; padding:6px 16px;}
   .podium-name.rank2{border:2px solid #A9B4C4;}
   .podium-name.rank3{border:2px solid #C98555;}
+  .podium-name[data-home-team]{cursor:pointer;}
+  .podium-name[data-home-team]:hover{transform:translate(-50%,-100%) scale(1.06);}
+
+  /* blinking penalty badge */
+  .blink-badge{
+    display:inline-block; margin-top:8px; font-size:11px; font-weight:700;
+    background:#FFE1E6; color:#C42A45; padding:3px 10px; border-radius:999px;
+    animation:blinkAnim 1s ease-in-out infinite;
+  }
+  @keyframes blinkAnim{ 0%,100%{opacity:1;} 50%{opacity:0.25;} }
 
   /* team cards */
-  .team-card{border-radius:var(--radius-lg); padding:18px; color:#fff; position:relative; overflow:hidden; box-shadow:var(--shadow-card);}
+  .team-card{border-radius:var(--radius-lg); padding:18px; color:#fff; position:relative; overflow:hidden; box-shadow:var(--shadow-card); cursor:pointer; transition:transform .12s ease, box-shadow .12s ease; outline:3px solid transparent;}
+  .team-card:hover{transform:translateY(-2px); box-shadow:var(--shadow-pop);}
+  .team-card-selected{outline:3px solid var(--navy-900);}
   .team-card .rank-badge{
     position:absolute; top:14px; right:14px; background:rgba(255,255,255,0.25);
     border-radius:999px; width:30px; height:30px; display:flex; align-items:center; justify-content:center;
@@ -185,12 +197,22 @@
   .sec-h h3{font-family:'Jua',sans-serif; font-size:16px; margin:0; color:var(--navy-900);}
   .sec-h .more{font-size:12px; color:var(--blue-600); cursor:pointer; background:none; border:none;}
 
-  /* history feed */
-  .feed-item{display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid var(--line);}
+  /* history feed (vertical timeline + team-colored dots) */
+  .timeline{position:relative; padding-left:2px;}
+  .timeline::before{
+    content:""; position:absolute; left:27px; top:6px; bottom:6px; width:2px;
+    background:var(--line); z-index:0;
+  }
+  .feed-item{position:relative; z-index:1; display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid var(--line);}
   .feed-item:last-child{border-bottom:none;}
+  .feed-dot{
+    width:13px; height:13px; border-radius:50%; flex:0 0 auto; margin-left:21px;
+    border:3px solid #fff; box-shadow:0 0 0 2px var(--dot-c, var(--ink-400));
+    background:var(--dot-c, var(--ink-400));
+  }
   .feed-ico{
-    width:34px; height:34px; border-radius:10px; background:var(--blue-100); display:flex;
-    align-items:center; justify-content:center; font-size:16px; flex:0 0 auto;
+    width:30px; height:30px; border-radius:9px; background:var(--blue-100); display:flex;
+    align-items:center; justify-content:center; font-size:14px; flex:0 0 auto;
   }
   .feed-main{flex:1;}
   .feed-main .t1{font-size:13.5px; font-weight:700; color:var(--ink-900);}
@@ -303,7 +325,7 @@ const TEAM_COLORS = {A:"team-A", B:"team-B", C:"team-C"};
 const TEAM_PILL = {A:"pill-A", B:"pill-B", C:"pill-C"};
 
 let state = { teams: null, participants: null, events: null, notices: null };
-let ui = { page: "home", isAdmin: false, rankTab: "team" };
+let ui = { page: "home", isAdmin: false, rankTab: "team", selectedHomeTeam: null };
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -477,7 +499,12 @@ function sidebarHtml(){
 
 function bindSidebar(){
   document.querySelectorAll('[data-nav]').forEach(el=>{
-    el.addEventListener('click', ()=>{ ui.page = el.getAttribute('data-nav'); render(); });
+    el.addEventListener('click', ()=>{
+      ui.page = el.getAttribute('data-nav');
+      const rt = el.getAttribute('data-ranktab');
+      if(rt) ui.rankTab = rt;
+      render();
+    });
   });
   const loginBtn = document.querySelector('[data-action="open-login"]');
   if(loginBtn) loginBtn.addEventListener('click', openLoginModal);
@@ -538,10 +565,25 @@ function pageHtml(){
 }
 
 function bindPageEvents(){
+  if(ui.page==='home') bindHomePage();
   if(ui.page==='ranking') bindRankingTabs();
   if(ui.page==='admin-dice') bindAdminDice();
   if(ui.page==='admin-participants') bindAdminParticipants();
   if(ui.page==='admin-notice') bindAdminNotice();
+}
+function bindHomePage(){
+  document.querySelectorAll('[data-home-team]').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const tid = el.getAttribute('data-home-team');
+      ui.selectedHomeTeam = (ui.selectedHomeTeam===tid) ? null : tid;
+      render();
+    });
+  });
+  const closeBtn = document.querySelector('[data-close-team-panel]');
+  if(closeBtn) closeBtn.addEventListener('click', ()=>{ ui.selectedHomeTeam = null; render(); });
+  document.querySelectorAll('[data-person]').forEach(el=>{
+    el.addEventListener('click', ()=> openPersonHistoryModal(el.getAttribute('data-person')));
+  });
 }
 
 /* ---------------- HOME ---------------- */
@@ -551,10 +593,19 @@ function dDay(){
   const diff = Math.round((end-now)/86400000);
   return diff;
 }
+function lastPlaceBottom3Ids(){
+  const teams = allTeamStats();
+  if(!teams.length) return [];
+  const last = teams[teams.length-1];
+  return [...last.members].sort((a,b)=>a.teamSquares-b.teamSquares).slice(0,4).map(m=>m.id);
+}
 function pageHome(){
   const teams = allTeamStats();
   const dd = dDay();
-  const recent = [...state.events].sort((a,b)=> (b.date+b.ts).localeCompare(a.date+a.ts)).slice(0,6);
+  const ranking = allParticipantRanking();
+  const top3 = ranking.slice(0,3);
+  const rest = ranking.slice(3);
+  const penaltyIds = lastPlaceBottom3Ids();
   return `
     <div class="header-banner">
       <div class="hb-dday">
@@ -570,53 +621,108 @@ function pageHome(){
     </div>
 
     <div class="card">
-      <div class="sec-h"><h3>개인 순위 TOP 3</h3><button class="more" data-nav="ranking">전체 랭킹 →</button></div>
-      ${podiumHtml()}
+      <div class="sec-h"><h3>팀 순위 시상대</h3><span style="font-size:11.5px;color:var(--ink-400);">이름을 누르면 팀원별 순위를 볼 수 있어요</span></div>
+      ${podiumTeamHtml(teams)}
+    </div>
+    ${ui.selectedHomeTeam ? homeTeamMembersHtml(teams) : ''}
+
+    <div class="sec-h mt-18"><h3>개인 순위</h3><span style="font-size:11.5px;color:var(--ink-400);">이름을 누르면 그 사람의 기록을 볼 수 있어요</span></div>
+    <div class="grid grid-3 mt-18" style="margin-bottom:10px;">
+      ${top3.map((p,i)=>personCardHtml(p,i,penaltyIds)).join('')}
     </div>
 
-    <div class="sec-h mt-18"><h3>팀 순위</h3></div>
-    <div class="grid grid-3 mt-18" style="margin-bottom:22px;">
-      ${teams.map((t,i)=>teamCardHtml(t,i)).join('')}
-    </div>
-
-    <div class="card">
-      <div class="sec-h"><h3>최근 활동 히스토리</h3><button class="more" data-nav="history">전체보기 →</button></div>
-      ${recent.length? recent.map(feedItemHtml).join('') : `<div class="empty">아직 기록된 활동이 없어요.</div>`}
+    <div class="card mt-18">
+      <div class="sec-h"><h3>개인 순위 4 ~ ${ranking.length}위</h3></div>
+      ${rest.length? `
+      <table>
+        <thead><tr><th>순위</th><th>이름</th><th>소속팀</th><th>전체 누적 이동칸</th><th></th></tr></thead>
+        <tbody>
+          ${rest.map((p,i)=>`
+            <tr data-person="${p.id}" style="cursor:pointer;">
+              <td>${i+4}</td>
+              <td>${p.name}</td>
+              <td><span class="pill ${TEAM_PILL[p.teamId]}">${teamName(p.teamId)}</span></td>
+              <td><b>${p.totalSquares}칸</b></td>
+              <td>${penaltyIds.includes(p.id)?`<span class="blink-badge">⚠ 교육예정</span>`:''}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>` : `<div class="empty">참가자가 없어요.</div>`}
     </div>
   `;
 }
-function podiumHtml(){
-  const top3 = allParticipantRanking().slice(0,3);
-  const get = (i)=> top3[i] ? {name:top3[i].name, squares:top3[i].totalSquares} : {name:'-', squares:null};
-  const p1 = get(0), p2 = get(1), p3 = get(2);
+function homeTeamMembersHtml(teams){
+  const t = teams.find(t=>t.id===ui.selectedHomeTeam);
+  if(!t) return '';
+  const sorted = [...t.members].sort((a,b)=> b.teamSquares-a.teamSquares);
+  return `
+    <div class="card mt-18" style="border:2px solid ${t.id==='A'?'var(--coral-500)':t.id==='B'?'var(--purple-500)':'var(--green-500)'};">
+      <div class="sec-h"><h3><span class="pill ${TEAM_PILL[t.id]}" style="margin-right:8px;">${t.name}</span>팀원 순위</h3><button class="more" data-close-team-panel>닫기 ✕</button></div>
+      <table>
+        <thead><tr><th>순위</th><th>이름</th><th>라이브 건수</th><th>09.07 이후 이동칸</th></tr></thead>
+        <tbody>
+          ${sorted.map((m,i)=>`
+            <tr data-person="${m.id}" style="cursor:pointer;">
+              <td>${i+1}</td>
+              <td>${m.name}</td>
+              <td>${m.liveCount}건 ${m.liveCount>=2?'✅':''}</td>
+              <td><b>${m.teamSquares}칸</b></td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+function podiumTeamHtml(teams){
+  const get = (i)=> teams[i] ? {name:teams[i].name, id:teams[i].id, score:teams[i].finalScore} : null;
+  const t1 = get(0), t2 = get(1), t3 = get(2);
+  const lab = (t, cls, pos) => t ? `<div class="podium-name ${cls}" style="${pos}" data-home-team="${t.id}">${t.name}<span class="sq">${t.score}칸</span></div>` : '';
   return `
     <div class="podium-wrap">
       <img class="podium-img" src="data:image/png;base64,${PODIUM_B64}" alt="시상대">
-      <div class="podium-name rank2" style="left:19.6%; top:21.5%;">${p2.name}${p2.squares!==null?`<span class="sq">${p2.squares}칸</span>`:''}</div>
-      <div class="podium-name rank1" style="left:49.6%; top:1.5%;">${p1.name}${p1.squares!==null?`<span class="sq">${p1.squares}칸</span>`:''}</div>
-      <div class="podium-name rank3" style="left:81.5%; top:38.7%;">${p3.name}${p3.squares!==null?`<span class="sq">${p3.squares}칸</span>`:''}</div>
+      ${lab(t2,'rank2','left:19.6%; top:21.5%;')}
+      ${lab(t1,'rank1','left:49.6%; top:1.5%;')}
+      ${lab(t3,'rank3','left:81.5%; top:38.7%;')}
     </div>`;
 }
-function teamCardHtml(t, idx){
-
-  const max = Math.max(1, ...allTeamStats().map(x=>x.finalScore));
-  const pct = Math.min(100, Math.round((t.finalScore/max)*100));
+function personCardHtml(p, idx, penaltyIds){
+  const isPenalty = penaltyIds.includes(p.id);
   return `
-    <div class="team-card ${TEAM_COLORS[t.id]}">
+    <div class="team-card ${TEAM_COLORS[p.teamId]}" data-person="${p.id}" style="cursor:pointer;">
       <div class="rank-badge">${idx+1}</div>
-      <div class="name">${t.name}</div>
-      <div class="score">${t.finalScore}<span style="font-size:14px;">칸</span></div>
-      <div class="score-lb">팀원 ${t.members.length}명 · 09.07 이후 실적 합산${t.bonus?' · ×1.5 보너스 적용':''}</div>
-      <div class="bar-bg"><div class="bar-fg" style="width:${pct}%;"></div></div>
-      ${t.bonus? `<div class="bonus">⭐ 팀 전원 2건 라이브 달성 보너스!</div>`:''}
+      <div class="name">${p.name}</div>
+      <div class="score">${p.totalSquares}<span style="font-size:14px;">칸</span></div>
+      <div class="score-lb">${teamName(p.teamId)} · 라이브 ${p.liveCount}건</div>
+      ${isPenalty? `<div class="blink-badge">⚠ 교육예정</div>`:''}
     </div>`;
 }
+function openPersonHistoryModal(pid){
+  const p = state.participants.find(x=>x.id===pid);
+  if(!p) return;
+  const evs = state.events.filter(e=>e.participantId===pid).sort((a,b)=>(b.date+b.ts).localeCompare(a.date+a.ts));
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+    <div class="modal-backdrop" id="personModalBackdrop">
+      <div class="modal-box" style="width:400px; max-width:92vw; text-align:left; max-height:80vh; overflow-y:auto;">
+        <div class="flex-between" style="margin-bottom:6px;">
+          <h3 style="margin:0;">${p.name}의 기록</h3>
+          <button class="btn btn-ghost btn-sm" id="personModalClose">닫기</button>
+        </div>
+        <p style="font-size:12px;color:var(--ink-400);margin:0 0 12px;">${teamName(p.teamId)} · 라이브 ${p.liveCount}건</p>
+        ${evs.length? `<div class="timeline">${evs.map(feedItemHtml).join('')}</div>` : `<div class="empty">아직 기록된 활동이 없어요.</div>`}
+      </div>
+    </div>`;
+  const close = ()=>{ root.innerHTML=''; };
+  document.getElementById('personModalBackdrop').addEventListener('click', (e)=>{ if(e.target.id==='personModalBackdrop') close(); });
+  document.getElementById('personModalClose').addEventListener('click', close);
+}
+const TEAM_DOT = {A:'var(--coral-500)', B:'var(--purple-500)', C:'var(--green-500)'};
 function feedItemHtml(e){
   const p = state.participants.find(p=>p.id===e.participantId);
   const pname = p? p.name : '(삭제된 참가자)';
   const isRoll = e.type==='roll';
+  const dotColor = p ? TEAM_DOT[p.teamId] : 'var(--ink-400)';
   return `
     <div class="feed-item">
+      <span class="feed-dot" style="--dot-c:${dotColor};"></span>
       <div class="feed-ico">${isRoll?'🎲':'✨'}</div>
       <div class="feed-main">
         <div class="t1">${pname} ${isRoll? `주사위 눈 ${e.diceValue} → ${e.squares}칸 이동` : `주사위 획득 (${e.reason||'사유 미기재'})`}</div>
@@ -724,7 +830,7 @@ function pageHistory(){
     <h1 class="page-title">히스토리</h1>
     <p class="page-sub">주사위 획득과 굴림 기록을 시간순으로 볼 수 있어요.</p>
     <div class="card">
-      ${evs.length? evs.map(feedItemHtml).join('') : `<div class="empty">아직 기록된 활동이 없어요.</div>`}
+      ${evs.length? `<div class="timeline">${evs.map(feedItemHtml).join('')}</div>` : `<div class="empty">아직 기록된 활동이 없어요.</div>`}
     </div>
   `;
 }
