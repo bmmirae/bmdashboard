@@ -33,13 +33,14 @@
   [v3.9] 카드 겹침/로고 크기를 v3.6 수준으로 되돌림(-94px, 36px) — 카드가 너무 위로 올라온다는 피드백 반영. 액션버튼 구분선을 위아래 꽉 찬 실선에서 가운데만 짧게 뜨는 그라데이션 라인으로 변경
   [v4.0] 액션버튼(전화/이메일/카톡공유) 아이콘 크기 확대 (19px→22px) — 프로필사진버전 접힘선에 영향 없는 선에서 소폭 증가
   [v4.1] 로고 크기 36px/48px 사이 절충 — 40px로 최종 확정
+  [v4.2] 태그 표시 개수 2개 → 3개로 확대
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v4.1</title>
+<title>💳 전자명함 관리 v4.2</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -130,7 +131,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v4.1</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v4.2</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -201,7 +202,7 @@ textarea{resize:vertical;min-height:60px;}
             <div id="heroPhotoUploadStatus" style="font-size:11px;color:var(--text-muted);margin-top:4px;"></div>
           </div>
           <div id="tagField" style="display:none;">
-            <label>태그 (최대 2개, 쉼표로 구분)</label>
+            <label>태그 (최대 3개, 쉼표로 구분)</label>
             <input type="text" id="f_tag" placeholder="예: 네이버 검색광고, 쇼핑광고 운영">
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">📌 프로필사진 버전 히어로 카드에 칩 형태로 표시됩니다</div>
           </div>
@@ -605,7 +606,7 @@ function updatePreview(){
     document.getElementById('pv_hero_team').textContent = org || '-';
     document.getElementById('pv_hero_title').textContent = title || '-';
 
-    const tagList = tag.split(',').map(t=>t.trim()).filter(Boolean).slice(0,2);
+    const tagList = tag.split(',').map(t=>t.trim()).filter(Boolean).slice(0,3);
     const tagsEl = document.getElementById('pv_hero_tags');
     if(tagList.length){
       tagsEl.innerHTML = tagList.map(t=>`<span class="pv-hero-tag">${t}</span>`).join('');
