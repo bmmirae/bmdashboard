@@ -31,13 +31,14 @@
   [v3.7] 검정색 치환 되돌림 — 원본 색상 그대로인 logo-full-color.png로 교체
   [v3.8] 미세조정 — 플로팅 카드 겹침 확대(-94px→-114px), 로고 확대(36px→48px) 및 가독성을 위해 흰색 치환 로고(logo-full-dark.png)로 재변경
   [v3.9] 카드 겹침/로고 크기를 v3.6 수준으로 되돌림(-94px, 36px) — 카드가 너무 위로 올라온다는 피드백 반영. 액션버튼 구분선을 위아래 꽉 찬 실선에서 가운데만 짧게 뜨는 그라데이션 라인으로 변경
+  [v4.0] 액션버튼(전화/이메일/카톡공유) 아이콘 크기 확대 (19px→22px) — 프로필사진버전 접힘선에 영향 없는 선에서 소폭 증가
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v3.9</title>
+<title>💳 전자명함 관리 v4.0</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -110,7 +111,7 @@ textarea{resize:vertical;min-height:60px;}
 .pv-top-panel:not(.flat) .pv-actions{border-top-color:#D8D8D8;}
 .pv-actions div{position:relative;flex:1;padding:11px 4px;font-size:10.5px;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center;}
 .pv-actions div:not(:last-child)::after{content:'';position:absolute;right:0;top:50%;transform:translateY(-50%);width:1px;height:46%;background:linear-gradient(180deg,transparent,var(--line) 50%,transparent);}
-.pv-actions svg{width:16px;height:16px;stroke:var(--brand-blue);}
+.pv-actions svg{width:18px;height:18px;stroke:var(--brand-blue);}
 .pv-section{padding:16px 22px;border-bottom:1px solid var(--line);}
 .pv-section h2{display:flex;align-items:center;font-size:11.5px;font-weight:600;color:var(--slate);margin:0 0 10px;}
 .pv-section h2::before{content:"";display:inline-block;width:0;height:0;border-top:4px solid transparent;border-bottom:4px solid transparent;border-left:6px solid var(--brand-red);margin-right:7px;}
@@ -128,7 +129,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v3.9</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v4.0</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
