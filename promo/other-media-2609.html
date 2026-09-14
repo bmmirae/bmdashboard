@@ -756,13 +756,14 @@ function feedItemHtml(e){
   const pname = p? p.name : '(삭제된 참가자)';
   const isRoll = e.type==='roll';
   const dotColor = p ? TEAM_DOT[p.teamId] : 'var(--ink-400)';
+  const extra = [e.media, e.company].filter(Boolean).join(' · ');
   return `
     <div class="feed-item">
       <span class="feed-dot" style="--dot-c:${dotColor};"></span>
       <div class="feed-ico">${isRoll?'🎲':'✨'}</div>
       <div class="feed-main">
         <div class="t1">${pname} ${isRoll? `주사위 눈 ${e.diceValue} → ${e.squares}칸 이동` : `주사위 획득 (${e.reason||'사유 미기재'})`}</div>
-        <div class="t2">${p? teamName(p.teamId):''} ${isRoll ? (e.date>=CUTOFF_DATE? '· 팀점수 반영':'· 개인점수만(소급)') : ''}</div>
+        <div class="t2">${p? teamName(p.teamId):''} ${isRoll ? (e.date>=CUTOFF_DATE? '· 팀점수 반영':'· 개인점수만(소급)') : ''}${extra? ' · '+extra:''}${e.note? ' · '+e.note:''}</div>
       </div>
       <div class="feed-date">${fmtDate(e.date)}</div>
     </div>`;
@@ -893,6 +894,7 @@ function participantOptions(selected){
   const placeholder = `<option value="" ${!selected?'selected':''} disabled hidden>--- 인원선택 ---</option>`;
   return placeholder + state.participants.map(p=>`<option value="${p.id}" ${p.id===selected?'selected':''}>${p.name} (${teamName(p.teamId)})</option>`).join('');
 }
+const MEDIA_LIST = ['GFA','11번가','구글_MR','모먼트','크리테오','TG','메타','모비온','기타'];
 function pageAdminDice(){
   const evs = [...state.events].sort((a,b)=> (b.date+b.ts).localeCompare(a.date+a.ts)).slice(0,20);
   return `
@@ -911,6 +913,9 @@ function pageAdminDice(){
             </select></div>
             <div><label>날짜</label><input type="date" name="date" value="${todayStr()}"></div>
           </div>
+          <div class="form-row" style="grid-template-columns:1fr; margin-bottom:14px;">
+            <div><label>비고 (선택)</label><input type="text" name="note" placeholder="예: 어떤 상황이었는지 메모"></div>
+          </div>
           <button type="submit" class="btn btn-primary">굴림 기록 추가</button>
         </form>
 
@@ -926,12 +931,22 @@ function pageAdminDice(){
             </select></div>
             <div><label>날짜</label><input type="date" name="date" value="${todayStr()}"></div>
           </div>
+          <div class="form-row" style="grid-template-columns:1fr 1fr;">
+            <div><label>매체 (선택)</label><select name="media">
+              <option value="">--- 매체선택 ---</option>
+              ${MEDIA_LIST.map(m=>`<option value="${m}">${m}</option>`).join('')}
+            </select></div>
+            <div><label>업체명 (선택)</label><input type="text" name="company" placeholder="예: OO컴퍼니"></div>
+          </div>
+          <div class="form-row" style="grid-template-columns:1fr; margin-bottom:14px;">
+            <div><label>비고 (선택)</label><input type="text" name="note" placeholder="예: 담당자 특이사항 등"></div>
+          </div>
           <button type="submit" class="btn btn-gold">주사위 지급</button>
         </form>
       </div>
 
       <div class="card">
-        <div class="sec-h"><h3>최근 입력 기록</h3></div>
+        <div class="sec-h"><h3>최근 입력 기록</h3><span style="font-size:11px;color:var(--ink-400);">항목을 누르면 매체·업체명·비고를 수정할 수 있어요</span></div>
         ${evs.length? evs.map(e=>adminEventRow(e)).join('') : `<div class="empty">기록이 없어요.</div>`}
       </div>
     </div>
@@ -939,13 +954,63 @@ function pageAdminDice(){
 }
 function adminEventRow(e){
   const p = state.participants.find(p=>p.id===e.participantId);
+  const extra = [e.media, e.company].filter(Boolean).join(' · ');
   const label = e.type==='roll' ? `${p?p.name:'-'} · 눈 ${e.diceValue} · ${e.squares}칸` : `${p?p.name:'-'} · 획득(${e.reason})`;
   return `
     <div class="feed-item">
       <div class="feed-ico">${e.type==='roll'?'🎲':'✨'}</div>
-      <div class="feed-main"><div class="t1" style="font-size:12.5px;">${label}</div><div class="t2">${e.date}</div></div>
+      <div class="feed-main" data-edit-event="${e.id}" style="cursor:pointer;">
+        <div class="t1" style="font-size:12.5px;">${label}</div>
+        <div class="t2">${e.date}${extra? ' · '+extra : ''}${e.note? ' · '+e.note : ''}</div>
+      </div>
       <button class="btn btn-danger btn-sm" data-del-event="${e.id}">삭제</button>
     </div>`;
+}
+function openEditEventModal(eventId){
+  const e = state.events.find(x=>x.id===eventId);
+  if(!e) return;
+  const p = state.participants.find(p=>p.id===e.participantId);
+  const root = document.getElementById('modalRoot');
+  const isAcquire = e.type==='acquire';
+  root.innerHTML = `
+    <div class="modal-backdrop" id="editEventBackdrop">
+      <div class="modal-box" style="width:380px; max-width:92vw; text-align:left;">
+        <div class="flex-between" style="margin-bottom:10px;">
+          <h3 style="margin:0;">${p?p.name:'-'} 기록 수정</h3>
+          <button class="btn btn-ghost btn-sm" id="editEventClose">닫기</button>
+        </div>
+        <p style="font-size:12px;color:var(--ink-400);margin:0 0 12px;">
+          ${e.type==='roll'? `${e.date} · 눈 ${e.diceValue} · ${e.squares}칸 (참가자·날짜·눈금은 여기서 수정할 수 없어요 — 잘못됐다면 삭제 후 다시 입력해주세요)` : `${e.date} · 획득 사유: ${e.reason}`}
+        </p>
+        <form id="editEventForm">
+          ${isAcquire? `
+          <label>매체</label>
+          <select name="media" style="margin-bottom:12px;">
+            <option value="">--- 매체선택 ---</option>
+            ${MEDIA_LIST.map(m=>`<option value="${m}" ${e.media===m?'selected':''}>${m}</option>`).join('')}
+          </select>
+          <label>업체명</label>
+          <input type="text" name="company" value="${e.company||''}" placeholder="예: OO컴퍼니" style="margin-bottom:12px;">
+          ` : ''}
+          <label>비고</label>
+          <input type="text" name="note" value="${e.note||''}" placeholder="메모" style="margin-bottom:14px;">
+          <button type="submit" class="btn btn-primary" style="width:100%;">저장</button>
+        </form>
+      </div>
+    </div>`;
+  const close = ()=>{ root.innerHTML=''; };
+  document.getElementById('editEventBackdrop').addEventListener('click', (ev)=>{ if(ev.target.id==='editEventBackdrop') close(); });
+  document.getElementById('editEventClose').addEventListener('click', close);
+  document.getElementById('editEventForm').addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const fd = new FormData(ev.target);
+    if(isAcquire){ e.media = fd.get('media')||''; e.company = (fd.get('company')||'').trim(); }
+    e.note = (fd.get('note')||'').trim();
+    await saveState('events');
+    close();
+    showToast('저장되었어요.');
+    render();
+  });
 }
 function bindAdminDice(){
   const rollForm = document.getElementById('rollForm');
@@ -955,7 +1020,8 @@ function bindAdminDice(){
     const dice = parseInt(fd.get('diceValue'));
     state.events.push({
       id:uid(), type:'roll', participantId:fd.get('participantId'),
-      date:fd.get('date')||todayStr(), diceValue:dice, squares:squaresFor(dice), ts:Date.now().toString()
+      date:fd.get('date')||todayStr(), diceValue:dice, squares:squaresFor(dice),
+      note:(fd.get('note')||'').trim(), ts:Date.now().toString()
     });
     await saveState('events');
     showToast('주사위 굴림이 기록되었어요.');
@@ -967,7 +1033,9 @@ function bindAdminDice(){
     const fd = new FormData(acquireForm);
     state.events.push({
       id:uid(), type:'acquire', participantId:fd.get('participantId'),
-      date:fd.get('date')||todayStr(), reason:fd.get('reason'), ts:Date.now().toString()
+      date:fd.get('date')||todayStr(), reason:fd.get('reason'),
+      media:fd.get('media')||'', company:(fd.get('company')||'').trim(),
+      note:(fd.get('note')||'').trim(), ts:Date.now().toString()
     });
     await saveState('events');
     showToast('주사위가 지급되었어요.');
@@ -981,6 +1049,9 @@ function bindAdminDice(){
       showToast('기록을 삭제했어요.');
       render();
     });
+  });
+  document.querySelectorAll('[data-edit-event]').forEach(el=>{
+    el.addEventListener('click', ()=> openEditEventModal(el.getAttribute('data-edit-event')));
   });
 }
 
