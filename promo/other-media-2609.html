@@ -40,7 +40,7 @@
     -webkit-font-smoothing:antialiased;
   }
   .disp{font-family:'Jua',sans-serif; letter-spacing:0.5px;}
-  .app{display:flex; min-height:100vh;}
+  .app{display:flex; min-height:auto;}
 
   /* ---------- Sidebar ---------- */
   .sidebar{
@@ -48,20 +48,20 @@
     background:linear-gradient(180deg,var(--navy-900) 0%,var(--navy-800) 60%,var(--navy-700) 100%);
     color:#fff; display:flex; flex-direction:column;
     padding:20px 16px 18px;
-    position:sticky; top:0; height:100vh;
   }
   .brand{
     background:rgba(255,255,255,0.06);
     border:1px solid rgba(255,255,255,0.12);
     border-radius:var(--radius-md);
-    padding:12px; margin-bottom:18px; text-align:center;
+    padding:12px; margin-bottom:6px; text-align:center;
   }
   .brand img{width:100%; height:auto; display:block; border-radius:8px;}
   .brand-caption{
     margin-top:8px; font-size:11px; color:#BFD4F5; font-family:'Jua',sans-serif;
     letter-spacing:0.3px;
   }
-  nav{flex:1; overflow-y:auto;}
+  .brand-version{text-align:right; font-size:10.5px; color:#7FA0D6; margin:0 2px 16px; font-family:'Jua',sans-serif;}
+  nav{flex:1;}
   .nav-section-label{
     font-size:11px; color:#7FA0D6; margin:14px 8px 8px; font-weight:700;
     text-transform:uppercase; letter-spacing:1px;
@@ -266,27 +266,31 @@
   }
   .empty{color:var(--ink-400); font-size:13px; text-align:center; padding:26px 0;}
 
-  /* modal */
-  .modal-backdrop{
-    position:fixed; inset:0; background:rgba(15,38,71,0.55); display:flex;
-    align-items:center; justify-content:center; z-index:50;
+  /* modal (drj- prefix + !important to survive being embedded inside another site's CSS) */
+  .drj-modal-backdrop{
+    position:fixed !important; top:0 !important; left:0 !important; right:0 !important; bottom:0 !important;
+    width:100% !important; height:100% !important;
+    background:rgba(15,38,71,0.55) !important; display:flex !important;
+    align-items:center !important; justify-content:center !important; z-index:2147483000 !important;
+    margin:0 !important; padding:16px !important; box-sizing:border-box !important;
   }
-  .modal-box{
-    background:#fff; border-radius:var(--radius-lg); padding:26px 26px 22px; width:340px;
-    box-shadow:var(--shadow-pop); text-align:center;
+  .drj-modal-box{
+    background:#fff !important; border-radius:var(--radius-lg); padding:26px 26px 22px; width:340px;
+    box-shadow:var(--shadow-pop); text-align:center; position:relative !important; z-index:2147483001 !important;
+    max-width:calc(100% - 32px);
   }
-  .modal-box .ico{font-size:34px; margin-bottom:8px;}
-  .modal-box h3{font-family:'Jua',sans-serif; margin:0 0 4px; color:var(--navy-900);}
-  .modal-box p{font-size:12.5px; color:var(--ink-400); margin:0 0 16px;}
-  .modal-box input{margin-bottom:12px; text-align:center; letter-spacing:2px;}
+  .drj-modal-box .ico{font-size:34px; margin-bottom:8px;}
+  .drj-modal-box h3{font-family:'Jua',sans-serif; margin:0 0 4px; color:var(--navy-900);}
+  .drj-modal-box p{font-size:12.5px; color:var(--ink-400); margin:0 0 16px;}
+  .drj-modal-box input{margin-bottom:12px; text-align:center; letter-spacing:2px;}
   .modal-err{color:#E23B54; font-size:12px; margin:-6px 0 12px; display:none;}
   .modal-actions{display:flex; gap:8px;}
   .modal-actions .btn{flex:1;}
 
   .toast{
-    position:fixed; bottom:22px; left:50%; transform:translateX(-50%);
+    position:fixed !important; bottom:22px; left:50%; transform:translateX(-50%);
     background:var(--navy-900); color:#fff; padding:11px 20px; border-radius:999px;
-    font-size:13px; box-shadow:var(--shadow-pop); z-index:60; opacity:0; pointer-events:none;
+    font-size:13px; box-shadow:var(--shadow-pop); z-index:2147483002 !important; opacity:0; pointer-events:none;
     transition:opacity .2s ease, transform .2s ease;
   }
   .toast.show{opacity:1; transform:translateX(-50%) translateY(-4px);}
@@ -301,7 +305,7 @@
 
   .participant-row-input{width:90px;}
   .loading-screen{
-    display:flex; align-items:center; justify-content:center; height:100vh; width:100%;
+    display:flex; align-items:center; justify-content:center; min-height:280px; width:100%; padding:60px 0;
     font-family:'Jua',sans-serif; color:var(--navy-800); font-size:15px;
   }
 
@@ -356,7 +360,7 @@ const CUTOFF_DATE = "2026-09-07";
 const PROMO_END = "2026-10-22";
 const ADMIN_PASSWORD = "miraebm23"; // 코드 상단에서 자유롭게 변경하세요
 const DATA_VERSION = "2"; // 참가자 명단을 다시 세팅할 때마다 이 값을 올리면 초기 데이터가 갱신됩니다
-const APP_VERSION = "v2.0"; // 대시보드 코드가 업데이트될 때마다 이 값을 올려주세요
+const APP_VERSION = "v2.1"; // 대시보드 코드가 업데이트될 때마다 이 값을 올려주세요
 const TEAM_COLORS = {A:"team-A", B:"team-B", C:"team-C"};
 const TEAM_PILL = {A:"pill-A", B:"pill-B", C:"pill-C"};
 
@@ -469,7 +473,9 @@ function participantStats(pid){
   const owned = Math.max(0, acquired - rolled);
   const totalSquares = evs.filter(e=>e.type==='roll').reduce((s,e)=>s+e.squares,0);
   const teamSquares = evs.filter(e=>e.type==='roll' && e.date>=CUTOFF_DATE).reduce((s,e)=>s+e.squares,0);
-  return {owned, totalSquares, teamSquares};
+  // 라이브 건수는 날짜와 무관하게, "10만원 라이브" 사유로 등록된 굴림 횟수를 그대로 센다
+  const liveCount = evs.filter(e=>e.type==='roll' && e.reason==='10만원 라이브').length;
+  return {owned, totalSquares, teamSquares, liveCount};
 }
 function teamStats(tid){
   const members = state.participants.filter(p=>p.teamId===tid);
@@ -515,6 +521,7 @@ function sidebarHtml(){
     <div class="brand">
       <img src="data:image/png;base64,${TAGLINE_B64}" alt="주사위 굴리고 팀점수 올리고 우승까지">
     </div>
+    <div class="brand-version">${APP_VERSION}</div>
     <nav>
       <div class="nav-section-label">조회</div>
       ${navItem('home','🏠','대시보드 홈')}
@@ -535,7 +542,7 @@ function sidebarHtml(){
         ` : ''}
       </div>
     </nav>
-    <div class="sidebar-footer">기타매체 달리자! · 09.07–10.22<br>${APP_VERSION}</div>
+    <div class="sidebar-footer">기타매체 달리자! · 09.07–10.22</div>
   </aside>`;
 }
 
@@ -562,8 +569,8 @@ function bindSidebar(){
 function openLoginModal(){
   const root = document.getElementById('modalRoot');
   root.innerHTML = `
-    <div class="modal-backdrop" id="loginBackdrop">
-      <div class="modal-box">
+    <div class="drj-modal-backdrop" id="loginBackdrop">
+      <div class="drj-modal-box">
         <div class="ico">🔒</div>
         <h3>관리자 로그인</h3>
         <p>비밀번호를 입력하면 관리 메뉴가 열려요.</p>
@@ -748,13 +755,13 @@ function openPersonHistoryModal(pid){
   const evs = state.events.filter(e=>e.participantId===pid).sort((a,b)=>(b.date+b.ts).localeCompare(a.date+a.ts));
   const root = document.getElementById('modalRoot');
   root.innerHTML = `
-    <div class="modal-backdrop" id="personModalBackdrop">
-      <div class="modal-box" style="width:400px; max-width:92vw; text-align:left; max-height:80vh; overflow-y:auto;">
+    <div class="drj-modal-backdrop" id="personModalBackdrop">
+      <div class="drj-modal-box" style="width:400px; max-width:92vw; text-align:left; max-height:80vh; overflow-y:auto;">
         <div class="flex-between" style="margin-bottom:6px;">
           <h3 style="margin:0;">${p.name}의 기록</h3>
           <button class="btn btn-ghost btn-sm" id="personModalClose">닫기</button>
         </div>
-        <p style="font-size:12px;color:var(--ink-400);margin:0 0 12px;">${teamName(p.teamId)} · 라이브 ${p.liveCount}건</p>
+        <p style="font-size:12px;color:var(--ink-400);margin:0 0 12px;">${teamName(p.teamId)} · 라이브 ${participantStats(p.id).liveCount}건</p>
         ${evs.length? `<div class="timeline">${evs.map(feedItemHtml).join('')}</div>` : `<div class="empty">아직 기록된 활동이 없어요.</div>`}
       </div>
     </div>`;
@@ -984,8 +991,8 @@ function openEditEventModal(eventId){
   const p = state.participants.find(p=>p.id===e.participantId);
   const root = document.getElementById('modalRoot');
   root.innerHTML = `
-    <div class="modal-backdrop" id="editEventBackdrop">
-      <div class="modal-box" style="width:380px; max-width:92vw; text-align:left;">
+    <div class="drj-modal-backdrop" id="editEventBackdrop">
+      <div class="drj-modal-box" style="width:380px; max-width:92vw; text-align:left;">
         <div class="flex-between" style="margin-bottom:10px;">
           <h3 style="margin:0;">${p?p.name:'-'} 기록 수정</h3>
           <button class="btn btn-ghost btn-sm" id="editEventClose">닫기</button>
@@ -1158,7 +1165,7 @@ function bindAdminIntern(){
 function pageAdminParticipants(){
   return `
     <h1 class="page-title">참가자 / 팀 관리</h1>
-    <p class="page-sub">참가자 추가, 팀 배정, 라이브 건수를 관리하세요.</p>
+    <p class="page-sub">참가자 추가, 팀 배정을 관리하세요. 라이브 건수는 "10만원 라이브" 사유로 등록된 주사위 굴림 기록을 날짜와 상관없이 자동으로 세요.</p>
 
     <div class="card">
       <div class="sec-h"><h3>참가자 추가</h3></div>
@@ -1176,9 +1183,11 @@ function pageAdminParticipants(){
     <div class="card mt-18">
       <div class="sec-h"><h3>전체 참가자 (${state.participants.length}명)</h3></div>
       <table>
-        <thead><tr><th>이름</th><th>팀</th><th>라이브 건수</th><th></th></tr></thead>
+        <thead><tr><th>이름</th><th>팀</th><th>라이브 건수 (자동)</th><th></th></tr></thead>
         <tbody>
-          ${state.participants.map(p=>`
+          ${state.participants.map(p=>{
+            const live = participantStats(p.id).liveCount;
+            return `
             <tr data-prow="${p.id}">
               <td><input type="text" class="participant-row-input" style="width:120px;" value="${p.name}" data-field="name" data-pid="${p.id}"></td>
               <td>
@@ -1186,11 +1195,10 @@ function pageAdminParticipants(){
                   ${state.teams.map(t=>`<option value="${t.id}" ${t.id===p.teamId?'selected':''}>${t.name}</option>`).join('')}
                 </select>
               </td>
-              <td>
-                <input type="number" min="0" class="participant-row-input" style="width:70px;" value="${p.liveCount}" data-field="liveCount" data-pid="${p.id}">
-              </td>
+              <td>${live}건 ${live>=2?'✅':''}</td>
               <td><button class="btn btn-danger btn-sm" data-del-p="${p.id}">삭제</button></td>
-            </tr>`).join('')}
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
     </div>
