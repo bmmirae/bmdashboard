@@ -199,7 +199,7 @@
   .pill{display:inline-block; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:700; color:#fff;}
   .pill-A{background:var(--coral-500);} .pill-B{background:var(--purple-500);} .pill-C{background:var(--green-500);}
   .pill-team{background:var(--ink-400);}
-  .pill-ontime{background:var(--green-500);} .pill-legacy{background:var(--ink-400);}
+  .pill-ontime{background:var(--green-500);} .pill-legacy{background:var(--gold-600);}
 
   /* section heading inside card */
   .sec-h{display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;}
@@ -213,6 +213,7 @@
     background:var(--line); z-index:0;
   }
   .feed-item{position:relative; z-index:1; display:flex; align-items:center; gap:12px; padding:10px 4px; border-bottom:1px solid var(--line);}
+  .feed-item.feed-legacy{background:#FFF8E8; border-radius:10px; padding-left:8px; padding-right:8px;}
   .feed-item:last-child{border-bottom:none;}
   .feed-dot{
     width:13px; height:13px; border-radius:50%; flex:0 0 auto; margin-left:21px;
@@ -355,11 +356,12 @@ const CUTOFF_DATE = "2026-09-07";
 const PROMO_END = "2026-10-22";
 const ADMIN_PASSWORD = "miraebm23"; // 코드 상단에서 자유롭게 변경하세요
 const DATA_VERSION = "2"; // 참가자 명단을 다시 세팅할 때마다 이 값을 올리면 초기 데이터가 갱신됩니다
+const APP_VERSION = "v2.0"; // 대시보드 코드가 업데이트될 때마다 이 값을 올려주세요
 const TEAM_COLORS = {A:"team-A", B:"team-B", C:"team-C"};
 const TEAM_PILL = {A:"pill-A", B:"pill-B", C:"pill-C"};
 
-let state = { teams: null, participants: null, events: null, notices: null };
-let ui = { page: "home", isAdmin: false, rankTab: "team", selectedHomeTeam: null };
+let state = { teams: null, participants: null, events: null, notices: null, internRevenue: null };
+let ui = { page: "home", isAdmin: false, rankTab: "team", selectedHomeTeam: null, adminDiceFilter: "" };
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
@@ -394,25 +396,30 @@ const db = firebase.database();
 
 async function loadState(){
   try{
-    const [t,p,e,n,v] = await Promise.all([
+    const [t,p,e,n,v,ir] = await Promise.all([
       safeGet('darija/teams'), safeGet('darija/participants'),
-      safeGet('darija/events'), safeGet('darija/notices'), safeGet('darija/dataVersion')
+      safeGet('darija/events'), safeGet('darija/notices'), safeGet('darija/dataVersion'),
+      safeGet('darija/internRevenue')
     ]);
     const needsReseed = v !== DATA_VERSION;
     state.teams = (t && !needsReseed) ? t : defaultTeams();
     state.participants = (p && !needsReseed) ? p : defaultParticipants();
-    state.events = e || [];
+    const rawEvents = e || [];
+    const hadAcquire = rawEvents.some(ev=>ev.type==='acquire');
+    state.events = rawEvents.filter(ev=>ev.type!=='acquire');
     state.notices = n || defaultNotices();
+    state.internRevenue = ir || [];
     if(!t || needsReseed) await saveState('teams');
     if(!p || needsReseed) await saveState('participants');
     if(!n) await saveState('notices');
+    if(hadAcquire) await saveState('events');
     if(needsReseed){
       try{ await db.ref('darija/dataVersion').set(DATA_VERSION); }catch(e){}
     }
   }catch(err){
     console.error('load error', err);
     state.teams = defaultTeams(); state.participants = defaultParticipants();
-    state.events = []; state.notices = defaultNotices();
+    state.events = []; state.notices = defaultNotices(); state.internRevenue = [];
   }
 }
 async function safeGet(key){
@@ -422,7 +429,7 @@ async function safeGet(key){
   }catch(e){ console.error('read error', key, e); return null; }
 }
 async function saveState(part){
-  const map = { teams:'darija/teams', participants:'darija/participants', events:'darija/events', notices:'darija/notices' };
+  const map = { teams:'darija/teams', participants:'darija/participants', events:'darija/events', notices:'darija/notices', internRevenue:'darija/internRevenue' };
   try{
     await db.ref(map[part]).set(state[part]);
   }catch(e){ console.error('save error', e); showToast('저장 중 문제가 발생했어요. 다시 시도해주세요.'); }
@@ -521,13 +528,14 @@ function sidebarHtml(){
         ${ui.isAdmin ? `
           <div class="nav-section-label">관리자</div>
           ${navItem('admin-dice','🎲','주사위 기록 입력')}
+          ${navItem('admin-intern','💰','인턴 이관매출')}
           ${navItem('admin-participants','👤','참가자 / 팀 관리')}
           ${navItem('admin-notice','📝','공지사항 관리')}
           <button class="nav-item logout" data-action="logout"><span class="ic">↩</span>관리자 로그아웃</button>
         ` : ''}
       </div>
     </nav>
-    <div class="sidebar-footer">기타매체 달리자! · 09.07–10.22</div>
+    <div class="sidebar-footer">기타매체 달리자! · 09.07–10.22<br>${APP_VERSION}</div>
   </aside>`;
 }
 
@@ -592,6 +600,7 @@ function pageHtml(){
     case 'history': return pageHistory();
     case 'notice': return pageNotice();
     case 'admin-dice': return ui.isAdmin ? pageAdminDice() : pageHome();
+    case 'admin-intern': return ui.isAdmin ? pageAdminIntern() : pageHome();
     case 'admin-participants': return ui.isAdmin ? pageAdminParticipants() : pageHome();
     case 'admin-notice': return ui.isAdmin ? pageAdminNotice() : pageHome();
     default: return pageHome();
@@ -602,6 +611,7 @@ function bindPageEvents(){
   if(ui.page==='home') bindHomePage();
   if(ui.page==='ranking') bindRankingTabs();
   if(ui.page==='admin-dice') bindAdminDice();
+  if(ui.page==='admin-intern') bindAdminIntern();
   if(ui.page==='admin-participants') bindAdminParticipants();
   if(ui.page==='admin-notice') bindAdminNotice();
 }
@@ -627,11 +637,13 @@ function dDay(){
   const diff = Math.round((end-now)/86400000);
   return diff;
 }
-function lastPlaceBottom3Ids(){
+function lastPlaceBottom4Ids(){
   const teams = allTeamStats();
   if(!teams.length) return [];
   const last = teams[teams.length-1];
-  return [...last.members].sort((a,b)=>a.teamSquares-b.teamSquares).slice(0,4).map(m=>m.id);
+  // 개인 순위(전체 누적 이동칸) 기준 최하위 4인 — 팀 점수(teamSquares)가 아니라
+  // 화면에 보이는 개인 순위와 동일한 기준(totalSquares)으로 판정
+  return [...last.members].sort((a,b)=>a.totalSquares-b.totalSquares).slice(0,4).map(m=>m.id);
 }
 function pageHome(){
   const teams = allTeamStats();
@@ -639,7 +651,7 @@ function pageHome(){
   const ranking = allParticipantRanking();
   const top3 = ranking.slice(0,3);
   const rest = ranking.slice(3);
-  const penaltyIds = lastPlaceBottom3Ids();
+  const penaltyIds = lastPlaceBottom4Ids();
   return `
     <div class="header-banner">
       <div class="hb-dday">
@@ -755,15 +767,17 @@ function feedItemHtml(e){
   const p = state.participants.find(p=>p.id===e.participantId);
   const pname = p? p.name : '(삭제된 참가자)';
   const isRoll = e.type==='roll';
+  const isLegacy = isRoll && e.date < CUTOFF_DATE;
   const dotColor = p ? TEAM_DOT[p.teamId] : 'var(--ink-400)';
   const extra = [e.media, e.company].filter(Boolean).join(' · ');
+  const cutoffTag = isRoll ? (isLegacy? `<span class="pill pill-legacy">소급 · 개인점수만</span>` : `<span class="pill pill-ontime">팀점수 반영</span>`) : '';
   return `
-    <div class="feed-item">
+    <div class="feed-item ${isLegacy?'feed-legacy':''}">
       <span class="feed-dot" style="--dot-c:${dotColor};"></span>
       <div class="feed-ico">${isRoll?'🎲':'✨'}</div>
       <div class="feed-main">
-        <div class="t1">${pname} ${isRoll? `주사위 눈 ${e.diceValue} → ${e.squares}칸 이동` : `주사위 획득 (${e.reason||'사유 미기재'})`}</div>
-        <div class="t2">${p? teamName(p.teamId):''} ${isRoll ? (e.date>=CUTOFF_DATE? '· 팀점수 반영':'· 개인점수만(소급)') : ''}${extra? ' · '+extra:''}${e.note? ' · '+e.note:''}</div>
+        <div class="t1">${pname} ${isRoll? `주사위 눈 ${e.diceValue} → ${e.squares}칸 이동${e.reason? ' · '+e.reason : ''}` : `주사위 획득 (${e.reason||'사유 미기재'})`} ${cutoffTag}</div>
+        <div class="t2">${p? teamName(p.teamId):''}${extra? ' · '+extra:''}${e.note? ' · '+e.note:''}</div>
       </div>
       <div class="feed-date">${fmtDate(e.date)}</div>
     </div>`;
@@ -829,7 +843,7 @@ function bindRankingTabs(){
 function pageTeams(){
   const teams = allTeamStats();
   const lastPlace = teams[teams.length-1];
-  const bottom4 = lastPlace ? lastPlace.members.slice(0,4) : [];
+  const bottom4 = lastPlace ? [...lastPlace.members].sort((a,b)=>a.totalSquares-b.totalSquares).slice(0,4) : [];
   return `
     <h1 class="page-title">팀 현황</h1>
     <p class="page-sub">팀별 팀원 구성과 보너스 달성 현황을 확인해보세요.</p>
@@ -896,10 +910,17 @@ function participantOptions(selected){
 }
 const MEDIA_LIST = ['GFA','11번가','구글_MR','모먼트','크리테오','TG','메타','모비온','기타'];
 function pageAdminDice(){
-  const evs = [...state.events].sort((a,b)=> (b.date+b.ts).localeCompare(a.date+a.ts)).slice(0,20);
+  const filter = (ui.adminDiceFilter||'').trim();
+  let evs = [...state.events].sort((a,b)=> (b.date+b.ts).localeCompare(a.date+a.ts));
+  if(filter){
+    evs = evs.filter(e=>{
+      const p = state.participants.find(p=>p.id===e.participantId);
+      return p && p.name.includes(filter);
+    });
+  }
   return `
     <h1 class="page-title">주사위 기록 입력</h1>
-    <p class="page-sub">오프라인에서 발생한 주사위 획득/굴림 결과를 입력하세요.</p>
+    <p class="page-sub">오프라인에서 발생한 주사위 굴림 결과를 입력하세요.</p>
 
     <div class="grid grid-2">
       <div class="card">
@@ -913,25 +934,13 @@ function pageAdminDice(){
             </select></div>
             <div><label>날짜</label><input type="date" name="date" value="${todayStr()}"></div>
           </div>
-          <div class="form-row" style="grid-template-columns:1fr; margin-bottom:14px;">
-            <div><label>비고 (선택)</label><input type="text" name="note" placeholder="예: 어떤 상황이었는지 메모"></div>
-          </div>
-          <button type="submit" class="btn btn-primary">굴림 기록 추가</button>
-        </form>
-
-        <div class="sec-h mt-18"><h3>✨ 주사위 획득 등록</h3></div>
-        <form id="acquireForm">
-          <div class="form-row" style="grid-template-columns:2fr 1.4fr 1fr;">
-            <div><label>참가자</label><select name="participantId" required>${participantOptions()}</select></div>
+          <div class="form-row" style="grid-template-columns:1.4fr 1fr 1fr;">
             <div><label>획득 사유</label><select name="reason">
               <option value="신규 진행">기타매체 신규 진행</option>
               <option value="10만원 라이브">신규 매체 10만원 라이브</option>
               <option value="네이버 이관(정사원)">네이버 이관 300만원 이상 (정사원)</option>
               <option value="네이버 이관(인턴)">네이버 이관 100만원 이상 (인턴)</option>
             </select></div>
-            <div><label>날짜</label><input type="date" name="date" value="${todayStr()}"></div>
-          </div>
-          <div class="form-row" style="grid-template-columns:1fr 1fr;">
             <div><label>매체 (선택)</label><select name="media">
               <option value="">--- 매체선택 ---</option>
               ${MEDIA_LIST.map(m=>`<option value="${m}">${m}</option>`).join('')}
@@ -941,13 +950,16 @@ function pageAdminDice(){
           <div class="form-row" style="grid-template-columns:1fr; margin-bottom:14px;">
             <div><label>비고 (선택)</label><input type="text" name="note" placeholder="예: 담당자 특이사항 등"></div>
           </div>
-          <button type="submit" class="btn btn-gold">주사위 지급</button>
+          <button type="submit" class="btn btn-primary">굴림 기록 추가</button>
         </form>
       </div>
 
       <div class="card">
-        <div class="sec-h"><h3>최근 입력 기록</h3><span style="font-size:11px;color:var(--ink-400);">항목을 누르면 매체·업체명·비고를 수정할 수 있어요</span></div>
-        ${evs.length? evs.map(e=>adminEventRow(e)).join('') : `<div class="empty">기록이 없어요.</div>`}
+        <div class="sec-h"><h3>전체 입력 기록 (${evs.length}건)</h3><span style="font-size:11px;color:var(--ink-400);">항목을 누르면 수정할 수 있어요</span></div>
+        <input type="text" id="adminDiceFilterInput" placeholder="참가자 이름으로 검색" value="${filter}" style="margin-bottom:12px;">
+        <div style="max-height:560px; overflow-y:auto;">
+          ${evs.length? evs.map(e=>adminEventRow(e)).join('') : `<div class="empty">기록이 없어요.</div>`}
+        </div>
       </div>
     </div>
   `;
@@ -955,7 +967,7 @@ function pageAdminDice(){
 function adminEventRow(e){
   const p = state.participants.find(p=>p.id===e.participantId);
   const extra = [e.media, e.company].filter(Boolean).join(' · ');
-  const label = e.type==='roll' ? `${p?p.name:'-'} · 눈 ${e.diceValue} · ${e.squares}칸` : `${p?p.name:'-'} · 획득(${e.reason})`;
+  const label = e.type==='roll' ? `${p?p.name:'-'} · 눈 ${e.diceValue} · ${e.squares}칸${e.reason? ' · '+e.reason:''}` : `${p?p.name:'-'} · 획득(${e.reason})`;
   return `
     <div class="feed-item">
       <div class="feed-ico">${e.type==='roll'?'🎲':'✨'}</div>
@@ -971,7 +983,6 @@ function openEditEventModal(eventId){
   if(!e) return;
   const p = state.participants.find(p=>p.id===e.participantId);
   const root = document.getElementById('modalRoot');
-  const isAcquire = e.type==='acquire';
   root.innerHTML = `
     <div class="modal-backdrop" id="editEventBackdrop">
       <div class="modal-box" style="width:380px; max-width:92vw; text-align:left;">
@@ -980,10 +991,17 @@ function openEditEventModal(eventId){
           <button class="btn btn-ghost btn-sm" id="editEventClose">닫기</button>
         </div>
         <p style="font-size:12px;color:var(--ink-400);margin:0 0 12px;">
-          ${e.type==='roll'? `${e.date} · 눈 ${e.diceValue} · ${e.squares}칸 (참가자·날짜·눈금은 여기서 수정할 수 없어요 — 잘못됐다면 삭제 후 다시 입력해주세요)` : `${e.date} · 획득 사유: ${e.reason}`}
+          ${e.type==='roll'? `${e.date} · 눈 ${e.diceValue} · ${e.squares}칸 (참가자·날짜·눈금은 여기서 수정할 수 없어요 — 잘못됐다면 삭제 후 다시 입력해주세요)` : `${e.date} · 획득 기록`}
         </p>
         <form id="editEventForm">
-          ${isAcquire? `
+          <label>사유</label>
+          <select name="reason" style="margin-bottom:12px;">
+            <option value="">--- 사유선택 ---</option>
+            <option value="신규 진행" ${e.reason==='신규 진행'?'selected':''}>기타매체 신규 진행</option>
+            <option value="10만원 라이브" ${e.reason==='10만원 라이브'?'selected':''}>신규 매체 10만원 라이브</option>
+            <option value="네이버 이관(정사원)" ${e.reason==='네이버 이관(정사원)'?'selected':''}>네이버 이관 300만원 이상 (정사원)</option>
+            <option value="네이버 이관(인턴)" ${e.reason==='네이버 이관(인턴)'?'selected':''}>네이버 이관 100만원 이상 (인턴)</option>
+          </select>
           <label>매체</label>
           <select name="media" style="margin-bottom:12px;">
             <option value="">--- 매체선택 ---</option>
@@ -991,7 +1009,6 @@ function openEditEventModal(eventId){
           </select>
           <label>업체명</label>
           <input type="text" name="company" value="${e.company||''}" placeholder="예: OO컴퍼니" style="margin-bottom:12px;">
-          ` : ''}
           <label>비고</label>
           <input type="text" name="note" value="${e.note||''}" placeholder="메모" style="margin-bottom:14px;">
           <button type="submit" class="btn btn-primary" style="width:100%;">저장</button>
@@ -1004,7 +1021,9 @@ function openEditEventModal(eventId){
   document.getElementById('editEventForm').addEventListener('submit', async (ev)=>{
     ev.preventDefault();
     const fd = new FormData(ev.target);
-    if(isAcquire){ e.media = fd.get('media')||''; e.company = (fd.get('company')||'').trim(); }
+    e.reason = fd.get('reason')||'';
+    e.media = fd.get('media')||'';
+    e.company = (fd.get('company')||'').trim();
     e.note = (fd.get('note')||'').trim();
     await saveState('events');
     close();
@@ -1013,6 +1032,14 @@ function openEditEventModal(eventId){
   });
 }
 function bindAdminDice(){
+  const filterInput = document.getElementById('adminDiceFilterInput');
+  if(filterInput) filterInput.addEventListener('input', ()=>{
+    ui.adminDiceFilter = filterInput.value;
+    render();
+    // keep focus after re-render
+    const el = document.getElementById('adminDiceFilterInput');
+    if(el){ el.focus(); const v=el.value; el.value=''; el.value=v; }
+  });
   const rollForm = document.getElementById('rollForm');
   if(rollForm) rollForm.addEventListener('submit', async (ev)=>{
     ev.preventDefault();
@@ -1021,24 +1048,11 @@ function bindAdminDice(){
     state.events.push({
       id:uid(), type:'roll', participantId:fd.get('participantId'),
       date:fd.get('date')||todayStr(), diceValue:dice, squares:squaresFor(dice),
+      reason:fd.get('reason')||'', media:fd.get('media')||'', company:(fd.get('company')||'').trim(),
       note:(fd.get('note')||'').trim(), ts:Date.now().toString()
     });
     await saveState('events');
     showToast('주사위 굴림이 기록되었어요.');
-    render();
-  });
-  const acquireForm = document.getElementById('acquireForm');
-  if(acquireForm) acquireForm.addEventListener('submit', async (ev)=>{
-    ev.preventDefault();
-    const fd = new FormData(acquireForm);
-    state.events.push({
-      id:uid(), type:'acquire', participantId:fd.get('participantId'),
-      date:fd.get('date')||todayStr(), reason:fd.get('reason'),
-      media:fd.get('media')||'', company:(fd.get('company')||'').trim(),
-      note:(fd.get('note')||'').trim(), ts:Date.now().toString()
-    });
-    await saveState('events');
-    showToast('주사위가 지급되었어요.');
     render();
   });
   document.querySelectorAll('[data-del-event]').forEach(btn=>{
@@ -1052,6 +1066,91 @@ function bindAdminDice(){
   });
   document.querySelectorAll('[data-edit-event]').forEach(el=>{
     el.addEventListener('click', ()=> openEditEventModal(el.getAttribute('data-edit-event')));
+  });
+}
+
+/* ---------------- ADMIN: 인턴 이관매출 (대시보드에는 노출 안 됨) ---------------- */
+function pageAdminIntern(){
+  const list = [...state.internRevenue].sort((a,b)=> (b.date+b.ts).localeCompare(a.date+a.ts));
+  const sums = {};
+  list.forEach(r=>{
+    const p = state.participants.find(p=>p.id===r.participantId);
+    const key = p ? p.name : '(삭제된 참가자)';
+    sums[key] = (sums[key]||0) + Number(r.revenue||0);
+  });
+  const sumRows = Object.entries(sums).sort((a,b)=> b[1]-a[1]);
+  return `
+    <h1 class="page-title">인턴 이관매출</h1>
+    <p class="page-sub">관리자 전용 기록이에요. 대시보드(사원 조회 화면)에는 표시되지 않아요.</p>
+
+    <div class="card">
+      <div class="sec-h"><h3>인원별 이관매출 합계</h3></div>
+      ${sumRows.length? `
+      <table>
+        <thead><tr><th>이름</th><th>합계</th></tr></thead>
+        <tbody>
+          ${sumRows.map(([name,sum])=>`<tr><td>${name}</td><td><b>${sum.toLocaleString()}원</b></td></tr>`).join('')}
+        </tbody>
+      </table>` : `<div class="empty">아직 등록된 이관매출이 없어요.</div>`}
+    </div>
+
+    <div class="card mt-18">
+      <div class="sec-h"><h3>이관매출 등록</h3></div>
+      <form id="internRevenueForm">
+        <div class="form-row" style="grid-template-columns:1.4fr 1fr 1.4fr 1fr;">
+          <div><label>이름</label><select name="participantId" required>${participantOptions()}</select></div>
+          <div><label>일시</label><input type="date" name="date" value="${todayStr()}"></div>
+          <div><label>업체명</label><input type="text" name="company" placeholder="예: OO컴퍼니" required></div>
+          <div><label>매출 (원)</label><input type="number" name="revenue" min="0" step="1" placeholder="예: 1500000" required></div>
+        </div>
+        <button type="submit" class="btn btn-gold">등록</button>
+      </form>
+    </div>
+
+    <div class="card mt-18">
+      <div class="sec-h"><h3>등록 내역 (${list.length}건)</h3></div>
+      <div style="max-height:420px; overflow-y:auto;">
+        ${list.length? `
+        <table>
+          <thead><tr><th>일시</th><th>이름</th><th>업체명</th><th>매출</th><th></th></tr></thead>
+          <tbody>
+            ${list.map(r=>{
+              const p = state.participants.find(p=>p.id===r.participantId);
+              return `<tr>
+                <td>${r.date}</td>
+                <td>${p?p.name:'(삭제된 참가자)'}</td>
+                <td>${r.company}</td>
+                <td>${Number(r.revenue||0).toLocaleString()}원</td>
+                <td><button class="btn btn-danger btn-sm" data-del-intern="${r.id}">삭제</button></td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>` : `<div class="empty">등록된 내역이 없어요.</div>`}
+      </div>
+    </div>
+  `;
+}
+function bindAdminIntern(){
+  const form = document.getElementById('internRevenueForm');
+  if(form) form.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const fd = new FormData(form);
+    state.internRevenue.push({
+      id:uid(), participantId:fd.get('participantId'), date:fd.get('date')||todayStr(),
+      company:(fd.get('company')||'').trim(), revenue:Number(fd.get('revenue'))||0, ts:Date.now().toString()
+    });
+    await saveState('internRevenue');
+    showToast('이관매출이 등록되었어요.');
+    render();
+  });
+  document.querySelectorAll('[data-del-intern]').forEach(btn=>{
+    btn.addEventListener('click', async ()=>{
+      const id = btn.getAttribute('data-del-intern');
+      state.internRevenue = state.internRevenue.filter(r=>r.id!==id);
+      await saveState('internRevenue');
+      showToast('삭제되었어요.');
+      render();
+    });
   });
 }
 
