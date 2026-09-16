@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.93</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.94</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.93</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.94</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -1205,7 +1205,7 @@ function renderTransferTab(items){
     </select>
   </div>`;
   if(!filtered.length) return h+`<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px;">해당 기간에 이관완료된 항목이 없습니다</div>`;
-  h+=filtered.map(({r,log,detectedAt})=>`<div style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);margin-bottom:8px;">
+  const cardsHtml=filtered.map(({r,log,detectedAt})=>`<div style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
       <span style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">🔁 이관완료</span>
       ${log?`<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">(이전: [${log.status}] ${log.category})</span>`:''}
@@ -1216,6 +1216,7 @@ function renderTransferTab(items){
     ${log&&log.memo?`<div style="padding-left:2px;font-size:11px;color:var(--text-sub);">📝 ${log.memo.replace(/</g,'&lt;')}</div>`:''}
     ${(r.recalls&&r.recalls.length)?`<div style="padding-left:2px;">${renderRecallChips(r.recalls)}</div>`:''}
   </div>`).join('');
+  h+=`<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">${cardsHtml}</div>`;
   return h;
 }
 async function _ensureTransferDetected(items){
