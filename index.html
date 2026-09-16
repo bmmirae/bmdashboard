@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.95</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.97</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.95</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.97</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -1226,12 +1226,30 @@ async function _ensureTransferDetected(items){
   await loadCheckLog();
   refreshCheckSectionOnly();
 }
+// [v5.17] 체크필요에 뜬 업체를 처음 목격한 시점을 1회만 조용히 기록 — 앞으로 확인/보관 없이 이관완료로 바뀌는 경우를
+// 정확히 판별하기 위함(과거 데이터는 기록이 없어 복원 불가, 지금부터 발생하는 건부터 정확하게 잡힘)
+function _ensureNeedSeen(needItems){
+  const toMark=[];
+  needItems.forEach(({r})=>{
+    const fc=normalizeDate(r.firstCall)||'';
+    const already=_checkLogData.some(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.category==='체크필요목격');
+    if(!already) toMark.push({company:r.company,manager:r.manager,firstCall:fc});
+  });
+  if(!toMark.length) return;
+  (async()=>{
+    for(const it of toMark){
+      try{ await callServer('serverMarkNeedSeen',{role:SESSION.role,token:SESSION.token,company:it.company,manager:it.manager,firstCall:it.firstCall}); }catch(e){}
+    }
+    await loadCheckLog(); // 화면을 당장 바꾸는 정보가 아니라서 강제 리렌더는 생략, 다음 새로고침부터 반영됨
+  })();
+}
 function onTransferPeriodChange(val){
   _transferPeriod=val;
   refreshCheckSectionOnly();
 }
 function renderCheckSection(rows){
   const needItems=getNeedItemsFor(rows);
+  _ensureNeedSeen(needItems); // [v5.17] 체크필요 목격 기록(백그라운드, 신규 항목만)
   const isHqLevel=HQ_LEVEL_ROLES.includes(SESSION.role);
   // 현재 필터(본부/팀/인원) 범위에 속한 담당자만 체크로그에서 걸러냄
   const scopedManagers=new Set(rows.map(r=>r.manager));
@@ -1247,8 +1265,8 @@ function renderCheckSection(rows){
   const archiveItems=archiveItemsAll.filter(l=>l.deleted!=='Y');
   const archiveDeletedItems=archiveItemsAll.filter(l=>l.deleted==='Y');
   const hqItems=_checkLogData.filter(l=>l.hqChecked==='Y'&&scopedManagers.has(l.manager)).sort((a,b)=>(b.hqCheckedAt||'').localeCompare(a.hqCheckedAt||''));
-  // [v5.16] 이관완료 탭: 확인/보관 이력이 있는 업체 + 체크필요 조건에 해당했을 업체(확인 없이 바로 이관된 경우)까지 포함
-  // 후자는 "체크필요 → 이관완료" 라벨로 구분 표시 — 확인 절차를 건너뛰었다는 걸 눈에 띄게 해서 확인 활성화를 유도
+  // [v5.17] "체크필요→이관완료" 표시 부활 — 단, 추측(재콜수 등)이 아니라 실제 "체크필요목격" 기록 기준으로만 정확하게 판별
+  // (앞으로 발생하는 건부터 정확히 잡힘, 이 기록 시작 이전 과거 건은 대상에서 자연히 제외됨)
   const transferItems=rows.filter(r=>r.grade==='이관완료').map(r=>{
     const fc=normalizeDate(r.firstCall)||'';
     const logs=_checkLogData.filter(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&(l.status==='확인완료'||l.status==='보관'));
@@ -1256,9 +1274,8 @@ function renderCheckSection(rows){
       const log=logs.sort((a,b)=>(b.actedAt||'').localeCompare(a.actedAt||''))[0];
       return {r,log,fromNeed:false};
     }
-    // 확인/보관 이력이 없어도, 이관완료가 아니었다면 체크필요 조건(GMG 계열: 컨택5회+/신규3일/컨택정체)에 해당했을 업체는 포함
-    const wouldQualify=classifyCheckItem({...r,grade:'단기'}).length>0;
-    return wouldQualify?{r,log:null,fromNeed:true}:null;
+    const seenInNeed=_checkLogData.some(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.category==='체크필요목격');
+    return seenInNeed?{r,log:null,fromNeed:true}:null;
   }).filter(Boolean);
   // [v5.13] 확인/보관 탭의 비가망건·가망건 분류를 저장된 카테고리가 아니라 현재 실시간 가망도 기준으로 판정
   const isCurrentlyGmg=(l)=>{
