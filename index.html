@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.91</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.92</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.91</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.92</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -1239,7 +1239,13 @@ function renderCheckSection(rows){
   const archiveDeletedItems=archiveItemsAll.filter(l=>l.deleted==='Y');
   const hqItems=_checkLogData.filter(l=>l.hqChecked==='Y'&&scopedManagers.has(l.manager)).sort((a,b)=>(b.hqCheckedAt||'').localeCompare(a.hqCheckedAt||''));
   // [v5.13] 이관완료 탭: 체크로그와 무관하게 현재 가망도='이관완료'인 데이터를 실시간으로 필터링
-  const transferItems=rows.filter(r=>r.grade==='이관완료');
+  // [v5.14] 이관완료 탭: 전체 이관완료 업체가 아니라, 체크가망건에서 확인/보관 처리된 이력이 있는 업체 중
+  // 가망도가 이관완료로 바뀐 것만 대상으로 함 (체크로그 상태가 확인완료/보관인 이력 필요)
+  const transferItems=rows.filter(r=>{
+    if(r.grade!=='이관완료') return false;
+    const fc=normalizeDate(r.firstCall)||'';
+    return _checkLogData.some(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&(l.status==='확인완료'||l.status==='보관'));
+  });
   // [v5.13] 확인/보관 탭의 비가망건·가망건 분류를 저장된 카테고리가 아니라 현재 실시간 가망도 기준으로 판정
   const isCurrentlyGmg=(l)=>{
     const m=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
