@@ -19,6 +19,12 @@
     --coral-500:#FF6B81;
     --purple-500:#8B6BF2;
     --green-500:#3FB37F;
+    --coral-tint:#FDEDEF;
+    --purple-tint:#F1EEFE;
+    --green-tint:#EAF8F1;
+    --coral-dark:#B23A4E;
+    --purple-dark:#5B4AAE;
+    --green-dark:#1F7A4D;
     --ink-900:#16233D;
     --ink-600:#3E4C68;
     --ink-400:#7A88A3;
@@ -133,6 +139,7 @@
   .stat-box .l{font-size:12px; color:var(--ink-400); margin-top:2px;}
 
   /* podium (팀 순위 시상대) */
+  .podium-section{padding:4px 4px 8px;}
   .podium-wrap{position:relative; max-width:880px; margin:135px auto 4px;}
   .podium-img{width:100%; height:auto; display:block;}
   .podium-label{
@@ -156,37 +163,62 @@
   }
   @keyframes blinkAnim{ 0%,100%{opacity:1;} 50%{opacity:0.25;} }
 
-  /* board-game style square track for individual totals */
-  .sqtrack{display:flex; flex-wrap:wrap; gap:3px; margin-top:8px; max-width:100%;}
-  .sqcell{
-    width:12px; height:12px; border-radius:3px; flex:0 0 auto;
-    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.55);
+  /* 1위 대비 상대 게이지 (개인 누적 이동칸) */
+  .gauge-wrap{
+    position:relative; height:22px; border-radius:999px; overflow:hidden; margin-top:8px; width:100%;
   }
-  .sqcell.empty{background:rgba(255,255,255,0.18); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.3);}
-  .sqtrack.on-white .sqcell.empty{background:#EEF3FB; box-shadow:inset 0 0 0 1px var(--line);}
-  .sqmore{font-size:10.5px; font-weight:700; color:inherit; align-self:center; margin-left:2px; opacity:0.85;}
+  .gauge-fill{position:absolute; left:0; top:0; bottom:0; border-radius:999px; transition:width .7s cubic-bezier(.22,.9,.32,1);}
+  .gauge-fill.is-leader{animation:gaugePulse 1.8s ease-in-out infinite;}
+  @keyframes gaugePulse{0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,0.55);} 50%{box-shadow:0 0 0 5px rgba(255,255,255,0);}}
+  .gauge-label{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    font-family:'Jua',sans-serif; font-size:12px; color:#fff;
+    background:rgba(15,38,71,0.45); padding:2px 10px; border-radius:999px; white-space:nowrap;
+  }
+
+  /* rank-card avatar + background pattern + rank-change badge */
+  .team-card-inner{position:relative; z-index:1;}
+  .team-card::before{
+    content:""; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:0.5;
+    background-image:radial-gradient(rgba(0,0,0,0.06) 1.4px, transparent 1.4px);
+    background-size:13px 13px;
+  }
+  .pc-top{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+  .pc-top-left{display:flex; align-items:center; gap:8px;}
+  .pc-team-badge{height:30px; width:auto; display:block; filter:drop-shadow(0 2px 4px rgba(15,38,71,0.18));}
+  .pc-delta{font-size:11px; font-weight:700; display:inline-flex; align-items:center; gap:1px; padding:2px 7px; border-radius:999px; background:rgba(255,255,255,0.22);}
+  .pc-delta.up{color:#E23B54;} .pc-delta.down{color:#2F6FE0;} .pc-delta.flat{color:var(--ink-400);}
+  .team-card-first{margin-top:-14px; padding-bottom:26px; box-shadow:0 12px 26px rgba(15,38,71,0.26);}
+  .team-card-first .pc-team-badge{height:38px;}
+  .team-card-first .name{font-size:21px;}
 
   /* team cards */
-  .team-card{border-radius:var(--radius-lg); padding:18px; color:#fff; position:relative; overflow:hidden; box-shadow:var(--shadow-card); cursor:pointer; transition:transform .12s ease, box-shadow .12s ease; outline:3px solid transparent;}
+  .team-card{border-radius:var(--radius-lg); padding:18px; position:relative; overflow:hidden; box-shadow:var(--shadow-card); cursor:pointer; transition:transform .12s ease, box-shadow .12s ease; outline:3px solid transparent;}
   .team-card:hover{transform:translateY(-2px); box-shadow:var(--shadow-pop);}
   .team-card-selected{outline:3px solid var(--navy-900);}
   .team-card .rank-badge{
-    position:absolute; top:14px; right:14px; background:rgba(255,255,255,0.25);
-    border-radius:999px; min-width:30px; height:26px; padding:0 10px; display:flex; align-items:center; justify-content:center;
-    font-family:'Jua',sans-serif; font-size:12.5px;
+    background:rgba(0,0,0,0.06);
+    border-radius:999px; min-width:30px; height:28px; padding:0 11px; display:flex; align-items:center; justify-content:center;
+    font-family:'Jua',sans-serif; font-size:14px;
   }
-  .team-card .name{font-family:'Jua',sans-serif; font-size:17px; margin-bottom:2px;}
+  .team-card .name{font-family:'Jua',sans-serif; font-size:19px; margin-bottom:2px;}
   .team-card .score{font-family:'Jua',sans-serif; font-size:34px; margin:6px 0 2px;}
-  .team-card .score-lb{font-size:11px; opacity:0.85; margin-bottom:12px;}
-  .team-card .bar-bg{background:rgba(255,255,255,0.25); border-radius:999px; height:8px; overflow:hidden;}
-  .team-card .bar-fg{background:#fff; height:100%; border-radius:999px;}
+  .team-card .score-lb{font-size:12.5px; opacity:0.8; margin-bottom:12px; font-weight:500;}
+  .team-card .bar-bg{background:rgba(0,0,0,0.08); border-radius:999px; height:8px; overflow:hidden;}
+  .team-card .bar-fg{border-radius:999px; height:100%;}
   .team-card .bonus{
-    display:inline-block; margin-top:10px; font-size:11px; background:rgba(255,255,255,0.22);
+    display:inline-block; margin-top:10px; font-size:11px; background:rgba(0,0,0,0.06);
     padding:3px 9px; border-radius:999px;
   }
-  .team-A{background:linear-gradient(135deg,var(--coral-500),#FF9AA8);}
-  .team-B{background:linear-gradient(135deg,var(--purple-500),#B29CFF);}
-  .team-C{background:linear-gradient(135deg,var(--green-500),#6ED4A0);}
+  .team-A{background:var(--coral-tint); color:var(--coral-dark);}
+  .team-A .rank-badge, .team-A .pc-delta{background:rgba(178,58,78,0.1);}
+  .team-A .bar-fg{background:var(--coral-500);}
+  .team-B{background:var(--purple-tint); color:var(--purple-dark);}
+  .team-B .rank-badge, .team-B .pc-delta{background:rgba(91,74,174,0.1);}
+  .team-B .bar-fg{background:var(--purple-500);}
+  .team-C{background:var(--green-tint); color:var(--green-dark);}
+  .team-C .rank-badge, .team-C .pc-delta{background:rgba(31,122,77,0.1);}
+  .team-C .bar-fg{background:var(--green-500);}
 
   /* tables */
   table{width:100%; border-collapse:collapse; font-size:13.5px;}
@@ -339,32 +371,29 @@ function teamBadgeSrc(tid){
   if(tid==='B') return BADGE2_B64;
   return BADGE3_B64;
 }
-function squareTrackHtml(count, teamId, variant){
-  // variant: 'onColor' = white cells (used on team-colored card backgrounds)
-  //          'onWhite' = team-colored cells (used on white table backgrounds)
-  if(count===0){
-    const noteColor = variant==='onColor' ? 'rgba(255,255,255,0.85)' : 'var(--ink-400)';
-    const noteText = variant==='onColor' ? '아직 없음' : '-';
-    return `<div class="sqtrack" style="color:${noteColor}; font-size:11.5px; margin-top:8px;">${noteText}</div>`;
-  }
+function gaugeHtml(count, teamId, variant, maxTotal){
+  // variant: 'onColor' = pastel card bg → tinted track, strong team color fill
+  //          'onWhite' = white table bg → light gray track, team-colored fill
   const colorMap = {A:'var(--coral-500)', B:'var(--purple-500)', C:'var(--green-500)'};
-  const color = variant==='onColor' ? '#fff' : (colorMap[teamId] || 'var(--blue-600)');
-  const cap = 20;
-  const filled = Math.min(count, cap);
-  let cells = '';
-  for(let i=0;i<filled;i++){ cells += `<span class="sqcell" style="background:${color};"></span>`; }
-  const overflow = count>cap ? `<span class="sqmore">+${count-cap}칸</span>` : '';
-  return `<div class="sqtrack ${variant==='onWhite'?'on-white':''}">${cells}${overflow}</div>`;
+  const trackBg = variant==='onColor' ? 'rgba(0,0,0,0.07)' : '#EEF3FB';
+  const fillBg = colorMap[teamId] || 'var(--blue-600)';
+  const pct = maxTotal>0 ? Math.max(count>0?4:0, Math.min(100, Math.round(count/maxTotal*100))) : 0;
+  const isLeader = maxTotal>0 && count===maxTotal;
+  return `
+    <div class="gauge-wrap" style="background:${trackBg};">
+      <div class="gauge-fill ${isLeader?'is-leader':''}" data-target="${pct}" style="width:0%; background:${fillBg};"></div>
+      <div class="gauge-label">${count}칸</div>
+    </div>`;
 }
 const CUTOFF_DATE = "2026-09-07";
 const PROMO_END = "2026-10-22";
 const ADMIN_PASSWORD = "miraebm23"; // 코드 상단에서 자유롭게 변경하세요
 const DATA_VERSION = "2"; // 참가자 명단을 다시 세팅할 때마다 이 값을 올리면 초기 데이터가 갱신됩니다
-const APP_VERSION = "v2.2"; // 대시보드 코드가 업데이트될 때마다 이 값을 올려주세요
+const APP_VERSION = "v2.8"; // 대시보드 코드가 업데이트될 때마다 이 값을 올려주세요
 const TEAM_COLORS = {A:"team-A", B:"team-B", C:"team-C"};
 const TEAM_PILL = {A:"pill-A", B:"pill-B", C:"pill-C"};
 
-let state = { teams: null, participants: null, events: null, notices: null, internRevenue: null };
+let state = { teams: null, participants: null, events: null, notices: null, internRevenue: null, rankSnapshotForDelta: null };
 let ui = { page: "home", isAdmin: false, rankTab: "team", selectedHomeTeam: null, adminDiceFilter: "" };
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
@@ -400,10 +429,10 @@ const db = firebase.database();
 
 async function loadState(){
   try{
-    const [t,p,e,n,v,ir] = await Promise.all([
+    const [t,p,e,n,v,ir,rs] = await Promise.all([
       safeGet('darija/teams'), safeGet('darija/participants'),
       safeGet('darija/events'), safeGet('darija/notices'), safeGet('darija/dataVersion'),
-      safeGet('darija/internRevenue')
+      safeGet('darija/internRevenue'), safeGet('darija/rankSnapshot')
     ]);
     const needsReseed = v !== DATA_VERSION;
     state.teams = (t && !needsReseed) ? t : defaultTeams();
@@ -420,10 +449,20 @@ async function loadState(){
     if(needsReseed){
       try{ await db.ref('darija/dataVersion').set(DATA_VERSION); }catch(e){}
     }
+    // 순위 변동(▲▼) 스냅샷: 오늘 날짜 스냅샷이 없으면 어제 것을 비교용으로 남겨두고 오늘 걸로 갱신
+    const currentOrder = computeRankOrder();
+    if(!rs || rs.date !== todayStr()){
+      state.rankSnapshotForDelta = rs || null;
+      const newSnap = {date: todayStr(), order: currentOrder};
+      try{ await db.ref('darija/rankSnapshot').set(newSnap); }catch(e){}
+    } else {
+      state.rankSnapshotForDelta = rs;
+    }
   }catch(err){
     console.error('load error', err);
     state.teams = defaultTeams(); state.participants = defaultParticipants();
     state.events = []; state.notices = defaultNotices(); state.internRevenue = [];
+    state.rankSnapshotForDelta = null;
   }
 }
 async function safeGet(key){
@@ -497,6 +536,23 @@ function allParticipantRanking(){
   return state.participants.map(p=>({...p, ...participantStats(p.id)}))
     .sort((a,b)=>b.totalSquares-a.totalSquares);
 }
+function computeRankOrder(){
+  return [...state.participants]
+    .map(p=>({id:p.id, total: participantStats(p.id).totalSquares}))
+    .sort((a,b)=>b.total-a.total)
+    .map(x=>x.id);
+}
+function rankDelta(participantId, currentRank){
+  const snap = state.rankSnapshotForDelta;
+  if(!snap || !snap.order) return null;
+  const oldIdx = snap.order.indexOf(participantId);
+  if(oldIdx===-1) return null;
+  return (oldIdx+1) - currentRank;
+}
+function personInitials(name){
+  if(!name) return '';
+  return name.length>=3 ? name.slice(-2) : name;
+}
 function teamName(tid){ const t = state.teams.find(t=>t.id===tid); return t?t.name:tid; }
 
 /* ---------------- render root ---------------- */
@@ -511,6 +567,14 @@ function render(){
   `;
   bindSidebar();
   bindPageEvents();
+  animateGauges();
+}
+function animateGauges(){
+  requestAnimationFrame(()=>{
+    document.querySelectorAll('.gauge-fill[data-target]').forEach(el=>{
+      el.style.width = el.getAttribute('data-target')+'%';
+    });
+  });
 }
 
 function sidebarHtml(){
@@ -659,6 +723,7 @@ function pageHome(){
   const top3 = ranking.slice(0,3);
   const rest = ranking.slice(3);
   const penaltyIds = lastPlaceBottom4Ids();
+  const maxTotal = ranking.length ? ranking[0].totalSquares : 0;
   return `
     <div class="header-banner">
       <div class="hb-dday">
@@ -673,30 +738,39 @@ function pageHome(){
       <img class="hb-board" src="data:image/png;base64,${LOGO_BOARD_B64}" alt="말판">
     </div>
 
-    <div class="card">
-      <div class="sec-h"><h3>팀 순위 시상대</h3><span style="font-size:11.5px;color:var(--ink-400);">이름을 누르면 팀원별 순위를 볼 수 있어요</span></div>
+    <div class="podium-section">
+      <div class="sec-h"><h3>팀 순위 시상대</h3><span style="font-size:11.5px;color:var(--ink-400);">팀을 누르면 팀원별 순위를 볼 수 있어요</span></div>
       ${podiumTeamHtml(teams)}
     </div>
     ${ui.selectedHomeTeam ? homeTeamMembersHtml(teams) : ''}
 
-    <div class="sec-h mt-18"><h3>개인 순위</h3><span style="font-size:11.5px;color:var(--ink-400);">이름을 누르면 그 사람의 기록을 볼 수 있어요</span></div>
-    <div class="grid grid-3 mt-18" style="margin-bottom:10px;">
-      ${top3.map((p,i)=>personCardHtml(p,i,penaltyIds)).join('')}
+    <div class="sec-h mt-18"><h3>개인 순위</h3><span style="font-size:11.5px;color:var(--ink-400);">이름을 누르면 그 사람의 기록을 볼 수 있어요 · 게이지는 1위 대비 비율이에요</span></div>
+    <div class="grid grid-3 mt-18" style="margin-bottom:10px; gap:22px;">
+      ${[top3[1],top3[0],top3[2]].map((p,slotIdx)=>{
+        if(!p) return '';
+        const rank = slotIdx===0?2:(slotIdx===1?1:3);
+        return personCardHtml(p, rank, penaltyIds, maxTotal);
+      }).join('')}
     </div>
 
     <div class="card mt-18">
       <div class="sec-h"><h3>개인 순위 4 ~ ${ranking.length}위</h3></div>
       ${rest.length? `
       <table>
-        <thead><tr><th>순위</th><th>이름</th><th>소속팀</th><th>전체 누적 이동칸</th></tr></thead>
+        <thead><tr><th>순위</th><th>변동</th><th>이름</th><th>전체 누적 이동칸 (1위 대비)</th></tr></thead>
         <tbody>
-          ${rest.map((p,i)=>`
+          ${rest.map((p,i)=>{
+            const rank = i+4;
+            const delta = rankDelta(p.id, rank);
+            const deltaHtml = delta===null ? `<span style="color:var(--ink-400);font-size:11px;">신규</span>` : delta>0 ? `<span style="color:#E23B54;font-weight:700;font-size:11px;">▲${delta}</span>` : delta<0 ? `<span style="color:#2F6FE0;font-weight:700;font-size:11px;">▼${Math.abs(delta)}</span>` : `<span style="color:var(--ink-400);font-size:11px;">-</span>`;
+            return `
             <tr data-person="${p.id}" style="cursor:pointer;">
-              <td>${i+4}위</td>
-              <td>${p.name} ${penaltyIds.includes(p.id)?`<span class="blink-badge">⚠ 교육예정</span>`:''}</td>
-              <td><span class="pill ${TEAM_PILL[p.teamId]}">${teamName(p.teamId)}</span></td>
-              <td>${squareTrackHtml(p.totalSquares, p.teamId, 'onWhite')}</td>
-            </tr>`).join('')}
+              <td>${rank}위</td>
+              <td>${deltaHtml}</td>
+              <td>${p.name} <span class="pill ${TEAM_PILL[p.teamId]}" style="margin-left:4px;">${teamName(p.teamId)}</span> ${penaltyIds.includes(p.id)?`<span class="blink-badge">⚠ 교육예정</span>`:''}</td>
+              <td style="min-width:160px;">${gaugeHtml(p.totalSquares, p.teamId, 'onWhite', maxTotal)}</td>
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>` : `<div class="empty">참가자가 없어요.</div>`}
     </div>
@@ -739,14 +813,26 @@ function podiumTeamHtml(teams){
       ${lab(t3,'rank3','left:81.5%; top:38.7%;')}
     </div>`;
 }
-function personCardHtml(p, idx, penaltyIds){
+function personCardHtml(p, rank, penaltyIds, maxTotal){
   const isPenalty = penaltyIds.includes(p.id);
+  const isFirst = rank===1;
+  const medal = rank===1?'🥇':rank===2?'🥈':'🥉';
+  const delta = rankDelta(p.id, rank);
+  const deltaHtml = delta===null ? '' : delta>0 ? `<span class="pc-delta up">▲${delta}</span>` : delta<0 ? `<span class="pc-delta down">▼${Math.abs(delta)}</span>` : `<span class="pc-delta flat">-</span>`;
   return `
-    <div class="team-card ${TEAM_COLORS[p.teamId]}" data-person="${p.id}" style="cursor:pointer;">
-      <div class="rank-badge">${idx+1}위</div>
-      <div class="name">${p.name} ${isPenalty? `<span class="blink-badge">⚠ 교육예정</span>`:''}</div>
-      ${squareTrackHtml(p.totalSquares, p.teamId, 'onColor')}
-      <div class="score-lb">${teamName(p.teamId)} · 라이브 ${p.liveCount}건</div>
+    <div class="team-card ${TEAM_COLORS[p.teamId]} ${isFirst?'team-card-first':''}" data-person="${p.id}" style="cursor:pointer;">
+      <div class="team-card-inner">
+        <div class="pc-top">
+          <div class="pc-top-left">
+            <div class="rank-badge">${medal} ${rank}위</div>
+            <img class="pc-team-badge" src="data:image/png;base64,${teamBadgeSrc(p.teamId)}" alt="${teamName(p.teamId)}">
+          </div>
+          ${deltaHtml}
+        </div>
+        <div class="name">${p.name} ${isPenalty? `<span class="blink-badge">⚠ 교육예정</span>`:''}</div>
+        ${gaugeHtml(p.totalSquares, p.teamId, 'onColor', maxTotal)}
+        <div class="score-lb">${teamName(p.teamId)} · 라이브 ${p.liveCount}건</div>
+      </div>
     </div>`;
 }
 function openPersonHistoryModal(pid){
