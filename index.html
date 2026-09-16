@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.90</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.91</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.90</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.91</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -1075,6 +1075,7 @@ function getFilterLabel(){
 
 // ── CHECK 가망건 ───────────────────────────────
 let _checkTab='need';
+let _transferPeriod='all'; // [v5.13] 이관완료 탭 기간필터 상태(all/1w/1m)
 let _checkLogData=[]; // 서버에서 로드한 체크로그
 
 function classifyCheckItem(r){
@@ -1145,14 +1146,21 @@ function getNeedItemsFor(rowsSubset){
   const needMap=new Map();
   rowsSubset.forEach(r=>{
     const fc=normalizeDate(r.firstCall)||'';
-    // [v5.9] 업체 단위 보관 처리: 이 업체가 어떤 카테고리로든 한 번 보관되었으면
+    // [v5.9] 업체 단위 보관 처리: 이 업체가 어떤 카테고리로든 한 번 보관되었으면(삭제완료 제외)
     // 이후 등급 변경 등으로 다른 카테고리에 새로 해당되어도 체크필요에 다시 노출하지 않음
-    const isArchivedCompany=_checkLogData.some(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.status==='보관');
+    const isArchivedCompany=_checkLogData.some(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.status==='보관'&&l.deleted!=='Y');
     if(isArchivedCompany) return;
     const cats=classifyCheckItem(r);
     const unlogged=cats.filter(({cat})=>{
       const logEntry=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.category===cat);
-      return !logEntry||!logEntry.status; // 상태(확인완료/보관)가 비어있으면(본부확인만 있는 행) 여전히 체크필요로 취급
+      if(!logEntry||!logEntry.status) return true; // 상태(확인완료/보관)가 비어있으면(본부확인만 있는 행) 여전히 체크필요로 취급
+      // [v5.13] 삭제완료(소프트삭제) 처리된 항목은, 삭제 시점 스냅샷 대비 가망도가 바뀌었거나 새 재콜이 생겼으면 재검출
+      if(logEntry.deleted==='Y'){
+        const gradeChanged=!!(logEntry.deletedGrade&&r.grade&&logEntry.deletedGrade!==r.grade);
+        const newRecall=!!(logEntry.deletedLastRecall&&r._latestDate&&r._latestDate>logEntry.deletedLastRecall);
+        return gradeChanged||newRecall;
+      }
+      return false; // 확인완료/보관(삭제 안 된) 상태는 기존과 동일하게 계속 차단
     });
     if(unlogged.length){
       const rowKey=r.company+'|||'+r.manager+'|||'+fc;
@@ -1162,14 +1170,82 @@ function getNeedItemsFor(rowsSubset){
   return[...needMap.values()];
 }
 const HQ_LEVEL_ROLES=['center','관리자모드','master','bm2','bm3'];
+// [v5.13] 이관완료 탭 렌더링 — 체크로그와 무관하게 현재 가망도 기준으로 필터링된 항목을 기간별로 보여줌
+function renderTransferTab(items){
+  if(!items.length) return `<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px;">이관완료 처리된 항목이 없습니다</div>`;
+  const today2=today();
+  const d1=new Date();d1.setDate(d1.getDate()-7);
+  const oneWeekAgo=d1.getFullYear()+'-'+String(d1.getMonth()+1).padStart(2,'0')+'-'+String(d1.getDate()).padStart(2,'0');
+  const d2=new Date();d2.setMonth(d2.getMonth()-1);
+  const oneMonthAgo=d2.getFullYear()+'-'+String(d2.getMonth()+1).padStart(2,'0')+'-'+String(d2.getDate()).padStart(2,'0');
+
+  // 각 항목의 이관완료감지일 조회 — 아직 기록 안 된 항목은 '오늘'로 임시 표시하고 백그라운드로 서버에 최초 기록 요청
+  const undetected=[];
+  const withDate=items.map(r=>{
+    const fc=normalizeDate(r.firstCall)||'';
+    const log=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.category==='이관완료');
+    let detectedAt=log&&log.transferDetectedAt?log.transferDetectedAt:'';
+    if(!detectedAt){ detectedAt=today2; undetected.push({company:r.company,manager:r.manager,firstCall:fc}); }
+    return {r,detectedAt};
+  });
+  if(undetected.length) _ensureTransferDetected(undetected);
+
+  const filtered=withDate.filter(({detectedAt})=>{
+    if(_transferPeriod==='1w') return detectedAt>=oneWeekAgo;
+    if(_transferPeriod==='1m') return detectedAt>=oneMonthAgo;
+    return true;
+  }).sort((a,b)=>(b.detectedAt||'').localeCompare(a.detectedAt||''));
+
+  let h=`<div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+    <label style="font-size:12px;color:var(--text-sub);">기간</label>
+    <select id="transferPeriodSel" onchange="onTransferPeriodChange(this.value)" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;">
+      <option value="all" ${_transferPeriod==='all'?'selected':''}>전체</option>
+      <option value="1w" ${_transferPeriod==='1w'?'selected':''}>최근 1주</option>
+      <option value="1m" ${_transferPeriod==='1m'?'selected':''}>최근 1개월</option>
+    </select>
+  </div>`;
+  if(!filtered.length) return h+`<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px;">해당 기간에 이관완료된 항목이 없습니다</div>`;
+  h+=filtered.map(({r,detectedAt})=>`<div style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);margin-bottom:8px;">
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+      <span style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">🔁 이관완료</span>
+      <div onclick='jumpToCompanyInList(${JSON.stringify(r.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${r.company}</strong></div>
+      <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
+      <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">감지일 ${detectedAt}</div>
+    </div>
+  </div>`).join('');
+  return h;
+}
+async function _ensureTransferDetected(items){
+  for(const it of items){
+    try{ await callServer('serverMarkTransferDetected',{role:SESSION.role,token:SESSION.token,company:it.company,manager:it.manager,firstCall:it.firstCall}); }catch(e){}
+  }
+  await loadCheckLog();
+  refreshCheckSectionOnly();
+}
+function onTransferPeriodChange(val){
+  _transferPeriod=val;
+  refreshCheckSectionOnly();
+}
 function renderCheckSection(rows){
   const needItems=getNeedItemsFor(rows);
   const isHqLevel=HQ_LEVEL_ROLES.includes(SESSION.role);
   // 현재 필터(본부/팀/인원) 범위에 속한 담당자만 체크로그에서 걸러냄
   const scopedManagers=new Set(rows.map(r=>r.manager));
-  const doneItems=_checkLogData.filter(l=>l.status==='확인완료'&&scopedManagers.has(l.manager)).sort((a,b)=>(b.actedAt||'').localeCompare(a.actedAt||''));
-  const archiveItems=_checkLogData.filter(l=>l.status==='보관'&&scopedManagers.has(l.manager));
+  const doneItemsAll=_checkLogData.filter(l=>l.status==='확인완료'&&scopedManagers.has(l.manager)).sort((a,b)=>(b.actedAt||'').localeCompare(a.actedAt||''));
+  const doneItems=doneItemsAll.filter(l=>l.deleted!=='Y');
+  const doneDeletedItems=doneItemsAll.filter(l=>l.deleted==='Y');
+  const archiveItemsAll=_checkLogData.filter(l=>l.status==='보관'&&scopedManagers.has(l.manager));
+  const archiveItems=archiveItemsAll.filter(l=>l.deleted!=='Y');
+  const archiveDeletedItems=archiveItemsAll.filter(l=>l.deleted==='Y');
   const hqItems=_checkLogData.filter(l=>l.hqChecked==='Y'&&scopedManagers.has(l.manager)).sort((a,b)=>(b.hqCheckedAt||'').localeCompare(a.hqCheckedAt||''));
+  // [v5.13] 이관완료 탭: 체크로그와 무관하게 현재 가망도='이관완료'인 데이터를 실시간으로 필터링
+  const transferItems=rows.filter(r=>r.grade==='이관완료');
+  // [v5.13] 확인/보관 탭의 비가망건·가망건 분류를 저장된 카테고리가 아니라 현재 실시간 가망도 기준으로 판정
+  const isCurrentlyGmg=(l)=>{
+    const m=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
+    if(m&&m.grade) return VALID_GRADES.includes(m.grade)&&m.grade!=='이관완료';
+    return GMG_CATS_GLOBAL.includes(l.category); // 원본 데이터를 못 찾으면 처리 당시 카테고리 기준으로 폴백
+  };
 
   // 플로팅 배너 CHECK 버튼 깜빡임 토글
   setTimeout(()=>{
@@ -1321,7 +1397,7 @@ function renderCheckSection(rows){
     const badgesHtml=cats.map(({cat,reason})=>
       `<span class="recall-tip" style="cursor:help;"><span style="background:${CHECK_CAT_COLOR[cat]}1a;color:${CHECK_CAT_COLOR[cat]};border:1px solid ${CHECK_CAT_COLOR[cat]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${cat}</span><span class="tip-content">${(reason||'').replace(/</g,'&lt;')}</span></span>`
     ).join('');
-    const confirmItem={company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cats:cats.map(c=>c.cat)};
+    const confirmItem={company:r.company,manager:r.manager,firstCall:normalizeDate(r.firstCall)||'',cats:cats.map(c=>c.cat),grade:r.grade||'',latestRecall:r._latestDate||''};
     const hqOn=isHqLevel&&cats.some(({cat})=>{
       const logEntry=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===(normalizeDate(r.firstCall)||'')&&l.category===cat);
       return logEntry&&logEntry.hqChecked==='Y';
@@ -1359,17 +1435,18 @@ function renderCheckSection(rows){
   };
   const renderLogCard=(l,showArchiveBtn)=>{
     const arcUid='arc_'+getCheckKey({company:l.company,manager:l.manager,firstCall:l.firstCall},l.category).replace(/[^a-zA-Z0-9가-힣]/g,'_');
+    const matched=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
+    const deleteItem={company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category,grade:matched?matched.grade:'',latestRecall:matched?matched._latestDate:''};
     const actionBtn=showArchiveBtn
       ?`<button onclick='openArchiveBox("${arcUid}")' style="padding:4px 10px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📌 보관</button>`
-      :`<button onclick='checkDelete(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #c62828;background:var(--surface);color:#c62828;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗑 삭제</button>`;
+      :`<button onclick='checkDelete(${JSON.stringify(deleteItem).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #c62828;background:var(--surface);color:#c62828;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗑 삭제</button>`;
     const hqOn=l.hqChecked==='Y';
     const hqBtn=isHqLevel
       ?`<button onclick='toggleHqCheck(this,${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid ${hqOn?'#3949ab':'var(--border)'};background:${hqOn?'#3949ab':'var(--surface)'};color:${hqOn?'#fff':'var(--text-sub)'};font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🏢 본부확인${hqOn?' ✓':''}</button>`
       :'';
     const closeBtn=showArchiveBtn
-      ?`<button onclick='checkDelete(${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' title="삭제 (중복 등 잘못 처리된 항목 제거)" style="background:none;border:none;color:var(--text-muted);font-size:15px;font-weight:700;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;margin-left:auto;">✕</button>`
+      ?`<button onclick='checkDelete(${JSON.stringify(deleteItem).replace(/'/g,"&apos;")})' title="삭제 (중복 등 잘못 처리된 항목 제거)" style="background:none;border:none;color:var(--text-muted);font-size:15px;font-weight:700;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;margin-left:auto;">✕</button>`
       :'';
-    const matched=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
     const url=matched?matched.url:'';
     const memoKey=getCheckKey({company:l.company,manager:l.manager,firstCall:l.firstCall},l.category).replace(/[^a-zA-Z0-9가-힣]/g,'_');
     const hasMemo=!!(l.memo&&l.memo.trim());
@@ -1379,6 +1456,7 @@ function renderCheckSection(rows){
         ${hqBtn}
         ${isHqLevel?`<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">[${l.status||'체크필요'}]</span>`:''}
         <span style="background:${CHECK_CAT_COLOR[l.category]}1a;color:${CHECK_CAT_COLOR[l.category]};border:1px solid ${CHECK_CAT_COLOR[l.category]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${l.category}</span>
+        ${(l.gradeSnapshot&&matched&&matched.grade&&l.gradeSnapshot!==matched.grade)?`<span style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;" title="처리 당시와 가망도가 달라졌습니다">⚠️ 현재:${matched.grade} (처리당시:${l.gradeSnapshot})</span>`:''}
         <div onclick='jumpToCompanyInList(${JSON.stringify(l.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${l.company}</strong>${url?`<span onclick="event.stopPropagation();openUrl('${url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
         <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${l.manager}</div>
         <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${l.actedAt.slice(5,16)}</div>
@@ -1404,10 +1482,28 @@ function renderCheckSection(rows){
         <div style="font-size:11px;color:#6a1b9a;font-weight:600;margin-bottom:4px;">📌 보관 사유를 입력해주세요 (필수)</div>
         <textarea id="arcTa_${arcUid}" placeholder="예: 예산 보류, 장기 관망 등" style="width:100%;min-height:48px;font-size:12px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;resize:vertical;box-sizing:border-box;background:var(--surface);color:var(--text);"></textarea>
         <div style="display:flex;gap:6px;margin-top:6px;">
-          <button id="arcBtn_${arcUid}" onclick='confirmArchiveBox("${arcUid}",${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 12px;border-radius:14px;border:none;background:#7b1fa2;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">보관 확정</button>
+          <button id="arcBtn_${arcUid}" onclick='confirmArchiveBox("${arcUid}",${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category,grade:matched?matched.grade:''}).replace(/'/g,"&apos;")})' style="padding:4px 12px;border-radius:14px;border:none;background:#7b1fa2;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">보관 확정</button>
           <button onclick='closeArchiveBox("${arcUid}")' style="padding:4px 12px;border-radius:14px;border:1px solid var(--border);background:var(--surface);color:var(--text-sub);font-size:11px;cursor:pointer;">취소</button>
         </div>
       </div>`:''}
+    </div>`;
+  };
+
+  // [v5.13] 삭제완료(소프트삭제) 항목 전용 카드 — 액션 버튼 없이 정보+가망도 변경 배지만 표시
+  const renderDeletedCard=(l)=>{
+    const matched=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
+    const url=matched?matched.url:'';
+    const gradeChanged=!!(l.deletedGrade&&matched&&matched.grade&&l.deletedGrade!==matched.grade);
+    return`<div style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);opacity:0.85;">
+      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+        <span style="background:#eeeeee;color:#757575;border:1px solid #cccccc;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">🗑 삭제완료</span>
+        <span style="background:${CHECK_CAT_COLOR[l.category]||'#999'}1a;color:${CHECK_CAT_COLOR[l.category]||'#999'};border:1px solid ${CHECK_CAT_COLOR[l.category]||'#999'}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${l.category}</span>
+        ${gradeChanged?`<span style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;" title="삭제 당시와 가망도가 달라졌습니다">⚠️ 현재:${matched.grade} (삭제당시:${l.deletedGrade})</span>`:''}
+        <div onclick='jumpToCompanyInList(${JSON.stringify(l.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${l.company}</strong>${url?`<span onclick="event.stopPropagation();openUrl('${url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
+        <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${l.manager}</div>
+        <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${(l.actedAt||'').slice(5,16)}</div>
+      </div>
+      ${l.memo?`<div style="padding-left:2px;font-size:11px;color:var(--text-sub);">📝 ${l.memo.replace(/</g,'&lt;')}</div>`:''}
     </div>`;
   };
 
@@ -1446,8 +1542,9 @@ function renderCheckSection(rows){
     ${renderSummaryCard()}
     <div style="display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:12px;">
       <button id="ct_need" onclick="switchCheckTab('need')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:700;color:#c62828;border-bottom:3px solid #c62828;cursor:pointer;margin-bottom:-2px;">🔴 체크 필요 <span style="background:#fce4ec;color:#c62828;border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${needItems.length}</span></button>
-      <button id="ct_done" onclick="switchCheckTab('done')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">✅ 확인완료 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${doneItems.length}</span></button>
+      <button id="ct_done" onclick="switchCheckTab('done')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">✅ 확인 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${doneItems.length}</span></button>
       <button id="ct_archive" onclick="switchCheckTab('archive')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">📌 보관 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${archiveItems.length}</span></button>
+      <button id="ct_transfer" onclick="switchCheckTab('transfer')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">🔁 이관완료 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${transferItems.length}</span></button>
       ${isHqLevel?`<button id="ct_hq" onclick="switchCheckTab('hq')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">🏢 본부확인 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${hqItems.length}</span></button>`:''}
     </div>
     <div id="ctb_need">${(()=>{
@@ -1473,10 +1570,14 @@ function renderCheckSection(rows){
     })()}</div>
     <div id="ctb_done" style="display:none;">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 확인완료 항목은 처리일로부터 2주가 지나면 자동으로 사라집니다. 계속 추적이 필요한 건은 📌 보관으로 옮겨주세요.</div>
-      ${(()=>{
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <button id="ctDoneMain_active" onclick="switchCheckLogMain('done','active')" class="nbtn na" style="font-size:11px;">✅ 확인완료중 (${doneItems.length})</button>
+        <button id="ctDoneMain_deleted" onclick="switchCheckLogMain('done','deleted')" class="nbtn" style="font-size:11px;">🗑 삭제완료 (${doneDeletedItems.length})</button>
+      </div>
+      <div id="ctDoneMainSec_active">${(()=>{
         if(!doneItems.length) return emptyMsg('확인완료 항목이 없습니다');
-        const doneNonGmg=doneItems.filter(l=>!GMG_CATS_GLOBAL.includes(l.category));
-        const doneGmg=doneItems.filter(l=>GMG_CATS_GLOBAL.includes(l.category));
+        const doneNonGmg=doneItems.filter(l=>!isCurrentlyGmg(l));
+        const doneGmg=doneItems.filter(l=>isCurrentlyGmg(l));
         let h='<div style="display:flex;gap:6px;margin-bottom:12px;">';
         h+=`<button id="ctDoneSub_all" onclick="switchCheckLogSub('done','all')" class="nbtn na" style="font-size:11px;">전체</button>`;
         h+=`<button id="ctDoneSub_nongmg" onclick="switchCheckLogSub('done','nongmg')" class="nbtn" style="font-size:11px;">비가망건 (${doneNonGmg.length})</button>`;
@@ -1485,21 +1586,36 @@ function renderCheckSection(rows){
         h+=`<div id="ctDoneSubSec_nongmg" class="ct-sub-sec">`+paginated(doneNonGmg,'done_nongmg',l=>renderLogCard(l,true))+`</div>`;
         h+=`<div id="ctDoneSubSec_gmg" class="ct-sub-sec">`+paginated(doneGmg,'done_gmg',l=>renderLogCard(l,true))+`</div>`;
         return h;
-      })()}
+      })()}</div>
+      <div id="ctDoneMainSec_deleted" style="display:none;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 삭제 처리된 항목입니다. 가망도가 바뀌거나 새 컨택이 생기면 체크필요에 다시 나타납니다.</div>
+        ${doneDeletedItems.length?paginated(doneDeletedItems,'done_deleted',renderDeletedCard):emptyMsg('삭제완료 항목이 없습니다')}
+      </div>
     </div>
-    <div id="ctb_archive" style="display:none;">${(()=>{
-      if(!archiveItems.length) return emptyMsg('보관된 항목이 없습니다');
-      const archNonGmg=archiveItems.filter(l=>!GMG_CATS_GLOBAL.includes(l.category));
-      const archGmg=archiveItems.filter(l=>GMG_CATS_GLOBAL.includes(l.category));
-      let h='<div style="display:flex;gap:6px;margin-bottom:12px;">';
-      h+=`<button id="ctArchSub_all" onclick="switchCheckLogSub('archive','all')" class="nbtn na" style="font-size:11px;">전체</button>`;
-      h+=`<button id="ctArchSub_nongmg" onclick="switchCheckLogSub('archive','nongmg')" class="nbtn" style="font-size:11px;">비가망건 (${archNonGmg.length})</button>`;
-      h+=`<button id="ctArchSub_gmg" onclick="switchCheckLogSub('archive','gmg')" class="nbtn" style="font-size:11px;">가망건 (${archGmg.length})</button>`;
-      h+='</div>';
-      h+=`<div id="ctArchSubSec_nongmg" class="ct-sub-sec">`+paginated(archNonGmg,'arch_nongmg',l=>renderLogCard(l,false))+`</div>`;
-      h+=`<div id="ctArchSubSec_gmg" class="ct-sub-sec">`+paginated(archGmg,'arch_gmg',l=>renderLogCard(l,false))+`</div>`;
-      return h;
-    })()}</div>
+    <div id="ctb_archive" style="display:none;">
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <button id="ctArchMain_active" onclick="switchCheckLogMain('archive','active')" class="nbtn na" style="font-size:11px;">📌 보관중 (${archiveItems.length})</button>
+        <button id="ctArchMain_deleted" onclick="switchCheckLogMain('archive','deleted')" class="nbtn" style="font-size:11px;">🗑 삭제완료 (${archiveDeletedItems.length})</button>
+      </div>
+      <div id="ctArchMainSec_active">${(()=>{
+        if(!archiveItems.length) return emptyMsg('보관된 항목이 없습니다');
+        const archNonGmg=archiveItems.filter(l=>!isCurrentlyGmg(l));
+        const archGmg=archiveItems.filter(l=>isCurrentlyGmg(l));
+        let h='<div style="display:flex;gap:6px;margin-bottom:12px;">';
+        h+=`<button id="ctArchSub_all" onclick="switchCheckLogSub('archive','all')" class="nbtn na" style="font-size:11px;">전체</button>`;
+        h+=`<button id="ctArchSub_nongmg" onclick="switchCheckLogSub('archive','nongmg')" class="nbtn" style="font-size:11px;">비가망건 (${archNonGmg.length})</button>`;
+        h+=`<button id="ctArchSub_gmg" onclick="switchCheckLogSub('archive','gmg')" class="nbtn" style="font-size:11px;">가망건 (${archGmg.length})</button>`;
+        h+='</div>';
+        h+=`<div id="ctArchSubSec_nongmg" class="ct-sub-sec">`+paginated(archNonGmg,'arch_nongmg',l=>renderLogCard(l,false))+`</div>`;
+        h+=`<div id="ctArchSubSec_gmg" class="ct-sub-sec">`+paginated(archGmg,'arch_gmg',l=>renderLogCard(l,false))+`</div>`;
+        return h;
+      })()}</div>
+      <div id="ctArchMainSec_deleted" style="display:none;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 삭제 처리된 항목입니다. 가망도가 바뀌거나 새 컨택이 생기면 체크필요에 다시 나타납니다.</div>
+        ${archiveDeletedItems.length?paginated(archiveDeletedItems,'arch_deleted',renderDeletedCard):emptyMsg('삭제완료 항목이 없습니다')}
+      </div>
+    </div>
+    <div id="ctb_transfer" style="display:none;">${renderTransferTab(transferItems)}</div>
     ${isHqLevel?`<div id="ctb_hq" style="display:none;">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 본부장급 이상이 별도로 더블체크 표시한 항목입니다. 팀장의 확인완료/보관 흐름과는 독립적으로 관리되며, 원래 상태([확인완료]/[보관])는 그대로 유지됩니다.</div>
       ${hqItems.length?paginated(hqItems,'hq',l=>renderLogCard(l,l.status==='확인완료')):emptyMsg('본부확인 처리된 항목이 없습니다')}
@@ -1538,13 +1654,25 @@ function switchCheckLogSub(tab,sub){
     if(btn) btn.classList.toggle('na',s===sub);
   });
 }
+// [v5.13] 확인/보관 탭 내부의 "활성/삭제완료" 대분류 전환
+function switchCheckLogMain(tab,main){
+  const prefix=tab==='done'?'ctDone':'ctArch';
+  const activeSec=document.getElementById(prefix+'MainSec_active');
+  const deletedSec=document.getElementById(prefix+'MainSec_deleted');
+  if(activeSec) activeSec.style.display=main==='active'?'block':'none';
+  if(deletedSec) deletedSec.style.display=main==='deleted'?'block':'none';
+  ['active','deleted'].forEach(m=>{
+    const btn=document.getElementById(prefix+'Main_'+m);
+    if(btn) btn.classList.toggle('na',m===main);
+  });
+}
 function switchCheckTab(tab){
   _checkTab=tab;
-  ['need','done','archive','hq'].forEach(t=>{
+  ['need','done','archive','transfer','hq'].forEach(t=>{
     const btn=document.getElementById('ct_'+t);
     const body=document.getElementById('ctb_'+t);
     const isActive=t===tab;
-    const color=t==='need'?'#c62828':t==='done'?'#2e7d32':t==='archive'?'#7b1fa2':'#3949ab';
+    const color=t==='need'?'#c62828':t==='done'?'#2e7d32':t==='archive'?'#7b1fa2':t==='transfer'?'#1565c0':'#3949ab';
     if(btn){btn.style.fontWeight=isActive?'700':'400';btn.style.color=isActive?color:'var(--text-sub)';btn.style.borderBottom=isActive?'3px solid '+color:'3px solid transparent';}
     if(body)body.style.display=isActive?'block':'none';
   });
@@ -1559,7 +1687,7 @@ async function checkConfirm(btn,item){
     // 한 업체에 여러 조건(cats)이 동시에 걸린 경우 전부 확인완료로 순차 저장
     const catList=item.cats||[item.cat];
     for(const cat of catList){
-      const res=await callServer('serverSaveCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:cat,status:'확인완료'});
+      const res=await callServer('serverSaveCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:cat,status:'확인완료',grade:item.grade||''});
       if(!res||!res.success) throw new Error((res&&res.error)||'처리 실패');
     }
     toast('✅ 확인되었습니다');await loadCheckLog();refreshCheckSectionOnly();
@@ -1584,7 +1712,7 @@ async function confirmArchiveBox(uid,item){
     // 체크필요 카드에서 온 경우 여러 조건(cats)을 한 번에, 개별 로그 카드는 단일 조건(cat)만 보관 처리
     const catList=item.cats||[item.cat];
     for(const cat of catList){
-      const res=await callServer('serverSaveCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:cat,status:'보관',memo});
+      const res=await callServer('serverSaveCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:cat,status:'보관',memo,grade:item.grade||''});
       if(!res||!res.success) throw new Error((res&&res.error)||'처리 실패');
     }
     toast('📌 보관함으로 이동');await loadCheckLog();refreshCheckSectionOnly();
@@ -1607,9 +1735,9 @@ async function toggleHqCheck(btn,item){
   }catch(e){toast('❌ '+e.message,'err');if(btn){btn.disabled=false;btn.style.opacity='1';}}
 }
 async function checkDelete(item){
-  if(!confirm('이 처리 기록을 삭제하시겠습니까?\n(삭제 후 해당 건이 여전히 조건에 해당하면 체크필요 목록에 다시 나타납니다)'))return;
+  if(!confirm('삭제 처리됩니다.\n이후 가망도가 바뀌거나 새로운 컨택(재콜)이 생기면 체크필요 목록에 다시 나타날 수 있습니다.\n계속하시겠습니까?'))return;
   try{
-    const res=await callServer('serverDeleteCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:item.cat});
+    const res=await callServer('serverDeleteCheckLog',{role:SESSION.role,token:SESSION.token,company:item.company,manager:item.manager,firstCall:item.firstCall,category:item.cat,grade:item.grade||'',lastRecall:item.latestRecall||''});
     if(res&&res.success){toast('🗑 삭제 완료');await loadCheckLog();refreshCheckSectionOnly();}
     else toast('❌ '+(res.error||'삭제 실패'),'err');
   }catch(e){toast('❌ '+e.message,'err');}
