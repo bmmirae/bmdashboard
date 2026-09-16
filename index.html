@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.97</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.99</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.97</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.99</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -1499,7 +1499,10 @@ function renderCheckSection(rows){
         <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${l.actedAt.slice(5,16)}</div>
         ${closeBtn}
       </div>
-      ${(!showArchiveBtn&&matched&&matched.recalls&&matched.recalls.length)?`<div style="padding-left:2px;">${renderRecallChipsMarked(matched.recalls,l.actedAt)}</div>`:(l.category==='숨은가망'&&matched?`<div style="padding-left:2px;">${renderLongMemoChips(matched.recalls)}</div>`:'')}
+      ${showArchiveBtn
+        ?((l.category==='숨은가망'||l.category==='비가망P')&&matched&&matched.recalls&&matched.recalls.length?`<div style="padding-left:2px;">${renderLongMemoChips(matched.recalls)}</div>`:'')
+        :((matched&&matched.recalls&&matched.recalls.length)?`<div style="padding-left:2px;">${renderRecallChipsMarked(matched.recalls,l.actedAt)}</div>`:'')
+      }
       <div id="memoView_${memoKey}" style="display:${hasMemo?'flex':'none'};align-items:flex-start;gap:6px;padding-left:2px;">
         <span style="font-size:10px;color:var(--text-muted);flex-shrink:0;margin-top:1px;">📝</span>
         <span style="font-size:11px;color:var(--text-sub);flex:1;white-space:pre-wrap;">${(l.memo||'').replace(/</g,'&lt;')}</span>
