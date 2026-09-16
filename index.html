@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.92</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.93</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.92</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.93</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -1181,12 +1181,12 @@ function renderTransferTab(items){
 
   // 각 항목의 이관완료감지일 조회 — 아직 기록 안 된 항목은 '오늘'로 임시 표시하고 백그라운드로 서버에 최초 기록 요청
   const undetected=[];
-  const withDate=items.map(r=>{
+  const withDate=items.map(({r,log})=>{
     const fc=normalizeDate(r.firstCall)||'';
-    const log=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.category==='이관완료');
-    let detectedAt=log&&log.transferDetectedAt?log.transferDetectedAt:'';
+    const trackLog=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.category==='이관완료');
+    let detectedAt=trackLog&&trackLog.transferDetectedAt?trackLog.transferDetectedAt:'';
     if(!detectedAt){ detectedAt=today2; undetected.push({company:r.company,manager:r.manager,firstCall:fc}); }
-    return {r,detectedAt};
+    return {r,log,detectedAt};
   });
   if(undetected.length) _ensureTransferDetected(undetected);
 
@@ -1205,13 +1205,16 @@ function renderTransferTab(items){
     </select>
   </div>`;
   if(!filtered.length) return h+`<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px;">해당 기간에 이관완료된 항목이 없습니다</div>`;
-  h+=filtered.map(({r,detectedAt})=>`<div style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);margin-bottom:8px;">
+  h+=filtered.map(({r,log,detectedAt})=>`<div style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);margin-bottom:8px;">
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
       <span style="background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">🔁 이관완료</span>
-      <div onclick='jumpToCompanyInList(${JSON.stringify(r.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${r.company}</strong></div>
+      ${log?`<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">(이전: [${log.status}] ${log.category})</span>`:''}
+      <div onclick='jumpToCompanyInList(${JSON.stringify(r.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${r.company}</strong>${r.url?`<span onclick="event.stopPropagation();openUrl('${r.url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
       <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
       <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">감지일 ${detectedAt}</div>
     </div>
+    ${log&&log.memo?`<div style="padding-left:2px;font-size:11px;color:var(--text-sub);">📝 ${log.memo.replace(/</g,'&lt;')}</div>`:''}
+    ${(r.recalls&&r.recalls.length)?`<div style="padding-left:2px;">${renderRecallChips(r.recalls)}</div>`:''}
   </div>`).join('');
   return h;
 }
@@ -1231,21 +1234,27 @@ function renderCheckSection(rows){
   const isHqLevel=HQ_LEVEL_ROLES.includes(SESSION.role);
   // 현재 필터(본부/팀/인원) 범위에 속한 담당자만 체크로그에서 걸러냄
   const scopedManagers=new Set(rows.map(r=>r.manager));
-  const doneItemsAll=_checkLogData.filter(l=>l.status==='확인완료'&&scopedManagers.has(l.manager)).sort((a,b)=>(b.actedAt||'').localeCompare(a.actedAt||''));
+  // [v5.15] 현재 가망도가 '이관완료'로 바뀐 업체는 확인/보관 탭에서 제외(이관완료 탭으로 이동한 것으로 취급)
+  const _isGradeTransferred=(l)=>{
+    const m=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
+    return !!(m&&m.grade==='이관완료');
+  };
+  const doneItemsAll=_checkLogData.filter(l=>l.status==='확인완료'&&scopedManagers.has(l.manager)&&!_isGradeTransferred(l)).sort((a,b)=>(b.actedAt||'').localeCompare(a.actedAt||''));
   const doneItems=doneItemsAll.filter(l=>l.deleted!=='Y');
   const doneDeletedItems=doneItemsAll.filter(l=>l.deleted==='Y');
-  const archiveItemsAll=_checkLogData.filter(l=>l.status==='보관'&&scopedManagers.has(l.manager));
+  const archiveItemsAll=_checkLogData.filter(l=>l.status==='보관'&&scopedManagers.has(l.manager)&&!_isGradeTransferred(l));
   const archiveItems=archiveItemsAll.filter(l=>l.deleted!=='Y');
   const archiveDeletedItems=archiveItemsAll.filter(l=>l.deleted==='Y');
   const hqItems=_checkLogData.filter(l=>l.hqChecked==='Y'&&scopedManagers.has(l.manager)).sort((a,b)=>(b.hqCheckedAt||'').localeCompare(a.hqCheckedAt||''));
-  // [v5.13] 이관완료 탭: 체크로그와 무관하게 현재 가망도='이관완료'인 데이터를 실시간으로 필터링
-  // [v5.14] 이관완료 탭: 전체 이관완료 업체가 아니라, 체크가망건에서 확인/보관 처리된 이력이 있는 업체 중
-  // 가망도가 이관완료로 바뀐 것만 대상으로 함 (체크로그 상태가 확인완료/보관인 이력 필요)
-  const transferItems=rows.filter(r=>{
-    if(r.grade!=='이관완료') return false;
+  // [v5.15] 이관완료 탭: 체크가망건에서 확인/보관 처리된 이력이 있는 업체 중 가망도가 이관완료로 바뀐 것만 대상.
+  // 보관/확인 탭에 있던 카드 정보(담당자·메모·재콜)를 그대로 가져와서 "이동"한 것처럼 보이게 함
+  const transferItems=rows.filter(r=>r.grade==='이관완료').map(r=>{
     const fc=normalizeDate(r.firstCall)||'';
-    return _checkLogData.some(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&(l.status==='확인완료'||l.status==='보관'));
-  });
+    const logs=_checkLogData.filter(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&(l.status==='확인완료'||l.status==='보관'));
+    if(!logs.length) return null;
+    const log=logs.sort((a,b)=>(b.actedAt||'').localeCompare(a.actedAt||''))[0];
+    return {r,log};
+  }).filter(Boolean);
   // [v5.13] 확인/보관 탭의 비가망건·가망건 분류를 저장된 카테고리가 아니라 현재 실시간 가망도 기준으로 판정
   const isCurrentlyGmg=(l)=>{
     const m=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
