@@ -504,7 +504,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.1.1';
+const DASHBOARD_VERSION = 'v8.2.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1106,23 +1106,26 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     const weekSalesGoal = Number(s['주간이관목표']) || WEEKLY_SALES_GOAL_DEFAULT;
 
     let goalDays = 0;
+    let elapsedGoalDays = 0;
     let customDeductMin = 0;
     let leaveDays = [];
+    const todayRealStr = fmtDateStr(new Date());
     rangeDates.forEach(d => {
       const ds = dateStr(d);
+      const isElapsed = ds <= todayRealStr;
       if (holidaySet.has(ds)) { goalDays += 0; return; } // 휴일은 전 인원 공통으로 근무일에서 제외
       const att = weekAtt.find(a => String(a['날짜']).substring(0,10) === ds && a['사원명'] === name);
       if (att) {
         if (att['구분'] === '연차') { goalDays += 0; leaveDays.push({ date: ds, type: '연차' }); }
-        else if (att['구분'] === '반차') { goalDays += 0.5; leaveDays.push({ date: ds, type: '반차' }); }
+        else if (att['구분'] === '반차') { goalDays += 0.5; if (isElapsed) elapsedGoalDays += 0.5; leaveDays.push({ date: ds, type: '반차' }); }
         else if (att['구분'] === '기타') {
-          goalDays += 1;
+          goalDays += 1; if (isElapsed) elapsedGoalDays += 1;
           const m = Number(att['차감분']) || 0;
           customDeductMin += m;
           leaveDays.push({ date: ds, type: `기타 -${m}분` });
         }
-        else goalDays += 1;
-      } else goalDays += 1;
+        else { goalDays += 1; if (isElapsed) elapsedGoalDays += 1; }
+      } else { goalDays += 1; if (isElapsed) elapsedGoalDays += 1; }
     });
 
     const myPenalty = weekPenalty.filter(p => p['사원명'] === name);
@@ -1159,6 +1162,11 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     const callPct = hasCallGoal ? (totalMin / weekGoalMin * 100) : -1;
     const salesPct = weekSalesGoal > 0 ? (totalSalesAmt / weekSalesGoal * 100) : 0;
 
+    // 지금까지 페이스 그대로 이번 주 끝까지 가면 예상되는 달성률 (오늘까지의 근무일 기준 일평균 × 전체 근무일)
+    const projectedCallPct = (hasCallGoal && elapsedGoalDays > 0)
+      ? ((totalMin / elapsedGoalDays) * goalDays / weekGoalMin * 100)
+      : null;
+
     const capUpOverride = STATE.revenueCapUp.some(c => {
       const cd = String(c['날짜']).substring(0, 10);
       return c['사원명'] === name && cd >= wsStr && cd <= weStr;
@@ -1183,6 +1191,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
       prevMonthTotal, prevMonthReverseTotal, prevMonthExempt,
       weekSalesCount: mySales.length, monthSalesCount: myMonthSales.length,
       hasCallGoal, callPct, salesPct, callGoalExempt, capUpOverride, exemptViaCapUp,
+      goalDays, elapsedGoalDays, projectedCallPct,
       callAchieved, realCallAchieved,
       salesAchieved: monthlyExempt || salesPct >= 100 || prevMonthExempt,
       prospectTodayNew: prospect.todayNew || 0,
@@ -1683,12 +1692,17 @@ function renderPersonCard(name, d) {
       </div>`;
     }
     const benefitNote = benefitMin > 0 ? ` (신규P ${d.prospectWeekPromoNew}건 × ${STATE.promoBenefit.perCase}분 혜택 적용)` : '';
+    const isCurrentWeekForProjection = STATE.weekOffset === computeOffsetForToday();
+    const projectionNote = (isCurrentWeekForProjection && d.projectedCallPct !== null && effectivePct < 100)
+      ? `<div class="metric-detail" style="color:var(--text-dim);">📈 이 페이스 유지 시 예상 달성률 <strong style="color:${d.projectedCallPct >= 100 ? 'var(--green)' : 'var(--text)'}">${Math.round(d.projectedCallPct)}%</strong></div>`
+      : '';
 
     callBar = `
       <div class="metric-row">
         <div class="metric-label"><span>📞 통화시간</span><span class="pct">${Math.round(effectivePct)}%${icon}</span></div>
         ${barHtml}
         <div class="metric-detail">${Math.round(d.totalMin)}분 / ${Math.round(d.weekGoalMin)}분 (${d.outCount}건 아웃콜)${benefitNote}</div>
+        ${projectionNote}
       </div>`;
   }
 
@@ -1806,7 +1820,8 @@ function renderMissionSummaryTable() {
       prevMonthExempt: d.prevMonthExempt,
       salesCount,
       prospectTotal: prospect.weekNew || 0,
-      prospectWeekPromoNew: prospect.weekPromoNew || 0
+      prospectWeekPromoNew: prospect.weekPromoNew || 0,
+      projectedCallPct: d.projectedCallPct
     };
   }).filter(Boolean);
 
@@ -1855,7 +1870,11 @@ function renderMissionSummaryTable() {
       const icon = effectivePct >= 100 ? ' ✅' : '';
 
       const benefitNote = benefitMin > 0 ? ` (P -${Math.round(benefitMin)}분)` : '';
-      callLabel = `${Math.round(row.totalMin)}/${Math.round(row.weekGoalMin)}분 (${Math.round(effectivePct)}%${icon})${benefitNote}`;
+      const isCurrentWeekForProjection = STATE.weekOffset === computeOffsetForToday();
+      const projectionNote = (isCurrentWeekForProjection && row.projectedCallPct !== null && effectivePct < 100)
+        ? ` · 예상 ${Math.round(row.projectedCallPct)}%`
+        : '';
+      callLabel = `${Math.round(row.totalMin)}/${Math.round(row.weekGoalMin)}분 (${Math.round(effectivePct)}%${icon})${benefitNote}${projectionNote}`;
       if (effectivePct >= 100) {
         barHtml = `<div class="progress-bar" style="height:5px;"><div class="progress-fill fill-green" style="width:100%"></div></div>`;
       } else {
