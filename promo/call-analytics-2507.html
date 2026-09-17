@@ -504,7 +504,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.2.0';
+const DASHBOARD_VERSION = 'v8.3.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1262,8 +1262,29 @@ function getWeekYearMonth(rangeStart) {
   return `${rangeStart.getFullYear()}-${String(rangeStart.getMonth()+1).padStart(2,'0')}`;
 }
 
+// 추석 연휴로 인해 특정 오프셋 구간만 수동으로 날짜 범위를 지정 (그 구간 안 영업일이 서로 떨어져 있어도
+// 하나의 "주"로 묶임). 12번째 주 = 9/21·22·28·29·30(영업일), 13번째 주 = 10/1·2·6·7·8(영업일).
+// 나머지 날짜(9/23~27, 10/3~5, 10/9)는 "휴일" 탭에 등록해서 목표만 빠지고 실적은 그대로 잡히게 함.
+const MANUAL_WEEK_RANGES = {
+  12: { start: new Date(2026, 8, 21), end: new Date(2026, 8, 30) },
+  13: { start: new Date(2026, 9, 1), end: new Date(2026, 9, 9) }
+};
+const LAST_MANUAL_OFFSET = 13;
+const RESUME_MONDAY = new Date(2026, 9, 12); // 수동 지정 구간 다음 주부터는 10/12(월)부터 정상 5일 단위로 재개
+
 function computeWeekRangeForOffset(offset) {
   if (offset === 0) return { start: new Date(FIRST_WEEK_START), end: new Date(FIRST_WEEK_END) };
+  if (MANUAL_WEEK_RANGES[offset]) {
+    const r = MANUAL_WEEK_RANGES[offset];
+    return { start: new Date(r.start), end: new Date(r.end) };
+  }
+  if (offset > LAST_MANUAL_OFFSET) {
+    const mon = new Date(RESUME_MONDAY);
+    mon.setDate(mon.getDate() + (offset - LAST_MANUAL_OFFSET - 1) * 7);
+    const fri = new Date(mon);
+    fri.setDate(mon.getDate() + 4);
+    return { start: mon, end: fri };
+  }
   const mon = new Date(SECOND_WEEK_MONDAY);
   mon.setDate(mon.getDate() + (offset - 1) * 7);
   const fri = new Date(mon);
