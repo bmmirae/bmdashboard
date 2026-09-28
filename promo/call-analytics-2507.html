@@ -488,7 +488,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.5.0';
+const DASHBOARD_VERSION = 'v8.5.1';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -992,7 +992,7 @@ function resolveDailyGoal(name, rangeStart, fallback) {
   return Number(entries[0].goal) || 0;
 }
 
-// 주간 통화시간 혜택(분) = 가망건 P 건수 × 건당 분 + 대형 신규 이관 건수 × 보너스 분, 합산에 주간 상한 적용
+// 주간 통화시간 혜택(분) = 가망건 P 건수 × 건당 분 + 월간 신규 이관 건수 × 보너스 분, 합산에 주간 상한 적용
 function computePromoBenefit(pCount, bigCount) {
   const perCase = STATE.promoBenefit.perCase || 0;
   const cap = STATE.promoBenefit.weeklyCap;
@@ -1685,7 +1685,7 @@ function renderPersonCard(name, d) {
     }
     const benefitParts = [];
     if (d.prospectWeekPromoNew > 0) benefitParts.push(`신규P ${d.prospectWeekPromoNew}건 × ${STATE.promoBenefit.perCase}분`);
-    if (d.newBigTransferCount > 0) benefitParts.push(`대형 신규이관 ${d.newBigTransferCount}건 × ${NEW_BIG_TRANSFER_BONUS_MIN}분`);
+    if (d.newBigTransferCount > 0) benefitParts.push(`월간 신규이관 ${d.newBigTransferCount}건 × ${NEW_BIG_TRANSFER_BONUS_MIN}분`);
     const benefitNote = benefitMin > 0
       ? ` (${benefitParts.join(' + ')} 혜택 적용${rawBenefitMin > benefitMin ? ` · 상한 ${benefitMin}분` : ''})`
       : '';
