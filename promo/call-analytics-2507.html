@@ -389,6 +389,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
         <span style="font-size:12px;color:var(--green);font-weight:700;min-width:44px;">이관</span>
         <input type="text" id="salesCompany" placeholder="업체명">
         <input type="number" id="salesAmount" placeholder="금액 (원)" step="10000">
+        <label style="font-size:12px;display:flex;align-items:center;gap:4px;white-space:nowrap;"><input type="checkbox" id="salesIsNew"> 당월 신규(최초콜 이번 달)</label>
       </div>
       <div class="form-row" style="margin-top:8px;">
         <span style="font-size:12px;color:var(--red);font-weight:700;min-width:44px;">피이관</span>
@@ -413,23 +414,6 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
       </div>
       <div id="penaltyStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
       <div id="penaltyList" style="margin-top:12px;"></div>
-    </div>
-
-    <div class="form-section">
-      <div class="form-title">🚀 매출 20%↑ 캡업 대상자 체크</div>
-      <div style="font-size:11px;color:var(--text-dim);margin-bottom:10px;">별도 관리 중인 주간 매출 20%↑ 캡업 대상자를 체크하면, 그 주는 콜·이관 미달성이어도 완전 달성으로 인정되어 패널티 회차가 올라가지 않습니다.</div>
-      <div class="form-row" style="margin-bottom:10px;">
-        <button class="save-btn" style="padding:6px 10px;" onclick="changeCapUpWeek(-1)">‹</button>
-        <span id="capUpWeekLabel" style="font-size:13px;font-weight:700;min-width:120px;text-align:center;"></span>
-        <button class="save-btn" style="padding:6px 10px;" onclick="changeCapUpWeek(1)">›</button>
-      </div>
-      <div class="form-row">
-        <select id="capUpTeamFilter" onchange="filterAgentSelect('capUp')"></select>
-        <select id="capUpAgent"></select>
-        <button class="save-btn" onclick="saveRevenueCapUpEntry()">저장</button>
-      </div>
-      <div id="capUpStatus" style="font-size:12px;color:var(--text-dim);margin-top:8px;"></div>
-      <div id="capUpList" style="margin-top:12px;"></div>
     </div>
 
     <div class="form-section">
@@ -504,7 +488,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.3.0';
+const DASHBOARD_VERSION = 'v8.5.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -525,6 +509,10 @@ async function loadProspectData(weekStartStr, weekEndStr) {
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
 const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
+// 당월 신규영업 이관완료 건 보너스: 이관매출 입력에서 '신규' 체크 + 건당 금액이 기준 이상이면, 그 입력일이 속한 주에 보너스 분 부여 (가망건 P와 같은 주간 상한 안에서 합산)
+const NEW_BIG_TRANSFER_AMOUNT = 500000;
+const NEW_BIG_TRANSFER_BONUS_MIN = 20;
+const NEW_BIG_TRANSFER_START = '2026-10-01'; // 이 날짜 이후 입력분부터 적용
 
 // 첫 주 고정: 2026-07-01(수) ~ 2026-07-03(금)
 const FIRST_WEEK_START = new Date(2026, 6, 1);
@@ -553,8 +541,6 @@ let STATE = {
   penalty: [],
   weeklyRevenue: [],
   holidays: [],
-  revenueCapUp: [],
-  capUpWeekOffset: 0,
   trainingHistory: [],
   goalHistory: [],
   reverseSales: [],
@@ -589,7 +575,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   STATE.revenueAuthed = sessionStorage.getItem('ca_revenue_authed') === 'yes';
   if (STATE.revenueAuthed) _revenuePwCache = sessionStorage.getItem('ca_revenue_pw') || '';
   STATE.weekOffset = computeOffsetForToday();
-  STATE.capUpWeekOffset = Math.max(0, computeOffsetForToday() - 1);
   STATE.trainingWeekOffset = computeOffsetForToday();
   computeWeekRange();
   await loadAllData();
@@ -641,7 +626,7 @@ function renderLockOrContent(zone) {
     contentEl.style.display = 'block';
     if (zone === 'roster') renderRosterTable();
     if (zone === 'revenue') renderMissionSummaryTable();
-    if (zone === 'input') { populateBenefitSettingsUI(); renderCapUpWeekLabel(); renderRevenueCapUpList(); renderTrainingWeekLabel(); renderTrainingHistoryList(); }
+    if (zone === 'input') { populateBenefitSettingsUI(); renderTrainingWeekLabel(); renderTrainingHistoryList(); }
   } else {
     contentEl.style.display = 'none';
     lockEl.innerHTML = `
@@ -740,7 +725,6 @@ async function changeWeek(delta) {
   renderSalesList();
   try { renderReverseSalesList(); } catch (e) {}
   renderPenaltyList();
-  try { renderRevenueCapUpList(); } catch (e) {}
   try { renderMissionSummaryTable(); } catch (e) {}
 
   // 가망건 데이터도 지금 보는 주 기준으로 다시 불러온 뒤 카드·표 갱신
@@ -775,7 +759,6 @@ async function loadAllData() {
     STATE.weeklyRevenue = data.weeklyRevenue || [];
     STATE.holidays = data.holidays || [];
     STATE.promoBenefit = data.promoBenefit || STATE.promoBenefit;
-    STATE.revenueCapUp = data.revenueCapUp || [];
     STATE.trainingHistory = data.trainingHistory || [];
     STATE.goalHistory = data.goalHistory || [];
     STATE.reverseSales = data.reverseSales || [];
@@ -793,7 +776,6 @@ async function loadAllData() {
     try { renderSalesList(); } catch (e) { console.error('renderSalesList 오류:', e); }
     try { renderReverseSalesList(); } catch (e) { console.error('renderReverseSalesList 오류:', e); }
     try { renderPenaltyList(); } catch (e) { console.error('renderPenaltyList 오류:', e); }
-    try { renderRevenueCapUpList(); } catch (e) { console.error('renderRevenueCapUpList 오류:', e); }
     try { renderTrainingHistoryList(); } catch (e) { console.error('renderTrainingHistoryList 오류:', e); }
     try { renderMissionSummaryTable(); } catch (e) { console.error('renderMissionSummaryTable 오류:', e); }
   } catch (err) {
@@ -1010,6 +992,15 @@ function resolveDailyGoal(name, rangeStart, fallback) {
   return Number(entries[0].goal) || 0;
 }
 
+// 주간 통화시간 혜택(분) = 가망건 P 건수 × 건당 분 + 대형 신규 이관 건수 × 보너스 분, 합산에 주간 상한 적용
+function computePromoBenefit(pCount, bigCount) {
+  const perCase = STATE.promoBenefit.perCase || 0;
+  const cap = STATE.promoBenefit.weeklyCap;
+  const rawMin = (pCount || 0) * perCase + (bigCount || 0) * NEW_BIG_TRANSFER_BONUS_MIN;
+  const benefitMin = cap === null ? rawMin : Math.min(rawMin, cap);
+  return { benefitMin, rawMin };
+}
+
 function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) {
   const dateStr = d => {
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
@@ -1083,10 +1074,9 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     return d >= prevMonthStartStr && d <= prevMonthEndStr;
   });
 
-  // 지난주 주간 이관목표(200만) 달성 여부 + 매출캡업 체크 여부 맵 — 콜미션 면제 판단용 (재귀 1단계로 제한)
+  // 지난주 주간 이관목표(200만) 달성 여부 맵 — 콜미션 면제 판단용 (재귀 1단계로 제한)
   // 단, 지난주가 이번 주와 다른 달이면(월 경계) 이월시키지 않음 — 혜택/미션 결과는 달이 바뀌면 리셋
   let prevWeekSalesAchievedMap = {};
-  let prevWeekCapUpMap = {};
   if (!skipExempt && offsetHint !== undefined && offsetHint > 0) {
     const prevRange = computeWeekRangeForOffset(offsetHint - 1);
     const prevYearMonth = getWeekYearMonth(prevRange.start);
@@ -1094,7 +1084,6 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
       const prevData = computeAgentDataForRange(prevRange.start, prevRange.end, offsetHint - 1, true);
       Object.keys(prevData).forEach(n => {
         prevWeekSalesAchievedMap[n] = prevData[n].salesPct >= 100;
-        prevWeekCapUpMap[n] = !!prevData[n].capUpOverride;
       });
     }
   }
@@ -1143,6 +1132,10 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
 
     const mySales = weekSales.filter(s => s['사원명'] === name);
     const totalSalesAmt = mySales.reduce((sum, s) => sum + (Number(s['금액']) || 0), 0);
+    // 당월 신규 체크 + 건당 금액 기준 이상 + 시작일 이후 입력분 (그 주에 입력된 건만 mySales에 들어있음)
+    const newBigTransferCount = mySales.filter(s => s['신규영업'] === 'Y'
+      && (Number(s['금액']) || 0) >= NEW_BIG_TRANSFER_AMOUNT
+      && String(s['날짜']).substring(0, 10) >= NEW_BIG_TRANSFER_START).length;
 
     const myMonthSales = monthSales.filter(s => s['사원명'] === name);
     const monthlyTotal = myMonthSales.reduce((sum, s) => sum + (Number(s['금액']) || 0), 0);
@@ -1167,15 +1160,9 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
       ? ((totalMin / elapsedGoalDays) * goalDays / weekGoalMin * 100)
       : null;
 
-    const capUpOverride = STATE.revenueCapUp.some(c => {
-      const cd = String(c['날짜']).substring(0, 10);
-      return c['사원명'] === name && cd >= wsStr && cd <= weStr;
-    });
-
     const exemptViaSales = salesPct >= 100 || prevWeekSalesAchievedMap[name] === true;
-    const exemptViaCapUp = capUpOverride || prevWeekCapUpMap[name] === true;
-    // 주간 이관 200만원 달성 또는 매출 20%↑ 캡업 체크 시 그 주 + 다음 주 콜미션 면제. 전월 1천만원 이관 달성 시 당월 콜 전체 면제.
-    const callGoalExempt = !skipExempt && hasCallGoal && (exemptViaSales || exemptViaCapUp || prevMonthExempt);
+    // 주간 이관 200만원 달성 시 그 주 + 다음 주 콜미션 면제. 전월 1천만원 이관 달성 시 당월 콜 전체 면제.
+    const callGoalExempt = !skipExempt && hasCallGoal && (exemptViaSales || prevMonthExempt);
     const realCallAchieved = hasCallGoal && callPct >= 100; // 면제 여부와 무관한 실제 통화 달성 여부
     const callAchieved = hasCallGoal ? (callGoalExempt ? true : callPct >= 100) : false; // 패널티 회차 계산 등에 쓰이는 값(면제 포함)
 
@@ -1189,8 +1176,8 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
       dailyGoal, weekGoalMin, totalMin, totalSec, callCount, outCount,
       weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt, monthlyReverseTotal, penaltyMin, penaltyRows,
       prevMonthTotal, prevMonthReverseTotal, prevMonthExempt,
-      weekSalesCount: mySales.length, monthSalesCount: myMonthSales.length,
-      hasCallGoal, callPct, salesPct, callGoalExempt, capUpOverride, exemptViaCapUp,
+      weekSalesCount: mySales.length, monthSalesCount: myMonthSales.length, newBigTransferCount,
+      hasCallGoal, callPct, salesPct, callGoalExempt,
       goalDays, elapsedGoalDays, projectedCallPct,
       callAchieved, realCallAchieved,
       salesAchieved: monthlyExempt || salesPct >= 100 || prevMonthExempt,
@@ -1293,8 +1280,7 @@ function computeWeekRangeForOffset(offset) {
 }
 
 // 그 달(currentOffset이 속한 달) 첫 주부터 currentOffset 직전까지 순서대로 시뮬레이션하며 "패널티 회차"를 계산.
-// 규칙: 완전 미달성(콜+이관 모두 실패) 주를 만나면 +1 (누적). 단, 매출 20%↑ 캡업 체크(capUpOverride)된 주는
-// 콜·이관을 못 채웠어도 완전 미달성으로 안 치고 그냥 넘어감 (회차 자체가 안 생김). 완전 달성 주를 만나도
+// 규칙: 완전 미달성(콜+이관 모두 실패) 주를 만나면 +1 (누적). 완전 달성 주를 만나도
 // 회차는 내려가지 않고 그대로 유지(이력으로 남김). 부분 달성은 회차 변화 없음.
 // 목표 예외 인원(dailyGoal=0)은 계산에서 제외.
 // 달이 바뀌면: 그 달의 "첫 주"에는 지난달 마지막 시점의 최종 회차(3회차든 4회차든 그 숫자 그대로)가 1회성으로
@@ -1327,7 +1313,7 @@ function computeMissStreak(name, currentOffset) {
       if (getWeekYearMonth(range.start) !== prevMonth) continue;
       const data = computeAgentDataForRange(range.start, range.end, offset)[name];
       if (!data || data.dailyGoal === 0) continue;
-      if (data.capUpOverride || data.prevMonthExempt) continue;
+      if (data.prevMonthExempt) continue;
       const bothMissed = !data.callAchieved && !data.salesAchieved;
       if (bothMissed) { carriedStage += 1; carriedMissedOffset = offset; }
     }
@@ -1342,7 +1328,7 @@ function computeMissStreak(name, currentOffset) {
     if (getWeekYearMonth(range.start) !== targetYearMonth) continue; // 다른 달이면 건너뜀 (월 경계 리셋)
     const data = computeAgentDataForRange(range.start, range.end, offset)[name];
     if (!data || data.dailyGoal === 0) continue;
-    if (data.capUpOverride || data.prevMonthExempt) continue; // 매출 캡업 체크 또는 전월 1천만 이관 면제된 주는 회차 계산에서 완전히 제외 (이력 안 남김)
+    if (data.prevMonthExempt) continue; // 전월 1천만 이관 면제된 달의 주는 회차 계산에서 완전히 제외 (이력 안 남김)
     const bothMissed = !data.callAchieved && !data.salesAchieved;
     if (bothMissed) { stage += 1; lastMissedOffset = offset; }
     // 완전 달성이거나 부분 달성이면 회차 변화 없음 (한 번 오른 회차는 유지)
@@ -1351,20 +1337,15 @@ function computeMissStreak(name, currentOffset) {
 }
 
 // 바로 직전 주(currentOffset-1) 실제 달성 상태 확인.
-// { status: 'full'|'none'|'partial'|null, viaCapUp: boolean, capUp: boolean }
-// viaCapUp = 캡업 체크가 '패널티 구제'로 실제 쓰였는지(콜·이관 미달성인데 캡업으로 완전달성 처리된 경우)
-// capUp    = 콜·이관 결과와 무관하게, 지난주에 캡업 체크가 있었는지 자체(성과 표시용, 독립적)
+// { status: 'full'|'none'|'partial'|null } — full=콜+이관 완전 달성 / none=완전 미달성 / partial=하나만 달성 / null=비교 불가(첫 주·목표 예외)
 function computeLastWeekAchieved(name, currentOffset) {
-  if (currentOffset <= 0) return { status: null, viaCapUp: false, capUp: false };
+  if (currentOffset <= 0) return { status: null };
   const range = computeWeekRangeForOffset(currentOffset - 1);
   const data = computeAgentDataForRange(range.start, range.end, currentOffset - 1)[name];
-  if (!data || data.dailyGoal === 0) return { status: null, viaCapUp: false, capUp: false };
-  const bothAchieved = data.callAchieved && data.salesAchieved;
-  const capUp = !!data.capUpOverride;
-  if (capUp && !bothAchieved) return { status: 'full', viaCapUp: true, capUp: true };
-  if (bothAchieved) return { status: 'full', viaCapUp: false, capUp };
-  if (!data.callAchieved && !data.salesAchieved) return { status: 'none', viaCapUp: false, capUp };
-  return { status: 'partial', viaCapUp: false, capUp };
+  if (!data || data.dailyGoal === 0) return { status: null };
+  if (data.callAchieved && data.salesAchieved) return { status: 'full' };
+  if (!data.callAchieved && !data.salesAchieved) return { status: 'none' };
+  return { status: 'partial' };
 }
 
 // ══════════════════════════════════════
@@ -1392,10 +1373,8 @@ function renderDashboard() {
       d.trainingDone = false;
     }
 
-    const lastWeekResult = (d.dailyGoal > 0) ? computeLastWeekAchieved(name, STATE.weekOffset) : { status: null, viaCapUp: false, capUp: false };
+    const lastWeekResult = (d.dailyGoal > 0) ? computeLastWeekAchieved(name, STATE.weekOffset) : { status: null };
     d.lastWeekAchieved = lastWeekResult.status;
-    d.lastWeekViaCapUp = lastWeekResult.viaCapUp;
-    d.lastWeekCapUp = lastWeekResult.capUp;
   });
 
   const teams = {};
@@ -1635,14 +1614,8 @@ function renderPersonCard(name, d) {
       }
     }
   }
-  if (d.lastWeekCapUp) {
-    badge += `<span class="person-badge" style="background:var(--blue-bg,transparent);color:var(--blue);border:1px solid var(--blue)">🚀 지난주 매출 20%↑ 캡업 달성</span> `;
-  }
-  if (d.capUpOverride) {
-    badge += `<span class="person-badge" style="background:var(--blue-bg,transparent);color:var(--blue);border:1px solid var(--blue)">🚀 이번주 매출 캡업 체크됨</span> `;
-  }
   if (d.callGoalExempt && !d.prevMonthExempt) {
-    badge += `<span class="person-badge" style="background:var(--gold-bg);color:var(--gold)">🎯 콜미션 면제(${d.exemptViaCapUp ? '매출캡업' : '이관200만'})</span> `;
+    badge += `<span class="person-badge" style="background:var(--gold-bg);color:var(--gold)">🎯 콜미션 면제(이관200만)</span> `;
   }
   if (d.leaveDays.length > 0) {
     const types = d.leaveDays.map(l => l.type);
@@ -1683,7 +1656,7 @@ function renderPersonCard(name, d) {
       <div class="metric-row">
         <div class="metric-label"><span>📞 통화시간</span><span class="pct" style="color:var(--gold)">${Math.round(d.callPct)}%${icon} (면제)</span></div>
         <div class="progress-bar"><div class="progress-fill fill-gold" style="width:${pct}%"></div></div>
-        <div class="metric-detail">${Math.round(d.totalMin)}분 / ${Math.round(d.weekGoalMin)}분 (${d.outCount}건 아웃콜) — ${d.exemptViaCapUp ? '매출 20%↑ 캡업 달성' : '이관 200만 달성'}으로 콜미션 면제</div>
+        <div class="metric-detail">${Math.round(d.totalMin)}분 / ${Math.round(d.weekGoalMin)}분 (${d.outCount}건 아웃콜) — 이관 200만 달성으로 콜미션 면제</div>
       </div>`;
   } else if (d.weekGoalMin === 0) {
     callBar = `
@@ -1691,9 +1664,7 @@ function renderPersonCard(name, d) {
         <div class="metric-label"><span>📞 통화시간</span><span>연차 주간</span></div>
       </div>`;
   } else {
-    const benefitCap = STATE.promoBenefit.weeklyCap;
-    const rawBenefitMin = (d.prospectWeekPromoNew || 0) * (STATE.promoBenefit.perCase || 0);
-    const benefitMin = benefitCap === null ? rawBenefitMin : Math.min(rawBenefitMin, benefitCap);
+    const { benefitMin, rawMin: rawBenefitMin } = computePromoBenefit(d.prospectWeekPromoNew, d.newBigTransferCount);
     const effectiveMin = d.totalMin + benefitMin;
     const effectivePct = d.weekGoalMin > 0 ? (effectiveMin / d.weekGoalMin * 100) : d.callPct;
 
@@ -1712,7 +1683,12 @@ function renderPersonCard(name, d) {
         <div class="progress-fill" style="width:${benefitWidthPct}%;background:var(--blue);"></div>
       </div>`;
     }
-    const benefitNote = benefitMin > 0 ? ` (신규P ${d.prospectWeekPromoNew}건 × ${STATE.promoBenefit.perCase}분 혜택 적용)` : '';
+    const benefitParts = [];
+    if (d.prospectWeekPromoNew > 0) benefitParts.push(`신규P ${d.prospectWeekPromoNew}건 × ${STATE.promoBenefit.perCase}분`);
+    if (d.newBigTransferCount > 0) benefitParts.push(`대형 신규이관 ${d.newBigTransferCount}건 × ${NEW_BIG_TRANSFER_BONUS_MIN}분`);
+    const benefitNote = benefitMin > 0
+      ? ` (${benefitParts.join(' + ')} 혜택 적용${rawBenefitMin > benefitMin ? ` · 상한 ${benefitMin}분` : ''})`
+      : '';
     const isCurrentWeekForProjection = STATE.weekOffset === computeOffsetForToday();
     const projectionNote = (isCurrentWeekForProjection && d.projectedCallPct !== null && effectivePct < 100)
       ? `<div class="metric-detail" style="color:var(--text-dim);">📈 이 페이스 유지 시 예상 달성률 <strong style="color:${d.projectedCallPct >= 100 ? 'var(--green)' : 'var(--text)'}">${Math.round(d.projectedCallPct)}%</strong></div>`
@@ -1842,7 +1818,8 @@ function renderMissionSummaryTable() {
       salesCount,
       prospectTotal: prospect.weekNew || 0,
       prospectWeekPromoNew: prospect.weekPromoNew || 0,
-      projectedCallPct: d.projectedCallPct
+      projectedCallPct: d.projectedCallPct,
+      newBigTransferCount: d.newBigTransferCount
     };
   }).filter(Boolean);
 
@@ -1879,9 +1856,7 @@ function renderMissionSummaryTable() {
       callLabel = `${Math.round(row.totalMin)}분 (목표 미설정)`;
       barHtml = '';
     } else {
-      const benefitCap = STATE.promoBenefit.weeklyCap;
-      const rawBenefitMin = (row.prospectWeekPromoNew || 0) * (STATE.promoBenefit.perCase || 0);
-      const benefitMin = benefitCap === null ? rawBenefitMin : Math.min(rawBenefitMin, benefitCap);
+      const { benefitMin } = computePromoBenefit(row.prospectWeekPromoNew, row.newBigTransferCount);
       const effectiveMin = row.totalMin + benefitMin;
       const effectivePct = row.weekGoalMin > 0 ? (effectiveMin / row.weekGoalMin * 100) : row.callPct;
 
@@ -2056,7 +2031,7 @@ let _dateDefaultsSet = false;
 function populateAgentSelects() {
   // 팀 필터 드롭다운 채우기 (전체 + 팀 목록)
   const teamOrder = getTeamOrder();
-  ['attTeamFilter', 'salesTeamFilter', 'penaltyTeamFilter', 'revenueTeamFilter', 'capUpTeamFilter', 'trainingTeamFilter'].forEach(id => {
+  ['attTeamFilter', 'salesTeamFilter', 'penaltyTeamFilter', 'revenueTeamFilter', 'trainingTeamFilter'].forEach(id => {
     const sel = document.getElementById(id);
     if (!sel) return;
     const prevValue = sel.value;
@@ -2068,7 +2043,6 @@ function populateAgentSelects() {
   filterAgentSelect('sales');
   filterAgentSelect('penalty');
   filterAgentSelect('revenue');
-  filterAgentSelect('capUp');
   filterAgentSelect('training');
 
   const teamListEl = document.getElementById('teamList');
@@ -2308,89 +2282,6 @@ async function savePenaltyEntry() {
   }
 }
 
-function renderCapUpWeekLabel() {
-  const el = document.getElementById('capUpWeekLabel');
-  if (!el) return;
-  const range = computeWeekRangeForOffset(STATE.capUpWeekOffset);
-  const fmt = d => `${d.getMonth()+1}/${d.getDate()}`;
-  el.textContent = `${fmt(range.start)} ~ ${fmt(range.end)}`;
-}
-
-function changeCapUpWeek(delta) {
-  if (delta < 0 && STATE.capUpWeekOffset <= 0) return;
-  STATE.capUpWeekOffset += delta;
-  renderCapUpWeekLabel();
-  renderRevenueCapUpList();
-}
-
-async function saveRevenueCapUpEntry() {
-  const agent = document.getElementById('capUpAgent').value;
-  const status = document.getElementById('capUpStatus');
-  if (!agent) return;
-
-  const range = computeWeekRangeForOffset(STATE.capUpWeekOffset);
-  const date = fmtDateStr(range.start);
-  const label = `${range.start.getMonth()+1}/${range.start.getDate()} ~ ${range.end.getMonth()+1}/${range.end.getDate()}`;
-
-  status.textContent = '저장 중...';
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'saveRevenueCapUp', data: [{ '날짜': date, '사원명': agent }], password: getStoredPassword() })
-    });
-    const result = await res.json();
-    if (result.status !== 'ok') throw new Error(result.message);
-    status.textContent = result.skipped > 0
-      ? `⚠️ ${agent} (${label} 주) — 이미 등록되어 있습니다`
-      : `✅ ${agent} (${label} 주) 매출캡업 대상자 등록 완료`;
-    showToast('매출캡업 등록 완료');
-    await loadAllData();
-  } catch (err) {
-    status.textContent = '❌ 실패: ' + err.message;
-  }
-}
-
-function renderRevenueCapUpList() {
-  const el = document.getElementById('capUpList');
-  if (!el) return;
-  const range = computeWeekRangeForOffset(STATE.capUpWeekOffset);
-  const wsStr = fmtDateStr(range.start), weStr = fmtDateStr(range.end);
-  const weekList = STATE.revenueCapUp.filter(c => {
-    const d = String(c['날짜']).substring(0,10);
-    return d >= wsStr && d <= weStr;
-  });
-  if (weekList.length === 0) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--text-dim)">이 주 매출캡업 등록 없음</div>';
-    return;
-  }
-  el.innerHTML = weekList.map(c => `
-    <div class="record-row">
-      <span class="record-date">${String(c['날짜']).substring(0,10)}</span>
-      <span class="record-name">${c['사원명']}</span>
-      <span style="color:var(--green);font-weight:600;">🚀 캡업 달성</span>
-      <button class="roster-del" onclick="deleteRevenueCapUp(${c['_row']})" title="삭제">✕</button>
-    </div>`
-  ).join('');
-}
-
-async function deleteRevenueCapUp(row) {
-  if (!confirm('이 매출캡업 등록을 삭제하시겠습니까?')) return;
-  try {
-    const res = await fetch(API_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ action: 'deleteRevenueCapUp', row, password: getStoredPassword() })
-    });
-    const result = await res.json();
-    if (result.status !== 'ok') throw new Error(result.message);
-    showToast('매출캡업 삭제 완료');
-    await loadAllData();
-  } catch (err) {
-    alert('삭제 실패: ' + err.message);
-  }
-}
-
 function renderTrainingWeekLabel() {
   const el = document.getElementById('trainingWeekLabel');
   if (!el) return;
@@ -2574,7 +2465,7 @@ async function saveSales() {
       tasks.push(fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain' },
-        body: JSON.stringify({ action: 'saveSales', data: [{ '날짜': date, '사원명': agent, '금액': amount, '업체명': company }], password: getStoredPassword() })
+        body: JSON.stringify({ action: 'saveSales', data: [{ '날짜': date, '사원명': agent, '금액': amount, '업체명': company, '신규영업': document.getElementById('salesIsNew').checked ? 'Y' : '' }], password: getStoredPassword() })
       }));
     }
     if (reverseAmount > 0) {
@@ -2594,6 +2485,7 @@ async function saveSales() {
     status.textContent = `✅ ${agent} ${parts.join(' / ')} 저장 완료`;
     document.getElementById('salesAmount').value = '';
     document.getElementById('salesCompany').value = '';
+    document.getElementById('salesIsNew').checked = false;
     document.getElementById('reverseSalesAmount').value = '';
     document.getElementById('reverseSalesCompany').value = '';
     showToast('저장 완료');
@@ -2622,9 +2514,28 @@ function renderSalesList() {
       <span class="record-name">${s['사원명']}</span>
       <input type="text" value="${s['업체명']||''}" placeholder="업체명" onchange="updateSalesCompany(${s['_row']}, this.value)">
       <input type="text" inputmode="numeric" value="${Number(s['금액']).toLocaleString()}" onchange="handleSalesAmountChange(${s['_row']}, this)">
-      <button class="roster-del" onclick="deleteSales(${s['_row']})" title="삭제">✕</button>
+      <span style="display:flex;align-items:center;gap:8px;">
+        <label title="당월 신규(최초콜 이번 달)" style="font-size:11px;white-space:nowrap;display:flex;align-items:center;gap:3px;"><input type="checkbox" ${s['신규영업']==='Y'?'checked':''} onchange="updateSalesNew(${s['_row']}, this.checked)"> 신규</label>
+        <button class="roster-del" onclick="deleteSales(${s['_row']})" title="삭제">✕</button>
+      </span>
     </div>`
   ).join('');
+}
+
+async function updateSalesNew(row, checked) {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'updateSalesNew', row, value: checked ? 'Y' : '', password: getStoredPassword() })
+    });
+    const result = await res.json();
+    if (result.status !== 'ok') throw new Error(result.message);
+    showToast(checked ? '당월 신규로 표시했습니다' : '당월 신규 표시를 해제했습니다');
+    await loadAllData();
+  } catch (err) {
+    alert('수정 실패: ' + err.message);
+  }
 }
 
 async function updateSalesCompany(row, value) {
