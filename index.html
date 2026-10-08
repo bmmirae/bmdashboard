@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.100</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.101</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -461,6 +461,14 @@ function renderRecallChipsFC(r){
   const sumHtml=`<div style="font-size:10px;color:#6a1b9a;margin:1px 2px 2px;line-height:1.4;">${sum}</div>`;
   const rest=(r.recalls&&r.recalls.length)?base:'';
   return sumHtml+chip+rest;
+}
+// [v5.101] 첫콜 칩 (체크 가망건 카드용, 표시 전용 / 호버 시 첫콜 내용 전문)
+function renderFirstCallChip(r){
+  const fc=normalizeDate(r&&r.firstCall)||'';
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(fc))return'';
+  const memo=((r&&r.content)||'').trim();
+  const esc=t=>String(t||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+  return`<span class="recall-tip"><span style="display:inline-block;font-size:11px;background:#f3e5f5;border:1px solid #ce93d8;border-radius:5px;padding:2px 8px;margin:1px 2px;color:#6a1b9a;font-weight:700;cursor:${memo?'help':'default'};">첫콜 ${fmtRecallDate(fc)}${memo?' 💬':''}</span>${memo?`<span class="tip-content">${esc(memo)}</span>`:''}</span>`;
 }
 function toggleRecallMore(uid){const more=document.getElementById('rc_more_'+uid);const rest=document.getElementById('rc_rest_'+uid);if(!more||!rest)return;const h=rest.style.display==='none';more.style.display=h?'none':'inline';rest.style.display=h?'inline':'none';}
 
@@ -1478,7 +1486,7 @@ function renderCheckSection(rows){
       </div>
       <div style="display:flex;gap:10px;padding-left:2px;font-size:10px;color:var(--text-muted);flex-wrap:wrap;">
         <span>💰 ${fmtB(r.budget)||'-'}</span>
-        <span>📅 첫콜 ${fc}</span>
+        <span>${renderFirstCallChip(r)}</span>
         <span>🔁 재콜 ${recallCnt}회</span>
       </div>
       ${cats.some(c=>c.cat==='숨은가망')?`<div style="padding-left:2px;">${renderLongMemoChips(r.recalls)}</div>`:''}
@@ -1522,8 +1530,8 @@ function renderCheckSection(rows){
         ${closeBtn}
       </div>
       ${showArchiveBtn
-        ?((l.category==='숨은가망'||l.category==='비가망P')&&matched&&matched.recalls&&matched.recalls.length?`<div style="padding-left:2px;">${renderLongMemoChips(matched.recalls)}</div>`:'')
-        :((matched&&matched.recalls&&matched.recalls.length)?`<div style="padding-left:2px;">${renderRecallChipsMarked(matched.recalls,l.actedAt)}</div>`:'')
+        ?(matched?`<div style="padding-left:2px;">${renderFirstCallChip(matched)}${((l.category==='숨은가망'||l.category==='비가망P')&&matched.recalls&&matched.recalls.length)?renderLongMemoChips(matched.recalls):''}</div>`:'')
+        :(matched?`<div style="padding-left:2px;">${renderFirstCallChip(matched)}${(matched.recalls&&matched.recalls.length)?renderRecallChipsMarked(matched.recalls,l.actedAt):''}</div>`:'')
       }
       <div id="memoView_${memoKey}" style="display:${hasMemo?'flex':'none'};align-items:flex-start;gap:6px;padding-left:2px;">
         <span style="font-size:10px;color:var(--text-muted);flex-shrink:0;margin-top:1px;">📝</span>
