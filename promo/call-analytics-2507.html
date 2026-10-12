@@ -488,7 +488,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.5.1';
+const DASHBOARD_VERSION = 'v8.5.2';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -522,12 +522,19 @@ const SECOND_WEEK_MONDAY = new Date(2026, 6, 6);
 
 // 오늘 날짜가 속한 주간의 offset을 계산 (최초 접속 시 자동으로 그 주를 보여주기 위함)
 function computeOffsetForToday() {
+  // 각 주차 범위를 직접 순회해서 오늘이 속한 주 찾음 (추석 병합주 반영)
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  if (today <= FIRST_WEEK_END) return 0; // 오늘이 첫 주(7/1~7/3) 이내(혹은 그 이전)면 첫 주
-  if (today < SECOND_WEEK_MONDAY) return 0; // 주말(7/4~7/5) 등 애매한 구간은 첫 주로 고정
-  const diffDays = Math.floor((today - SECOND_WEEK_MONDAY) / 86400000);
-  return Math.max(0, Math.floor(diffDays / 7) + 1);
+  let last = 0;
+  for (let o = 0; o < 200; o++) {
+    const r = computeWeekRangeForOffset(o);
+    const st = new Date(r.start.getFullYear(), r.start.getMonth(), r.start.getDate());
+    const en = new Date(r.end.getFullYear(), r.end.getMonth(), r.end.getDate());
+    if (today < st) return last; // 주말/공백이면 직전 주
+    if (today <= en) return o;
+    last = o;
+  }
+  return last;
 }
 
 // ══════════════════════════════════════
