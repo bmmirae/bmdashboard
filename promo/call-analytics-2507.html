@@ -512,6 +512,7 @@ const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
 // 당월 신규영업 이관완료 건 보너스: 이관매출 입력에서 '신규' 체크 + 건당 금액이 기준 이상이면, 그 입력일이 속한 주에 보너스 분 부여 (가망건 P와 같은 주간 상한 안에서 합산)
 const NEW_BIG_TRANSFER_AMOUNT = 500000;
 const NEW_BIG_TRANSFER_BONUS_MIN = 20;
+function normCompany(v) { return String(v || '').replace(/\(주\)|㈜|주식회사|\s+/g, '').toLowerCase(); }
 const NEW_BIG_TRANSFER_START = '2026-10-01'; // 이 날짜 이후 입력분부터 적용
 
 // 첫 주 고정: 2026-07-01(수) ~ 2026-07-03(금)
@@ -1140,7 +1141,9 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     const mySales = weekSales.filter(s => s['사원명'] === name);
     const totalSalesAmt = mySales.reduce((sum, s) => sum + (Number(s['금액']) || 0), 0);
     // 당월 신규 체크 + 건당 금액 기준 이상 + 시작일 이후 입력분 (그 주에 입력된 건만 mySales에 들어있음)
-    const newBigTransferCount = mySales.filter(s => s['신규영업'] === 'Y'
+    // 자동: 가망건 시트에서 '이관완료 + 최초콜 당월'인 업체명과 이관매출 업체명이 일치하면 신규로 인정 (수동 '신규' 체크는 보조)
+    const myNewTr = ((STATE.prospectMap[name] || {}).newTransfers || []).map(normCompany);
+    const newBigTransferCount = mySales.filter(s => (s['신규영업'] === 'Y' || (normCompany(s['업체명']) && myNewTr.includes(normCompany(s['업체명']))))
       && (Number(s['금액']) || 0) >= NEW_BIG_TRANSFER_AMOUNT
       && String(s['날짜']).substring(0, 10) >= NEW_BIG_TRANSFER_START).length;
 
