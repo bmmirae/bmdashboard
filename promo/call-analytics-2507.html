@@ -488,7 +488,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.5.3';
+const DASHBOARD_VERSION = 'v8.5.4';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -504,6 +504,21 @@ async function loadProspectData(weekStartStr, weekEndStr) {
     console.warn('가망건 데이터 로드 실패:', e);
     STATE.prospectMap = {};
   }
+}
+
+// 예상 달성률용 근무시간: 월~목 09~18시, 금 09~17시 (점심 미제외)
+const WORK_START_H = 9, WORK_END_H = 18, WORK_END_H_FRI = 17;
+const PROJECTION_MIN_ELAPSED_DAYS = 0.3; // 이보다 적게 지났으면 예상 숨김(표본 부족)
+// 마지막 업로드 시각 기준으로 해당 날짜가 얼마나 지났는지(0~1)
+function elapsedFractionOfDay(ds) {
+  const ref = STATE.lastUploadAt || new Date();
+  const refDs = fmtDateStr(ref);
+  if (ds < refDs) return 1;
+  if (ds > refDs) return 0;
+  const isFri = new Date(ds + 'T00:00:00').getDay() === 5;
+  const endH = isFri ? WORK_END_H_FRI : WORK_END_H;
+  const h = ref.getHours() + ref.getMinutes() / 60;
+  return Math.min(1, Math.max(0, (h - WORK_START_H) / (endH - WORK_START_H)));
 }
 
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
@@ -556,6 +571,7 @@ let STATE = {
   promoBenefit: { perCase: 10, weeklyCap: null },
   prospectMap: {},
   lastUploadLabel: '',
+  lastUploadAt: null,
   weekOffset: 0,     // 0 = 첫 주(7/1~7/3), 1 = 7/6~7/10, -1 등
   weekStart: null,
   weekEnd: null,
@@ -776,6 +792,7 @@ async function loadAllData() {
       const d = new Date(data.lastUpload);
       const label = `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
       STATE.lastUploadLabel = label;
+      STATE.lastUploadAt = d; // 예상 달성률 기준 시각
       document.getElementById('lastUpload').textContent = '📤 마지막 업로드: ' + label;
     }
     try { populateAgentSelects(); } catch (e) { console.error('populateAgentSelects 오류:', e); }
@@ -1109,20 +1126,20 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     const todayRealStr = fmtDateStr(new Date());
     rangeDates.forEach(d => {
       const ds = dateStr(d);
-      const isElapsed = ds <= todayRealStr;
+      const frac = elapsedFractionOfDay(ds);
       if (holidaySet.has(ds)) { goalDays += 0; return; } // 휴일은 전 인원 공통으로 근무일에서 제외
       const att = weekAtt.find(a => String(a['날짜']).substring(0,10) === ds && a['사원명'] === name);
       if (att) {
         if (att['구분'] === '연차') { goalDays += 0; leaveDays.push({ date: ds, type: '연차' }); }
-        else if (att['구분'] === '반차') { goalDays += 0.5; if (isElapsed) elapsedGoalDays += 0.5; leaveDays.push({ date: ds, type: '반차' }); }
+        else if (att['구분'] === '반차') { goalDays += 0.5; elapsedGoalDays += 0.5 * frac; leaveDays.push({ date: ds, type: '반차' }); }
         else if (att['구분'] === '기타') {
-          goalDays += 1; if (isElapsed) elapsedGoalDays += 1;
+          goalDays += 1; elapsedGoalDays += frac;
           const m = Number(att['차감분']) || 0;
           customDeductMin += m;
           leaveDays.push({ date: ds, type: `기타 -${m}분` });
         }
-        else { goalDays += 1; if (isElapsed) elapsedGoalDays += 1; }
-      } else { goalDays += 1; if (isElapsed) elapsedGoalDays += 1; }
+        else { goalDays += 1; elapsedGoalDays += frac; }
+      } else { goalDays += 1; elapsedGoalDays += frac; }
     });
 
     const myPenalty = weekPenalty.filter(p => p['사원명'] === name);
@@ -1166,7 +1183,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     const salesPct = weekSalesGoal > 0 ? (totalSalesAmt / weekSalesGoal * 100) : 0;
 
     // 지금까지 페이스 그대로 이번 주 끝까지 가면 예상되는 달성률 (오늘까지의 근무일 기준 일평균 × 전체 근무일)
-    const projectedCallPct = (hasCallGoal && elapsedGoalDays > 0)
+    const projectedCallPct = (hasCallGoal && elapsedGoalDays >= PROJECTION_MIN_ELAPSED_DAYS)
       ? ((totalMin / elapsedGoalDays) * goalDays / weekGoalMin * 100)
       : null;
 
