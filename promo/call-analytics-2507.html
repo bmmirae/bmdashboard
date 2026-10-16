@@ -488,7 +488,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.5.2';
+const DASHBOARD_VERSION = 'v8.5.3';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1700,8 +1700,10 @@ function renderPersonCard(name, d) {
       ? ` (${benefitParts.join(' + ')} 혜택 적용${rawBenefitMin > benefitMin ? ` · 상한 ${benefitMin}분` : ''})`
       : '';
     const isCurrentWeekForProjection = STATE.weekOffset === computeOffsetForToday();
-    const projectionNote = (isCurrentWeekForProjection && d.projectedCallPct !== null && effectivePct < 100)
-      ? `<div class="metric-detail" style="color:var(--text-dim);">📈 이 페이스 유지 시 예상 달성률 <strong style="color:${d.projectedCallPct >= 100 ? 'var(--green)' : 'var(--text)'}">${Math.round(d.projectedCallPct)}%</strong></div>`
+    // 예상 = 통화 페이스 환산분 + 확정된 혜택분(고정 가산) → 현재 달성률(혜택 포함)보다 낮아질 수 없음
+    const projPct = d.projectedCallPct !== null ? d.projectedCallPct + (d.weekGoalMin > 0 ? benefitMin / d.weekGoalMin * 100 : 0) : null;
+    const projectionNote = (isCurrentWeekForProjection && projPct !== null && effectivePct < 100)
+      ? `<div class="metric-detail" style="color:var(--text-dim);">📈 이 페이스 유지 시 예상 달성률 <strong style="color:${projPct >= 100 ? 'var(--green)' : 'var(--text)'}">${Math.round(projPct)}%</strong></div>`
       : '';
 
     callBar = `
@@ -1877,8 +1879,9 @@ function renderMissionSummaryTable() {
 
       const benefitNote = benefitMin > 0 ? ` (P -${Math.round(benefitMin)}분)` : '';
       const isCurrentWeekForProjection = STATE.weekOffset === computeOffsetForToday();
-      const projectionNote = (isCurrentWeekForProjection && row.projectedCallPct !== null && effectivePct < 100)
-        ? ` · 예상 ${Math.round(row.projectedCallPct)}%`
+      const projPct = row.projectedCallPct !== null ? row.projectedCallPct + (row.weekGoalMin > 0 ? benefitMin / row.weekGoalMin * 100 : 0) : null;
+      const projectionNote = (isCurrentWeekForProjection && projPct !== null && effectivePct < 100)
+        ? ` · 예상 ${Math.round(projPct)}%`
         : '';
       callLabel = `${Math.round(row.totalMin)}/${Math.round(row.weekGoalMin)}분 (${Math.round(effectivePct)}%${icon})${benefitNote}${projectionNote}`;
       if (effectivePct >= 100) {
