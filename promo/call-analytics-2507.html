@@ -488,7 +488,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.5.4';
+const DASHBOARD_VERSION = 'v8.6.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -500,6 +500,7 @@ async function loadProspectData(weekStartStr, weekEndStr) {
     const res = await fetch(url);
     const data = await res.json();
     STATE.prospectMap = data.prospectMap || {};
+    if (weekStartStr) STATE.promoByWeekStart[weekStartStr] = STATE.prospectMap;
   } catch (e) {
     console.warn('가망건 데이터 로드 실패:', e);
     STATE.prospectMap = {};
@@ -572,6 +573,9 @@ let STATE = {
   prospectMap: {},
   lastUploadLabel: '',
   lastUploadAt: null,
+  promoByWeekStart: {},
+  _wkCache: {},
+  _promoTried: {},
   weekOffset: 0,     // 0 = 첫 주(7/1~7/3), 1 = 7/6~7/10, -1 등
   weekStart: null,
   weekEnd: null,
@@ -1379,6 +1383,8 @@ function computeLastWeekAchieved(name, currentOffset) {
 // DASHBOARD RENDERING
 // ══════════════════════════════════════
 function renderDashboard() {
+  STATE._wkCache = {};
+  setTimeout(() => { try { ensureMonthPromos(); } catch (e) {} }, 0);
   const agentData = computeAgentDataForRange(STATE.weekStart, STATE.weekEnd, STATE.weekOffset);
 
   // 이번 달 안에서 거슬러 올라가며 회차 계산 (예외 인원 제외, 월 경계에서 리셋)
@@ -1598,6 +1604,64 @@ function renderAchieverBar(agentData) {
 
 
 
+// ── 이번 달 주차별 달성률 (카드 표시용) ──
+function wkPctColor(p) {
+  if (p >= 105) return 'var(--blue)';
+  if (p >= 100) return 'var(--green)';
+  if (p >= 95) return 'var(--yellow)';
+  if (p >= 70) return 'var(--orange)';
+  return 'var(--red)';
+}
+// 지금 보는 주가 속한 달의 (지금 보는 주까지) 주차 offset 목록
+function monthWeekOffsets() {
+  const ym = getWeekYearMonth(computeWeekRangeForOffset(STATE.weekOffset).start);
+  const arr = [];
+  for (let o = 0; o <= STATE.weekOffset; o++) {
+    if (getWeekYearMonth(computeWeekRangeForOffset(o).start) === ym) arr.push(o);
+  }
+  return { ym, offsets: arr };
+}
+// 가망건 신규P가 아직 안 불러와진 지난 주들을 백그라운드로 불러온 뒤 다시 그림
+async function ensureMonthPromos() {
+  const { ym, offsets } = monthWeekOffsets();
+  const [yy, mm] = ym.split('-').map(Number);
+  const monthStart = `${ym}-01`;
+  const monthEnd = `${ym}-${String(new Date(yy, mm, 0).getDate()).padStart(2, '0')}`;
+  const todo = offsets.filter(o => o !== STATE.weekOffset).map(o => computeWeekRangeForOffset(o))
+    .filter(r => !(fmtDateStr(r.start) in STATE.promoByWeekStart) && !STATE._promoTried[fmtDateStr(r.start)]);
+  if (!todo.length) return;
+  todo.forEach(r => { STATE._promoTried[fmtDateStr(r.start)] = true; });
+  await Promise.all(todo.map(async r => {
+    try {
+      const p = { weekStart: fmtDateStr(r.start), weekEnd: fmtDateStr(r.end), monthStart, monthEnd };
+      const res = await fetch(PROSPECT_API + '?action=serverGetProspectSummary&params=' + encodeURIComponent(JSON.stringify(p)));
+      const data = await res.json();
+      STATE.promoByWeekStart[fmtDateStr(r.start)] = data.prospectMap || {};
+    } catch (e) { console.warn('지난 주 가망건 로드 실패:', e); }
+  }));
+  try { renderDashboard(); } catch (e) {}
+}
+function weeklyPctHtml(name) {
+  const { offsets } = monthWeekOffsets();
+  const chips = offsets.map(o => {
+    if (!STATE._wkCache[o]) {
+      const r = computeWeekRangeForOffset(o);
+      STATE._wkCache[o] = computeAgentDataForRange(r.start, r.end, o);
+    }
+    const d = STATE._wkCache[o][name];
+    if (!d || !d.hasCallGoal || d.weekGoalMin <= 0) return `<span style="color:var(--text-dim)">-</span>`;
+    const r = computeWeekRangeForOffset(o);
+    const pm = o === STATE.weekOffset ? STATE.prospectMap : (STATE.promoByWeekStart[fmtDateStr(r.start)] || {});
+    const pNew = (pm[name] || {}).weekPromoNew || 0;
+    const { benefitMin } = computePromoBenefit(pNew, d.newBigTransferCount);
+    const pct = Math.round((d.totalMin + benefitMin) / d.weekGoalMin * 100);
+    const ex = d.callGoalExempt ? '<sup style="font-size:9px;">면제</sup>' : '';
+    const cur = (o === STATE.weekOffset) ? 'opacity:.6;text-decoration:underline dotted;' : '';
+    return `<span style="color:${wkPctColor(pct)};font-weight:700;${cur}" title="${o === STATE.weekOffset ? '진행 중인 주(현재까지)' : ''}">${pct}%${ex}</span>`;
+  });
+  return `<div class="metric-detail" style="margin-top:6px;font-size:12px;"><span style="color:var(--text-dim)">📅 이번달 주차별</span> ${chips.join('<span style="color:var(--text-dim)"> - </span>')}</div>`;
+}
+
 function renderPersonCard(name, d) {
   let badge = '';
   if (d.dailyGoal === 0) {
@@ -1781,6 +1845,7 @@ function renderPersonCard(name, d) {
         <div>${badge}${achBadge}</div>
       </div>
       ${callBar}
+      ${weeklyPctHtml(name)}
       ${salesBar}
       ${prospectBar}
       ${growthHtml}
