@@ -488,7 +488,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.6.0';
+const DASHBOARD_VERSION = 'v8.6.1';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -521,6 +521,13 @@ function elapsedFractionOfDay(ds) {
   const h = ref.getHours() + ref.getMinutes() / 60;
   return Math.min(1, Math.max(0, (h - WORK_START_H) / (endH - WORK_START_H)));
 }
+
+// 신규 입사자 입사일(이 날짜 이전은 근무일·목표·패널티 회차 계산에서 제외). 형식: '이름': 'YYYY-MM-DD'
+const JOIN_DATES = {
+  // '홍길동': '2026-10-19',
+  '한정화': '2026-10-19',
+  '김지현': '2026-10-19',
+};
 
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
@@ -1131,6 +1138,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     rangeDates.forEach(d => {
       const ds = dateStr(d);
       const frac = elapsedFractionOfDay(ds);
+      if (JOIN_DATES[name] && ds < JOIN_DATES[name]) return; // 입사 전 날짜는 근무일 제외
       if (holidaySet.has(ds)) { goalDays += 0; return; } // 휴일은 전 인원 공통으로 근무일에서 제외
       const att = weekAtt.find(a => String(a['날짜']).substring(0,10) === ds && a['사원명'] === name);
       if (att) {
@@ -1209,7 +1217,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
       prevMonthTotal, prevMonthReverseTotal, prevMonthExempt,
       weekSalesCount: mySales.length, monthSalesCount: myMonthSales.length, newBigTransferCount,
       hasCallGoal, callPct, salesPct, callGoalExempt,
-      goalDays, elapsedGoalDays, projectedCallPct,
+      goalDays, elapsedGoalDays, projectedCallPct, preJoin: !!(JOIN_DATES[name] && weStr < JOIN_DATES[name]),
       callAchieved, realCallAchieved,
       salesAchieved: monthlyExempt || salesPct >= 100 || prevMonthExempt,
       prospectTodayNew: prospect.todayNew || 0,
@@ -1343,7 +1351,7 @@ function computeMissStreak(name, currentOffset) {
       const range = computeWeekRangeForOffset(offset);
       if (getWeekYearMonth(range.start) !== prevMonth) continue;
       const data = computeAgentDataForRange(range.start, range.end, offset)[name];
-      if (!data || data.dailyGoal === 0) continue;
+      if (!data || data.dailyGoal === 0 || data.preJoin) continue;
       if (data.prevMonthExempt) continue;
       const bothMissed = !data.callAchieved && !data.salesAchieved;
       if (bothMissed) { carriedStage += 1; carriedMissedOffset = offset; }
@@ -1358,7 +1366,7 @@ function computeMissStreak(name, currentOffset) {
     const range = computeWeekRangeForOffset(offset);
     if (getWeekYearMonth(range.start) !== targetYearMonth) continue; // 다른 달이면 건너뜀 (월 경계 리셋)
     const data = computeAgentDataForRange(range.start, range.end, offset)[name];
-    if (!data || data.dailyGoal === 0) continue;
+    if (!data || data.dailyGoal === 0 || data.preJoin) continue;
     if (data.prevMonthExempt) continue; // 전월 1천만 이관 면제된 달의 주는 회차 계산에서 완전히 제외 (이력 안 남김)
     const bothMissed = !data.callAchieved && !data.salesAchieved;
     if (bothMissed) { stage += 1; lastMissedOffset = offset; }
@@ -1373,7 +1381,7 @@ function computeLastWeekAchieved(name, currentOffset) {
   if (currentOffset <= 0) return { status: null };
   const range = computeWeekRangeForOffset(currentOffset - 1);
   const data = computeAgentDataForRange(range.start, range.end, currentOffset - 1)[name];
-  if (!data || data.dailyGoal === 0) return { status: null };
+  if (!data || data.dailyGoal === 0 || data.preJoin) return { status: null };
   if (data.callAchieved && data.salesAchieved) return { status: 'full' };
   if (!data.callAchieved && !data.salesAchieved) return { status: 'none' };
   return { status: 'partial' };
