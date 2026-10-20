@@ -488,7 +488,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.6.1';
+const DASHBOARD_VERSION = 'v8.6.2';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1139,7 +1139,12 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
       const ds = dateStr(d);
       const frac = elapsedFractionOfDay(ds);
       if (JOIN_DATES[name] && ds < JOIN_DATES[name]) return; // 입사 전 날짜는 근무일 제외
-      if (holidaySet.has(ds)) { goalDays += 0; return; } // 휴일은 전 인원 공통으로 근무일에서 제외
+      if (holidaySet.has(ds)) {
+        // 휴일은 전 인원 공통으로 근무일에서 제외. 단 그날 연차/반차를 낸 사람은 배지에는 그대로 표기(목표 계산엔 영향 없음)
+        const hAtt = weekAtt.find(x => String(x['날짜']).substring(0,10) === ds && x['사원명'] === name);
+        if (hAtt && (hAtt['구분'] === '연차' || hAtt['구분'] === '반차')) leaveDays.push({ date: ds, type: hAtt['구분'] });
+        return;
+      }
       const att = weekAtt.find(a => String(a['날짜']).substring(0,10) === ds && a['사원명'] === name);
       if (att) {
         if (att['구분'] === '연차') { goalDays += 0; leaveDays.push({ date: ds, type: '연차' }); }
