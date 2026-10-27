@@ -87,6 +87,8 @@
   [v0.89] (서버 p0.39) 카드 히스토리에 미루기 표시(회색 작은 줄 '📅 미룸 10/12 → 10/27', 상단 요약에 '미룸 n'), '부재(재콜 없음)'도 부재로 집계
   [v1.00] ★ 정식 시작: (서버 s1.00) 정식 주소 bmdashboard-jax.pages.dev/member 로 이전 — 옛 주소로 열면 자동 이동 + 자주 쓰는 문구·작성 중 메모·아이디 같이 옮김 / 접속 대상 자동(인원DB 시트 등록된 사원)
   [v1.01] (서버 s1.01 · 부서장 대시보드 v5.102 · code2 v5.18) 부서장 대시보드 사원 이름 옆 🖥로 열면 따로 로그인 없이 그 부서장 범위로 보기 전용 접속
+  [v1.02] (서버 s1.03) 공지 대상(전체·본부·팀)과 색 구분(전체 빨강·본부 보라·팀 초록), 💬 댓글 허용 옵션, 부서장도 '공지 쓰기'(본인 범위·본인 글만 수정), 다른 부서 공지는 안 보임
+  [v1.03] (서버 s1.04) 부서 쿠폰: 부서장도 '공지·쿠폰'에서 쿠폰 예약(대상 선택), 목록에 대상·등록자 표시, 본인 쿠폰만 취소·전달 체크
 -->
 <html lang="ko">
 <head>
@@ -97,7 +99,7 @@
 if(/github\.io$|member-dashboard-dn6\.pages\.dev$/i.test(h)){var o={},n=0;try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^m2/.test(k)&&k!=='m2_api'&&k!=='m2_rtk'){o[k]=localStorage.getItem(k);n++;}}}catch(e){}
   location.replace(NEW+location.search+(n?'#m2mig='+encodeURIComponent(JSON.stringify(o)):location.hash));return;}
 if(location.hash.indexOf('#m2mig=')===0){try{var d=JSON.parse(decodeURIComponent(location.hash.slice(7)));for(var k in d)if(localStorage.getItem(k)===null)localStorage.setItem(k,d[k]);}catch(e){}try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}})();</script>
-<title>미래아이엔씨 통합DB v1.01</title>
+<title>미래아이엔씨 통합DB v1.03</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f0f2f5;--surface:#fff;--surface2:#f5f7ff;--border:#e8eaf6;--text:#333;--text-sub:#4b5260;--text-muted:#6b7280;--header-bg:linear-gradient(135deg,#0B13E7,#080ead);--primary:#3949ab;--primary-soft:#e8eaf6;--th-bg:#e8eaf6;--danger:#c62828;--danger-soft:#fdecec;--warn:#e65100;--warn-soft:#fff3e8;--ok:#2e7d32;--ok-soft:#e9f5ea;--purple:#6a1b9a;--purple-soft:#f3e5f5;}
@@ -527,6 +529,9 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
 .bb-chip{flex-shrink:0;font-size:12px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap;}
 .bb-tag{flex-shrink:0;font-size:11px;font-weight:800;letter-spacing:1.5px;color:var(--primary);padding:0 2px 0 8px;}
 .kc-quote{background:#f3e5f5;color:#6a1b9a;}.bp.quote{background:#fbf6fd;border-color:#ead7f2;}
+.kc-all{background:#e53935;color:#fff;}.kc-hq{background:#7b1fa2;color:#fff;}.kc-team{background:#00897b;color:#fff;}
+.bb.k-all{background:linear-gradient(90deg,#ffebee,#fff 60%);border-color:#ffcdd2;}.bb.k-hq{background:linear-gradient(90deg,#f3e5f5,#fff 60%);border-color:#e1bee7;}.bb.k-team{background:linear-gradient(90deg,#e0f2f1,#fff 60%);border-color:#b2dfdb;}
+.bp.n-all{background:#fff8f8;border-color:#ffd6d6;}.bp.n-hq{background:#fbf5ff;border-color:#ead6f5;}.bp.n-team{background:#f2fbf9;border-color:#c9ebe5;}
 .kc-pin{background:#3949ab;color:#fff;}.kc-cele{background:#ffb300;color:#4a3000;}.kc-note{background:#e8eaf6;color:#3949ab;}.kc-none{background:#f0f1f5;color:var(--text-muted);}
 .bb-vp{flex:1;min-width:0;height:44px;overflow:hidden;position:relative;cursor:pointer;}
 .bb-line{position:absolute;inset:0;display:flex;align-items:center;white-space:pre;overflow:hidden;text-overflow:ellipsis;transition:transform .5s ease,opacity .5s ease;}
@@ -642,7 +647,7 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
     <div id="testBanner" class="test-banner hidden">테스트 시트에 연결되어 있음 · 실제 업무 데이터 아님</div>
     <div class="hdr"><div class="top-in">
       <div class="logo" onclick="goHome()" style="cursor:pointer" title="오늘 할 일로"><img src="data:image/png;base64,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" alt="CI"></div>
-      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.01</span></h1>
+      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.03</span></h1>
       <div class="who"><select id="hqPick" class="hbtn hidden" style="padding:5px 8px;" title="본부" onchange="pickFilter('hq',this.value)"></select><select id="teamPick" class="hbtn hidden" style="padding:5px 8px;" title="팀" onchange="pickFilter('team',this.value)"></select><select id="viewPick" class="hbtn hidden" style="padding:5px 10px;" title="볼 인원 선택" onchange="if(this.value)changeViewAs(this.value)"></select><button id="bellBtn" class="hbtn bell" onclick="toggleMenu('bell',event)" title="알림">🔔<i id="bellDot" class="sgdot hidden"></i></button><span class="um-wrap"><button id="whoName" class="user-chip" onclick="toggleMenu('user',event)"></button><div id="userMenu" class="hmenu hidden"></div></span><div id="bellMenu" class="hmenu bellm hidden"></div><button id="cmtBtn" class="hbtn hidden" onclick="openInbox()">💬 코멘트<i id="cmtDot" class="sgdot hidden"></i></button><button id="sgBtn" class="hbtn" onclick="openSg()" title="대시보드 수정·개선 건의">💡 수정건의<i id="sgDot" class="sgdot hidden"></i></button><a id="sheetLink" class="hbtn hidden" target="_blank" rel="noopener" style="text-decoration:none;" title="내 구글시트 새 창으로 열기">📄 내 구글시트</a><button class="hbtn" onclick="loadRows();loadBoard();sgCount()">새로고침</button><button class="hbtn" id="btnLogout" onclick="logout()">로그아웃</button></div>
     </div></div>
     <div class="tabs">
@@ -686,7 +691,7 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
 // 파일럿 Apps Script 웹앱 주소. 비워두면 로그인 화면의 '서버 주소 설정'으로 입력 (이 브라우저에 저장됨)
 // 테스트 기간 자동 로그인 (테스트 시트 하나만 연결된 동안만 사용). 파일럿 사원 확정되면 null로 바꾸면 로그인 화면이 다시 나옴
 const AUTO_LOGIN = null;
-const APP_VER='v1.01';   // 화면 버전. 바뀌면 이전 접속 기록(테스트 계정 등)을 버리고 다시 로그인
+const APP_VER='v1.03';   // 화면 버전. 바뀌면 이전 접속 기록(테스트 계정 등)을 버리고 다시 로그인
 const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycby040Dne4lMk2Ulgzf5gLG5CPFskadcI4jiBjhuBY7zuMaepufQBoHjoaxHcnVQ5Xvt/exec';
 const PROMO_GRADES = ['단기','장기','권한오픈','권한+브리핑'];
 const INACTIVE_GRADES = ['이관완료','선택없음'];   // 희망건은 진행 중으로 봄 (v0.77)
@@ -1757,12 +1762,16 @@ function tsD(ts){const d=parseYmd(String(ts).slice(0,10));return d?(d.getMonth()
 function tsHM(ts){return String(ts).slice(11,16);}
 function tsMD(ts){const d=parseYmd(String(ts).slice(0,10));return d?(d.getMonth()+1)+'/'+d.getDate():'';}
 function celeName(it){return (it.team?it.team+' ':'')+it.author;}
-function bbChip(it){return it.kind==='쿠폰live'?['☕ 쿠폰','kc-cpl']:it.kind==='쿠폰'?['🎉 당첨','kc-cele']:it.kind==='명언'?['💬 오늘의 한마디','kc-quote']:it.kind==='이관'?['🎉 이관','kc-cele']:it.pinned?['📌 공지','kc-pin']:['📢 공지','kc-note'];}
+function bbChip(it){return it.kind==='쿠폰live'?['☕ 쿠폰','kc-cpl']:it.kind==='쿠폰'?['🎉 당첨','kc-cele']:it.kind==='명언'?['💬 오늘의 한마디','kc-quote']:it.kind==='이관'?['🎉 이관','kc-cele']:ntcChip(it);}
+// 공지 대상별 색: 전체=빨강 · 본부=보라 · 팀=초록 (예전 공지는 전체)
+function ntcScope(it){const s=it.scope||'all';return s==='all'?'all':/^hq:/.test(s)?'hq':'team';}
+function ntcChip(it){const k=ntcScope(it),ic=it.pinned?'📌':k==='all'?'📢':k==='hq'?'🏢':'👥';return [ic+' '+(k==='all'?'전체공지':(it.scopeLabel||(k==='hq'?'본부':'팀'))+' 공지'),'kc-'+k];}
 async function loadBoard(){
   if(!S.token)return;
   const r=await api('board',{page:0});
   if(!r||!r.success){BB.base=[todayQuote()];BB.items=(CP.items||[]).concat(BB.base);BB.pages=BB.pages||[];bbShow();cpStart();return;}
   if(r.myGoal!==undefined){S.goal=r.myGoal;const gb=document.getElementById('goalBar');if(gb)gb.outerHTML=goalHtml();}
+  BB.postScopes=r.postScopes||[];
   BB.base=(r.active||[]).concat([todayQuote()]);BB.items=(CP.items||[]).concat(BB.base);BB.pages=[{label:'지난 7일',items:r.list||[]}];BB.hasMore=!!r.hasMore;BB.page=0;BB.now=r.now;
   bbShow();
   if(!document.getElementById('bmWrap').classList.contains('hidden')&&BB.view==='board')renderBoard();
@@ -1773,7 +1782,7 @@ async function loadBoard(){
 function bbShow(){
   if(BB.i>=BB.items.length)BB.i=0;
   document.getElementById('bb').classList.remove('hidden');
-  document.getElementById('bbMgrBtn').classList.toggle('hidden',!S.master);
+  const mb=document.getElementById('bbMgrBtn');mb.classList.toggle('hidden',!S.master&&!(BB.postScopes||[]).length);mb.textContent=S.master?'관리':'공지·쿠폰';
   bbRender(true);
 }
 function bbLine(it){
@@ -1794,7 +1803,7 @@ function bbRender(noAnim){
   vp.appendChild(n);
   if(anim){void n.offsetWidth;n.classList.remove('in');}
   const c=it?bbChip(it):['소식 없음','kc-none'];chip.textContent=c[0];chip.className='bb-chip '+c[1];
-  bb.className='bb'+(it&&it.kind==='쿠폰live'?' k-gold':it&&(it.kind==='이관'||it.kind==='쿠폰')?' k-cele':it&&it.pinned?' k-pin':'');cpTick();
+  bb.className='bb'+(it&&it.kind==='쿠폰live'?' k-gold':it&&(it.kind==='이관'||it.kind==='쿠폰')?' k-cele':it&&it.kind==='공지'?' k-'+ntcScope(it):'');cpTick();
   document.getElementById('bbNav').style.visibility=BB.items.length>1?'visible':'hidden';
   document.getElementById('bbDots').innerHTML=BB.items.length<=10?BB.items.map((x,j)=>'<i class="'+(j===BB.i?'on':'')+'"></i>').join(''):'<span>'+(BB.i+1)+'/'+BB.items.length+'</span>';
 }
@@ -1808,11 +1817,11 @@ function bpHtml(it,old){
   if(it.kind==='명언')return '<div class="bp quote"><span class="tg kc-quote">💬 한마디</span><div class="bx"><div class="bh">'+esc(it.title)+'</div>'+(it.src?'<div class="bmeta">— '+esc(it.src)+'</div>':'')+'</div></div>';
   if(it.kind==='쿠폰live')return '';
   if(it.kind==='쿠폰')return '<div class="bp cele'+(old?' old':'')+'"><span class="tg kc-cele">🎉 당첨</span><div class="bx"><div class="bh"><b>'+esc(celeName(it))+'</b>님 '+esc(it.title)+' 당첨!</div><div class="bmeta">'+esc(it.body)+' · '+(old?tsD(it.start)+' ':'')+tsHM(it.start)+'</div></div><button class="cheer'+(it.mine?' on':'')+'" data-cid="'+esc(it.id)+'" onclick="cheer(\''+esc(it.id)+'\')">👏 '+(it.cheers||0)+'</button></div>';
-  const c=bbChip(it),cls=it.kind==='이관'?'cele':it.pinned?'pin':'';
+  const c=bbChip(it),cls=it.kind==='이관'?'cele':it.kind==='공지'?'n-'+ntcScope(it):'';
   const meta=it.kind==='이관'?(old?tsD(it.start)+' ':'')+tsHM(it.start):esc(it.author)+' · '+tsMD(it.start)+' 등록 · '+(old?tsMD(it.end)+' 종료':'~'+tsMD(it.end)+' 노출');
   const head=it.kind==='이관'?'<b>'+esc(celeName(it))+'</b>님 '+(it.count>1?'이관 '+it.count+'건을':'이관을')+' 축하드립니다!'+bandTxt(it):'<b>'+esc(it.title)+'</b>';
   const body=it.kind==='이관'?(it.body?'“'+esc(it.body)+'”':''):esc(it.body);
-  return '<div class="bp '+cls+(old?' old':'')+'"><span class="tg '+c[1]+'">'+c[0]+'</span><div class="bx"><div class="bh">'+head+'</div>'+(body?'<div class="bt">'+body+'</div>':'')+'<div class="bmeta">'+meta+'</div>'+(it.kind==='이관'?cmHtml(it):'')+'</div>'+
+  return '<div class="bp '+cls+(old?' old':'')+'"><span class="tg '+c[1]+'">'+c[0]+'</span><div class="bx"><div class="bh">'+head+'</div>'+(body?'<div class="bt">'+body+'</div>':'')+'<div class="bmeta">'+meta+'</div>'+(it.kind==='이관'||it.cmt?cmHtml(it):'')+'</div>'+
     '<button class="cheer'+(it.mine?' on':'')+'" data-cid="'+esc(it.id)+'" onclick="cheer(\''+esc(it.id)+'\')" title="응원하기">👏 '+(it.cheers||0)+'</button></div>';
 }
 function renderBoard(){
@@ -1853,7 +1862,7 @@ function cmHtml(it){
   const L=it.comments||[],open=BB.cmOpen&&BB.cmOpen[it.id],show=open||L.length<=3?L:L.slice(-3);
   return '<div class="cm" id="cm_'+esc(it.id)+'">'+(L.length>show.length?'<button class="cm-more" onclick="BB.cmOpen=BB.cmOpen||{};BB.cmOpen[\''+esc(it.id)+'\']=1;renderBoard()">💬 댓글 '+L.length+'개 모두 보기</button>':'')+
     show.map(c=>'<div class="cmi"><b>'+esc((c.team?c.team+' ':'')+c.name)+'</b><span class="cx">'+esc(c.text)+'</span><span class="ct">'+tsMD(c.ts)+' '+tsHM(c.ts)+'</span>'+(c.mine||S.master?'<button class="cd" title="삭제" onclick="cmDel(\''+esc(it.id)+'\',\''+esc(c.id)+'\')">×</button>':'')+'</div>').join('')+
-    '<div class="cmf"><input id="cmIn_'+esc(it.id)+'" maxlength="200" placeholder="축하 댓글 남기기 (Enter)" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();cmAdd(\''+esc(it.id)+'\')}"><button onclick="cmAdd(\''+esc(it.id)+'\')">등록</button></div></div>';
+    '<div class="cmf"><input id="cmIn_'+esc(it.id)+'" maxlength="200" placeholder="'+(it.kind==='이관'?'축하 댓글 남기기':'댓글 남기기')+' (Enter)" onkeydown="if(event.key===\'Enter\'&&!event.isComposing){event.preventDefault();cmAdd(\''+esc(it.id)+'\')}"><button onclick="cmAdd(\''+esc(it.id)+'\')">등록</button></div></div>';
 }
 function cmSet(id,list){[].concat(BB.items,...BB.pages.map(p=>p.items)).filter(x=>x.id===id).forEach(x=>x.comments=list);renderBoard();bbRender(true);}
 async function cmAdd(id){
@@ -2124,13 +2133,14 @@ function cpDefaults(t){const d=S.today||ymd(new Date());return {drop:[d,d,'14:00
 function renderCpForm(reset){
   const t=CPM.type,df=cpDefaults(t),onScr=t==='drop'||t==='fixed'||t==='raffle';
   const g=id=>{const e=document.getElementById(id);return e?e.value:undefined;};
-  const keep=!reset&&document.getElementById('cpItem')?{item:g('cpItem'),icon:g('cpIcon'),desc:g('cpDesc'),qty:g('cpQty')}:{};
+  const keep=!reset&&document.getElementById('cpItem')?{item:g('cpItem'),icon:g('cpIcon'),desc:g('cpDesc'),qty:g('cpQty'),scope:g('cpScope')}:{};
   document.getElementById('cpForm').innerHTML='<div class="cpf">'+
     '<div class="s6"><label class="l">방식</label><div class="seg">'+CPM_TYPES.map(([k,l])=>'<button class="'+(t===k?'on':'')+'" onclick="CPM.type=\''+k+'\';renderCpForm()">'+l+'</button>').join('')+'</div></div>'+
     '<div class="s2"><label class="l">상품명</label><input class="inp" id="cpItem" list="cpItems" maxlength="40" placeholder="예: 스타벅스 아메리카노 T" value="'+esc(keep.item||'')+'"><datalist id="cpItems">'+CPM.items.map(x=>'<option value="'+esc(x)+'">').join('')+'</datalist></div>'+
     '<div><label class="l">아이콘</label><select class="inp" id="cpIcon">'+CP_ICONS.map(i=>'<option'+(i===(keep.icon||'☕')?' selected':'')+'>'+i+'</option>').join('')+'</select></div>'+
     '<div class="s2"><label class="l">설명 (선택)</label><input class="inp" id="cpDesc" maxlength="60" placeholder="예: 유효기간 30일" value="'+esc(keep.desc||'')+'"></div>'+
     '<div><label class="l">인원</label><input class="inp" id="cpQty" type="number" min="1" max="20" value="'+esc(keep.qty||1)+'"></div>'+
+    '<div><label class="l">대상 <span style="font-weight:400;color:var(--text-muted)">· 그 부서만 참여</span></label><select class="inp" id="cpScope">'+(BB.postScopes||[]).map(x=>'<option value="'+esc(x[0])+'"'+((keep.scope||(BB.postScopes[0]||[])[0])===x[0]?' selected':'')+'>'+(x[0]==='all'?'📢 ':/^hq:/.test(x[0])?'🏢 ':'👥 ')+esc(x[1])+'</option>').join('')+'</select></div>'+
     '<div><label class="l">시작 날짜</label><input class="inp" type="date" id="cpD1" value="'+df[0]+'"></div>'+
     '<div><label class="l">시작 시각</label><input class="inp" type="time" id="cpF" value="'+df[2]+'"></div>'+
     '<div><label class="l">끝 날짜</label><input class="inp" type="date" id="cpD2" value="'+df[1]+'"></div>'+
@@ -2142,7 +2152,7 @@ function renderCpForm(reset){
 async function saveCoupon(){
   const g=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
   const p={type:CPM.type,item:g('cpItem'),icon:g('cpIcon'),desc:g('cpDesc'),qty:+g('cpQty')||1,date:g('cpD1'),date2:g('cpD2'),from:g('cpF'),to:g('cpT'),mins:g('cpMins')||0,
-    cond:!!(document.getElementById('cpCond')||{}).checked,limit7:document.getElementById('cpLimit').checked};
+    cond:!!(document.getElementById('cpCond')||{}).checked,limit7:document.getElementById('cpLimit').checked,scope:g('cpScope')};
   const err=document.getElementById('cpErr');if(!p.item){err.textContent='상품명을 입력하세요';return;}
   const b=document.getElementById('cpSave');b.disabled=true;
   const r=await api('couponSave',p,true);b.disabled=false;
@@ -2163,11 +2173,11 @@ function cpStatus(c){
 function renderCpList(){
   const l=CPM.list,per=c=>tsMD(c.start)+' '+tsHM(c.start)+'~'+(c.start.slice(0,10)===c.end.slice(0,10)?'':tsMD(c.end)+' ')+tsHM(c.end)+(c.mins&&c.type!=='raffle'?' · '+c.mins+'분':'');
   document.getElementById('cpList').innerHTML='<table class="bmt"><thead><tr><th>방식</th><th>상품</th><th>조건</th><th>기간</th><th>등장</th><th>상태</th><th>당첨자 · 전달</th><th></th></tr></thead><tbody>'+
-    (l.length?l.map(c=>'<tr><td style="white-space:nowrap;font-size:12px">'+esc((CPM_TYPES.find(x=>x[0]===c.type)||['',c.typeLabel])[1])+'</td><td>'+esc(c.icon)+' <b>'+esc(c.item)+'</b> × '+c.qty+(c.desc?'<div class="muted" style="font-size:12px">'+esc(c.desc)+'</div>':'')+'</td>'+
+    (l.length?l.map(c=>'<tr><td style="white-space:nowrap;font-size:12px">'+esc((CPM_TYPES.find(x=>x[0]===c.type)||['',c.typeLabel])[1])+'</td><td>'+esc(c.icon)+' <b>'+esc(c.item)+'</b> × '+c.qty+(c.desc?'<div class="muted" style="font-size:12px">'+esc(c.desc)+'</div>':'')+'<div style="margin-top:3px"><span class="bb-chip '+ntcChip({scope:c.scope,scopeLabel:c.scopeLabel})[1]+'" style="font-size:10.5px;padding:1px 7px">'+esc(c.scopeLabel||'전체')+'</span> <span class="muted" style="font-size:11.5px">'+esc(c.by||'')+'</span></div></td>'+
       '<td style="font-size:12px">'+(c.cond?'통화 기록자':'누구나')+(c.limit7?'<br><span class="muted">7일 1회</span>':'')+'</td><td style="white-space:nowrap;font-size:12px">'+per(c)+'</td>'+
       '<td style="font-size:12px;white-space:nowrap">'+(c.type==='txfirst'||c.type==='txdraw'?'<span class="muted">화면 없음</span>':c.appearHidden?'🔒 비공개':c.appear?tsHM(c.appear):'-')+(c.type==='raffle'?'<br><span class="muted">응모 '+c.entries+'명</span>':'')+'</td>'+
-      '<td>'+cpStatus(c)+'</td><td style="font-size:12px">'+(c.winners.length?c.winners.map(w=>'<div style="white-space:nowrap'+(w.status!=='유효'?';text-decoration:line-through;color:var(--text-muted)':'')+'">'+esc(w.name)+' <span class="muted">'+tsMD(w.at)+' '+String(w.at).slice(11,19)+'</span>'+(w.status==='유효'?' <label><input type="checkbox"'+(w.sent?' checked':'')+' onchange="cpSent(\''+esc(c.id)+'\','+w.row+',this.checked)"> 전달</label>':' (취소)')+'</div>').join(''):'<span class="muted">-</span>')+'</td>'+
-      '<td>'+((c.status==='예약'||c.status==='진행')?'<button class="lk" onclick="cpCancel(\''+esc(c.id)+'\')">취소</button>':'')+'</td></tr>').join(''):'<tr><td colspan="8" class="empty">예약된 쿠폰 없음</td></tr>')+'</tbody></table>';
+      '<td>'+cpStatus(c)+'</td><td style="font-size:12px">'+(c.winners.length?c.winners.map(w=>'<div style="white-space:nowrap'+(w.status!=='유효'?';text-decoration:line-through;color:var(--text-muted)':'')+'">'+esc(w.name)+' <span class="muted">'+tsMD(w.at)+' '+String(w.at).slice(11,19)+'</span>'+(w.status==='유효'&&c.canEdit?' <label><input type="checkbox"'+(w.sent?' checked':'')+' onchange="cpSent(\''+esc(c.id)+'\','+w.row+',this.checked)"> 전달</label>':' (취소)')+'</div>').join(''):'<span class="muted">-</span>')+'</td>'+
+      '<td>'+(!c.canEdit?'<span class="muted" style="font-size:12px">보기만</span>':(c.status==='예약'||c.status==='진행')?'<button class="lk" onclick="cpCancel(\''+esc(c.id)+'\')">취소</button>':'')+'</td></tr>').join(''):'<tr><td colspan="8" class="empty">예약된 쿠폰 없음</td></tr>')+'</tbody></table>';
 }
 async function cpCancel(id){if(!confirm('이 쿠폰을 취소할까요?'))return;const r=await api('couponAct',{act:'cancel',id},true);if(!r||!r.success){toast((r&&r.error)||'실패',2000);return;}toast('취소됨',1400);loadCpList();loadCoupon();}
 async function cpSent(id,row,on){const r=await api('couponAct',{act:'sent',id,row,on},true);if(!r||!r.success){toast((r&&r.error)||'실패',2000);loadCpList();return;}toast(on?'전달 완료 표시':'전달 표시 해제',1200);}
@@ -2175,8 +2185,9 @@ async function cpSent(id,row,on){const r=await api('couponAct',{act:'sent',id,ro
 // ── 관리 (마스터) ──
 const PERIOD_L={day:'일간',week:'주간',month:'월간',custom:'직접'};
 async function openMgr(tab){BB.view='mgr';BB.edit=null;BB.per='day';BB.mgrTab=tab||BB.mgrTab||'notice';
-  openBm('<h3>📢 NOTICE 관리 <span style="font-size:12px;color:var(--text-muted);font-weight:400">마스터 전용</span></h3><div class="bm-tabs" id="mgrTabs"></div><div id="mgrBody" style="display:flex;flex-direction:column;min-height:0;flex:1"></div>','wide');mgrTab(BB.mgrTab);}
-function mgrTab(t){BB.mgrTab=t;document.getElementById('mgrTabs').innerHTML=[['notice','📢 공지'],['coupon','☕ 쿠폰'],['usage','📊 사용현황']].map(([k,l])=>'<button class="'+(t===k?'on':'')+'" onclick="mgrTab(\''+k+'\')">'+l+'</button>').join('');
+  if(!S.master&&BB.mgrTab==='usage')BB.mgrTab='notice';
+  openBm('<h3>📢 '+(S.master?'NOTICE 관리':'공지 · 쿠폰')+' <span style="font-size:12px;color:var(--text-muted);font-weight:400">'+(S.master?'마스터 전용':'내가 올릴 수 있는 범위: '+esc((BB.postScopes||[]).map(x=>x[1]).join(' · '))+' · 본인 글만 수정')+'</span></h3><div class="bm-tabs" id="mgrTabs"></div><div id="mgrBody" style="display:flex;flex-direction:column;min-height:0;flex:1"></div>','wide');mgrTab(BB.mgrTab);}
+function mgrTab(t){BB.mgrTab=t;document.getElementById('mgrTabs').innerHTML=[['notice','📢 공지'],['coupon','☕ 쿠폰']].concat(S.master?[['usage','📊 사용현황']]:[]).map(([k,l])=>'<button class="'+(t===k?'on':'')+'" onclick="mgrTab(\''+k+'\')">'+l+'</button>').join('');
   const b=document.getElementById('mgrBody');
   if(t==='usage'){b.innerHTML='<div id="usBar"></div><div class="bm-list" id="usBody"><div class="loading">불러오는 중…</div></div>';usRange(US.range||'week');return;}
   if(t==='notice'){b.innerHTML='<div id="bfForm"></div><div class="bm-list" id="bmMgr"><div class="loading">불러오는 중…</div></div>';renderMgrForm(true);loadMgr();}
@@ -2187,20 +2198,22 @@ function perHint(){const n=S.today||ymd(new Date()),d=parseYmd(n),add=k=>{const 
 function renderMgrForm(reset){
   // 기간 버튼 눌러 다시 그릴 때 입력 중인 내용 유지
   const gv=id=>{const el=document.getElementById(id);return el?(el.type==='checkbox'?el.checked:el.value):undefined;};
-  const keep=!reset&&document.getElementById('bfTitle')?{title:gv('bfTitle'),body:gv('bfBody'),pinned:gv('bfPin'),from:gv('bfFrom'),to:gv('bfTo')}:null;
+  const keep=!reset&&document.getElementById('bfTitle')?{title:gv('bfTitle'),body:gv('bfBody'),pinned:gv('bfPin'),from:gv('bfFrom'),to:gv('bfTo'),scope:gv('bfScope'),cmt:gv('bfCmt')}:null;
   const e=keep?Object.assign({},BB.edit||{},keep,{start:keep.from?keep.from+' 00:00:00':(BB.edit||{}).start,end:keep.to?addTsDays(keep.to,1)+' 00:00:00':(BB.edit||{}).end}):(BB.edit||{});const per=BB.per;
   document.getElementById('bfForm').innerHTML='<div class="bf">'+(BB.edit?'<div style="font-size:12px;font-weight:700;color:var(--warn)">✏️ 공지 수정 중 · <button class="lk" onclick="BB.edit=null;BB.per=\'day\';renderMgrForm(true)">새 공지로</button></div>':'')+
     '<div><label class="l">제목 <span style="font-weight:400;color:var(--text-muted)">· NOTICE에 흐르는 한 줄 (40자)</span></label><input class="inp" id="bfTitle" maxlength="40" value="'+esc(e.title||'')+'" placeholder="예: 10/17(금) 오후 3시 BM본부 전체 회의"></div>'+
     '<div><label class="l">본문 <span style="font-weight:400;color:var(--text-muted)">· 게시판에서 보이는 내용 (선택)</span></label><textarea class="inp" id="bfBody" rows="3" maxlength="1000" placeholder="예: 장소: 대회의실&#10;주간 실적 각자 지참">'+esc(e.body||'')+'</textarea></div>'+
     '<div class="frow"><div><label class="l">노출 기간</label><div class="seg">'+['day','week','month','custom'].map(k=>'<button class="'+(per===k?'on':'')+'" onclick="BB.per=\''+k+'\';renderMgrForm()">'+(k==='custom'?'직접 지정':PERIOD_L[k])+'</button>').join('')+'</div></div>'+
     (per==='custom'?'<div><label class="l">시작일</label><input class="inp" type="date" id="bfFrom" value="'+esc(e.start?e.start.slice(0,10):(S.today||''))+'"></div><div><label class="l">종료일</label><input class="inp" type="date" id="bfTo" value="'+esc(e.end?addTsDays(e.end,-1):(S.today||''))+'"></div>':'')+
-    '<div><label class="l">옵션</label><label style="display:flex;gap:6px;align-items:center;height:34px;font-size:13px"><input type="checkbox" id="bfPin"'+(e.pinned?' checked':'')+'> 📌 상단 고정 (항상 먼저)</label></div>'+
+    '<div><label class="l">대상 <span style="font-weight:400;color:var(--text-muted)">· 그 부서만 보임</span></label><select class="inp" id="bfScope" style="width:auto;min-width:130px">'+(BB.postScopes||[]).map(x=>'<option value="'+esc(x[0])+'"'+((e.scope||(BB.postScopes[0]||[])[0])===x[0]?' selected':'')+'>'+(x[0]==='all'?'📢 ':/^hq:/.test(x[0])?'🏢 ':'👥 ')+esc(x[1])+'</option>').join('')+'</select></div>'+
+    '<div><label class="l">옵션</label><label style="display:flex;gap:6px;align-items:center;height:34px;font-size:13px"><input type="checkbox" id="bfPin"'+(e.pinned?' checked':'')+'> 📌 상단 고정</label></div>'+
+    '<div><label class="l">&nbsp;</label><label style="display:flex;gap:6px;align-items:center;height:34px;font-size:13px"><input type="checkbox" id="bfCmt"'+(e.cmt?' checked':'')+'> 💬 댓글 허용</label></div>'+
     '<div style="margin-left:auto"><button class="btn primary" id="bfSave" onclick="saveNotice()">'+(BB.edit?'수정 저장':'등록')+'</button></div></div>'+
     '<div class="hint">노출: '+(BB.edit&&per!=='custom'?'처음 등록 시각부터 '+PERIOD_L[per]+' 기간':perHint())+'</div><div id="bfErr" class="err"></div></div>';
 }
 async function saveNotice(){
   const g=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
-  const p={title:g('bfTitle'),body:g('bfBody'),period:BB.per,pinned:document.getElementById('bfPin').checked,from:g('bfFrom'),to:g('bfTo')};
+  const p={title:g('bfTitle'),body:g('bfBody'),period:BB.per,pinned:document.getElementById('bfPin').checked,from:g('bfFrom'),to:g('bfTo'),scope:g('bfScope'),allowCmt:document.getElementById('bfCmt').checked};
   if(BB.edit)p.id=BB.edit.id;
   const err=document.getElementById('bfErr');if(!p.title){err.textContent='제목을 입력하세요';return;}
   if(p.period==='custom'&&(!p.from||!p.to||p.from>p.to)){err.textContent='시작일·종료일을 확인하세요';return;}
@@ -2219,16 +2232,16 @@ function mgrState(it){const n=BB.mgrNow||'';
   return['<span class="st-on">노출 중</span>','hide'];}
 function renderMgrList(){
   const l=BB.mgr||[];
-  document.getElementById('bmMgr').innerHTML='<table class="bmt"><thead><tr><th>종류</th><th>내용</th><th>기간</th><th>응원</th><th>상태</th><th></th></tr></thead><tbody>'+
+  document.getElementById('bmMgr').innerHTML='<table class="bmt"><thead><tr><th>종류</th><th>내용</th><th>기간</th><th>반응</th><th>상태</th><th></th></tr></thead><tbody>'+
     (l.length?l.map(it=>{const c=bbChip(it),st=mgrState(it);
-      const txt=it.kind==='이관'?esc(celeName(it))+(it.company?' <span class="muted">('+esc(it.company)+')</span>':'')+' · '+(it.body?'“'+esc(it.body)+'”':'<span class="muted">(기본 문구)</span>'):'<b>'+esc(it.title)+'</b>'+(it.body?'<div class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px">'+esc(it.body)+'</div>':'');
+      const txt=it.kind==='이관'?esc(celeName(it))+(it.company?' <span class="muted">('+esc(it.company)+')</span>':'')+' · '+(it.body?'“'+esc(it.body)+'”':'<span class="muted">(기본 문구)</span>'):'<b>'+esc(it.title)+'</b>'+(it.body?'<div class="muted" style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:320px">'+esc(it.body)+'</div>':'')+(it.kind==='공지'?'<div class="muted" style="font-size:11.5px">'+esc(it.author)+(it.cmt?' · 💬 댓글 허용':'')+'</div>':'');
       const per=it.kind==='이관'?(it.status==='확인대기'?'감지 '+tsMD(it.created||it.start)+' '+tsHM(it.created||it.start):'24시간 · '+tsMD(it.start)+' '+tsHM(it.start)):(PERIOD_L[it.period]||'')+' · '+tsMD(it.start)+'~'+tsMD(addTsDays(it.end,it.end.slice(11)==='00:00:00'?-1:0));
-      return '<tr><td><span class="tg bb-chip '+c[1]+'" style="font-size:11px;padding:2px 8px">'+c[0]+'</span></td><td>'+txt+'</td><td style="white-space:nowrap;font-size:12px">'+per+'</td><td style="white-space:nowrap">👏 '+(it.cheers||0)+'</td><td style="white-space:nowrap">'+st[0]+'</td><td style="white-space:nowrap">'+
-        (it.kind==='공지'?'<button class="lk" onclick="editNotice(\''+esc(it.id)+'\')">수정</button>':'')+
+      return '<tr><td><span class="tg bb-chip '+c[1]+'" style="font-size:11px;padding:2px 8px">'+c[0]+'</span></td><td>'+txt+'</td><td style="white-space:nowrap;font-size:12px">'+per+'</td><td style="white-space:nowrap">👏 '+(it.cheers||0)+(it.comments&&it.comments.length?' · 💬 '+it.comments.length:'')+'</td><td style="white-space:nowrap">'+st[0]+'</td><td style="white-space:nowrap">'+
+        (!it.canEdit&&!S.master?'<span class="muted" style="font-size:12px">보기만</span>':'')+(it.kind==='공지'&&it.canEdit?'<button class="lk" onclick="editNotice(\''+esc(it.id)+'\')">수정</button>':'')+
         (st[1]==='confirm'?'<button class="lk" onclick="setBStatus(\''+esc(it.id)+'\',\'노출\')">대신 게시</button><button class="lk" onclick="setBStatus(\''+esc(it.id)+'\',\'패스\')">패스</button>':'')+
-        (st[1]==='hide'?'<button class="lk" onclick="setBStatus(\''+esc(it.id)+'\',\'숨김\')">'+(it.kind==='이관'?'숨기기':'내리기')+'</button>':st[1]==='show'?'<button class="lk" onclick="setBStatus(\''+esc(it.id)+'\',\'노출\')">다시 노출</button>':'')+'</td></tr>';}).join(''):'<tr><td colspan="6" class="empty">등록된 글 없음</td></tr>')+'</tbody></table>';
+        (!it.canEdit&&!S.master?'':st[1]==='hide'?'<button class="lk" onclick="setBStatus(\''+esc(it.id)+'\',\'숨김\')">'+(it.kind==='이관'?'숨기기':'내리기')+'</button>':st[1]==='show'?'<button class="lk" onclick="setBStatus(\''+esc(it.id)+'\',\'노출\')">다시 노출</button>':'')+'</td></tr>';}).join(''):'<tr><td colspan="6" class="empty">등록된 글 없음</td></tr>')+'</tbody></table>';
 }
-function editNotice(id){const it=(BB.mgr||[]).find(x=>x.id===id);if(!it)return;BB.edit=it;BB.per=it.period||'day';renderMgrForm(true);document.getElementById('bfTitle').focus();}
+function editNotice(id){const it=(BB.mgr||[]).find(x=>x.id===id);if(!it||!it.canEdit)return;BB.edit=it;BB.per=it.period||'day';renderMgrForm(true);document.getElementById('bfTitle').focus();}
 async function setBStatus(id,status){const r=await api('boardStatus',{id,status},true);if(!r||!r.success){toast((r&&r.error)||'변경 실패',2500);return;}toast(status==='숨김'?'NOTICE에서 내렸음':status==='패스'?'패스 처리함':'NOTICE에 올렸음',1800);loadMgr();loadBoard();}
 
 // ════ p0.28 / v0.62 추가 ════════════════════════════════════════
