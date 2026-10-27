@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.101</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.102</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -256,7 +256,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.101</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.102</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -462,6 +462,10 @@ function renderRecallChipsFC(r){
   const rest=(r.recalls&&r.recalls.length)?base:'';
   return sumHtml+chip+rest;
 }
+// [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
+const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+function openMemDash(name){const u=MEMBER_DASH_URL+'?view='+encodeURIComponent(name)+(SESSION&&SESSION.token?'#sso='+encodeURIComponent(SESSION.role+'~'+SESSION.token):'');window.open(u,'_blank');}
+function memDashBtn(name){return `<a href="${MEMBER_DASH_URL}?view=${encodeURIComponent(name)}" target="_blank" title="${name} 사원대시보드 열기" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:#e8eaf6;color:#3949ab;border:1px solid #c5cae9;font-size:12px;text-decoration:none;margin-left:2px;vertical-align:middle;" onclick="event.stopPropagation();event.preventDefault();openMemDash('${name}')">🖥</a>`;}
 // [v5.101] 첫콜 칩 (체크 가망건 카드용, 표시 전용 / 호버 시 첫콜 내용 전문)
 function renderFirstCallChip(r){
   const fc=normalizeDate(r&&r.firstCall)||'';
@@ -692,8 +696,8 @@ function buildNav(stats){
     botHtml=`<span class="nav-lbl">👤</span>`;
     (ORG_MAP[bu]?.[teamName]||[]).forEach(name=>{
       const sheetId=SHEET_MAP[name]||'';
-      const sheetBtn=sheetId?`<a href="https://docs.google.com/spreadsheets/d/${sheetId}" target="_blank" title="${name} 시트" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-size:12px;text-decoration:none;margin-left:2px;vertical-align:middle;" onclick="event.stopPropagation()">📊</a>`:'';
-      botHtml+=`<span style="display:inline-flex;align-items:center;gap:2px;"><button class="nbtn ${CURRENT_FILTER===name?'na-member':''}" onclick="filterView('${name}')">👤 ${name}</button>${sheetBtn}</span>`;
+      const sheetBtn=sheetId?`<a href="https://docs.google.com/spreadsheets/d/${sheetId}" target="_blank" title="${name} 시트" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-size:12px;text-decoration:none;margin-left:2px;vertical-align:middle;" onclick="event.stopPropagation()">📊</a>`:'';const memBtn=memDashBtn(name);
+      botHtml+=`<span style="display:inline-flex;align-items:center;gap:2px;"><button class="nbtn ${CURRENT_FILTER===name?'na-member':''}" onclick="filterView('${name}')">👤 ${name}</button>${sheetBtn}${memBtn}</span>`;
     });
   }else{navWrap.style.display='none';stickyBar.style.display='none';return;}
   topEl.innerHTML=topHtml;botEl.innerHTML=botHtml;divEl.style.display=botHtml?'block':'none';
@@ -714,8 +718,8 @@ function buildMemberNav(filter,forceBU){
     if(team!==lastTeam){if(lastTeam)html+=`<span style="color:var(--border);margin:0 4px;">│</span>`;lastTeam=team;}
     const colorClass=CURRENT_FILTER===name?'na-member':(bu==='BM2본부'?'mbr-bm2':'mbr-bm3');
     const sheetId=SHEET_MAP[name]||'';
-    const sheetBtn=sheetId?`<a href="https://docs.google.com/spreadsheets/d/${sheetId}" target="_blank" title="${name} 시트" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-size:12px;text-decoration:none;margin-left:2px;vertical-align:middle;" onclick="event.stopPropagation()">📊</a>`:'';
-    html+=`<span style="display:inline-flex;align-items:center;gap:2px;"><button class="nbtn ${colorClass}" onclick="filterView('${name}')">👤 ${name}</button>${sheetBtn}</span>`;
+    const sheetBtn=sheetId?`<a href="https://docs.google.com/spreadsheets/d/${sheetId}" target="_blank" title="${name} 시트" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-size:12px;text-decoration:none;margin-left:2px;vertical-align:middle;" onclick="event.stopPropagation()">📊</a>`:'';const memBtn=memDashBtn(name);
+    html+=`<span style="display:inline-flex;align-items:center;gap:2px;"><button class="nbtn ${colorClass}" onclick="filterView('${name}')">👤 ${name}</button>${sheetBtn}${memBtn}</span>`;
   });
   return html;
 }
