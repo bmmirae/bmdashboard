@@ -488,7 +488,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.6.2';
+const DASHBOARD_VERSION = 'v8.7.0';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1406,6 +1406,19 @@ function renderDashboard() {
     const msResult = (d.dailyGoal > 0) ? computeMissStreak(name, STATE.weekOffset) : { stage: 0, lastMissedOffset: null };
     d.missStreak = msResult.stage;
     d.missStreakWeekOffset = msResult.lastMissedOffset;
+    d.eduNotice = null;
+    if (STATE.weekOffset >= eduStartOffset()) { // 11/2~ 신규 규칙: 회차 누적/분추가 없음
+      d.missStreak = 0; d.missStreakWeekOffset = null;
+    }
+    const fo = eduFinalOffset();
+    if (fo !== null) {
+      const res = eduWeekResult(name, fo);
+      if (res && res.target) {
+        const ws = fmtDateStr(res.range.start);
+        res.done = STATE.trainingHistory.some(t => t['사원명'] === name && String(t['날짜']).substring(0, 10) >= ws);
+        d.eduNotice = res;
+      }
+    }
 
     // 짝수 회차: "그 회차를 만든 주"에 교육이 진행됐는지 체크
     if (d.missStreak > 0 && d.missStreak % 2 === 0 && d.missStreakWeekOffset !== null) {
@@ -1636,16 +1649,20 @@ function monthWeekOffsets() {
 }
 // 가망건 신규P가 아직 안 불러와진 지난 주들을 백그라운드로 불러온 뒤 다시 그림
 async function ensureMonthPromos() {
-  const { ym, offsets } = monthWeekOffsets();
-  const [yy, mm] = ym.split('-').map(Number);
-  const monthStart = `${ym}-01`;
-  const monthEnd = `${ym}-${String(new Date(yy, mm, 0).getDate()).padStart(2, '0')}`;
-  const todo = offsets.filter(o => o !== STATE.weekOffset).map(o => computeWeekRangeForOffset(o))
+  const { offsets } = monthWeekOffsets();
+  const need = new Set(offsets);
+  const fo = eduFinalOffset();
+  if (fo !== null) need.add(fo);
+  const todo = [...need].filter(o => o !== STATE.weekOffset).map(o => computeWeekRangeForOffset(o))
     .filter(r => !(fmtDateStr(r.start) in STATE.promoByWeekStart) && !STATE._promoTried[fmtDateStr(r.start)]);
   if (!todo.length) return;
   todo.forEach(r => { STATE._promoTried[fmtDateStr(r.start)] = true; });
   await Promise.all(todo.map(async r => {
     try {
+      const ym = getWeekYearMonth(r.start); // 그 주가 속한 달 기준으로 집계
+      const [yy, mm] = ym.split('-').map(Number);
+      const monthStart = `${ym}-01`;
+      const monthEnd = `${ym}-${String(new Date(yy, mm, 0).getDate()).padStart(2, '0')}`;
       const p = { weekStart: fmtDateStr(r.start), weekEnd: fmtDateStr(r.end), monthStart, monthEnd };
       const res = await fetch(PROSPECT_API + '?action=serverGetProspectSummary&params=' + encodeURIComponent(JSON.stringify(p)));
       const data = await res.json();
@@ -1653,6 +1670,40 @@ async function ensureMonthPromos() {
     } catch (e) { console.warn('지난 주 가망건 로드 실패:', e); }
   }));
   try { renderDashboard(); } catch (e) {}
+}
+
+// ── 교육 확정 규칙 (11/2~): 매주 독립 판정. (통화+P혜택)/목표 90% 미만 + 이관 면제 아님 → 교육 확정. 회차 누적·분추가 없음 ──
+const EDU_RULE_START = '2026-11-02';
+const EDU_PCT_LIMIT = 90;
+function eduStartOffset() {
+  for (let o = 0; o < 200; o++) if (fmtDateStr(computeWeekRangeForOffset(o).start) >= EDU_RULE_START) return o;
+  return 9999;
+}
+// 보고 있는 주 기준 "확정된 가장 최근 주": 보는 주가 끝났으면 그 주, 아니면 직전 주
+function eduFinalOffset() {
+  const cur = STATE.weekOffset;
+  const fin = fmtDateStr(computeWeekRangeForOffset(cur).end) < fmtDateStr(new Date()) ? cur : cur - 1;
+  return fin >= eduStartOffset() ? fin : null;
+}
+// 반환: null(판정 불가/대기) | { pct, target, offset, range }
+function eduWeekResult(name, o) {
+  if (!STATE._wkCache[o]) {
+    const r = computeWeekRangeForOffset(o);
+    STATE._wkCache[o] = computeAgentDataForRange(r.start, r.end, o);
+  }
+  const d = STATE._wkCache[o][name];
+  const range = computeWeekRangeForOffset(o);
+  if (!d || d.dailyGoal === 0 || d.preJoin || !d.hasCallGoal || d.weekGoalMin <= 0) return null;
+  let pm;
+  if (o === STATE.weekOffset) pm = STATE.prospectMap;
+  else {
+    pm = STATE.promoByWeekStart[fmtDateStr(range.start)];
+    if (!pm) return null; // 가망건 로딩 대기
+  }
+  const { benefitMin } = computePromoBenefit((pm[name] || {}).weekPromoNew || 0, d.newBigTransferCount);
+  const pct = (d.totalMin + benefitMin) / d.weekGoalMin * 100;
+  const target = pct < EDU_PCT_LIMIT && !d.callGoalExempt && !d.salesAchieved;
+  return { pct, target, offset: o, range };
 }
 function weeklyPctHtml(name) {
   const { offsets } = monthWeekOffsets();
@@ -1682,6 +1733,13 @@ function renderPersonCard(name, d) {
   }
   if (d.prevMonthExempt) {
     badge += `<span class="person-badge badge-platinum">💎 전월 1천만원 이상 이관자</span> `;
+  }
+  if (d.eduNotice) {
+    const e = d.eduNotice, rg = e.range;
+    const lbl = `${rg.start.getMonth()+1}/${rg.start.getDate()}주 ${Math.round(e.pct)}%`;
+    badge += e.done
+      ? `<span class="person-badge" style="background:var(--green-bg);color:var(--green)">✅ 교육 완료 (${lbl})</span> `
+      : `<span class="person-badge" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red);">🎓 교육 확정 (${lbl})</span> `;
   }
   if (d.penaltyMin > 0 && d.missStreak === 0) {
     badge += `<span class="person-badge badge-leave">⚠️ 패널티 +${d.penaltyMin}분</span> `;
