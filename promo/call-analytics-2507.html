@@ -329,6 +329,15 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
     <div class="file-tags" id="fileTags"></div>
     <button class="upload-btn" id="uploadBtn" disabled>구글시트에 업로드</button>
     <div class="upload-status" id="uploadStatus"></div>
+    <div style="margin-top:28px;padding-top:16px;border-top:1px solid var(--border);">
+      <div class="form-title">📥 통화시간 정리 파일 다운로드</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">사원명 · 날짜 · 통화시간(분) — 아웃콜만, 같은 날 같은 번호는 최장 통화 1건만, 건당 최대 20분 적용 (대시보드 집계와 동일). 마지막 업로드까지의 데이터 기준.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="callExportMonth" style="padding:7px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;"></select>
+        <button class="upload-btn" style="margin:0;" onclick="downloadCallSummary(false)">선택 월 다운로드</button>
+        <button class="upload-btn" style="margin:0;background:var(--card-hover);color:var(--text);" onclick="downloadCallSummary(true)">전체 월 (월별 시트)</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -488,7 +497,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.7.0';
+const DASHBOARD_VERSION = 'v8.7.1';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -807,6 +816,7 @@ async function loadAllData() {
       document.getElementById('lastUpload').textContent = '📤 마지막 업로드: ' + label;
     }
     try { populateAgentSelects(); } catch (e) { console.error('populateAgentSelects 오류:', e); }
+    try { renderCallExportUI(); } catch (e) { console.error('renderCallExportUI 오류:', e); }
     try { renderDashboard(); } catch (e) { console.error('renderDashboard 오류:', e); }
     try { renderAttendanceList(); } catch (e) { console.error('renderAttendanceList 오류:', e); }
     try { renderSalesList(); } catch (e) { console.error('renderSalesList 오류:', e); }
@@ -914,6 +924,51 @@ function renderFileTags() {
     `<div class="file-tag">📄 ${f.name} <span class="remove" onclick="removeFile(${i})">✕</span></div>`
   ).join('');
   document.getElementById('uploadBtn').disabled = STATE.files.length === 0;
+}
+
+// ── 통화시간 정리 파일 (사원명·날짜·분) ──
+function callSummaryRows() {
+  // 사원+날짜별 집계: 아웃콜만, 날짜+번호 중복은 최장 1건, 건당 20분 캡 (computeCallTimeSec와 동일)
+  const byKey = {};
+  STATE.calls.filter(c => c['유형'] === 'out').forEach(c => {
+    const k = c['사원명'] + '|' + String(c['날짜']).substring(0, 10);
+    (byKey[k] = byKey[k] || []).push(c);
+  });
+  return Object.keys(byKey).map(k => {
+    const [name, day] = k.split('|');
+    return { name, day, min: Math.round(computeCallTimeSec(byKey[k]) / 60 * 10) / 10 };
+  }).sort((a, b) => a.name.localeCompare(b.name, 'ko') || a.day.localeCompare(b.day));
+}
+function renderCallExportUI() {
+  const sel = document.getElementById('callExportMonth');
+  if (!sel) return;
+  const prev = sel.value;
+  const months = [...new Set(callSummaryRows().map(r => r.day.substring(0, 7)))].sort().reverse();
+  sel.innerHTML = months.map(m => `<option value="${m}">${m.replace('-', '년 ')}월</option>`).join('') || '<option value="">데이터 없음</option>';
+  if (prev && months.includes(prev)) sel.value = prev;
+}
+function monthSheets(rows, ym) {
+  const mr = rows.filter(r => r.day.startsWith(ym));
+  const daily = [['사원명', '날짜', '통화시간(분)']].concat(mr.map(r => [r.name, r.day, r.min]));
+  const tot = {};
+  mr.forEach(r => { tot[r.name] = (tot[r.name] || 0) + r.min; });
+  const sum = [['사원명', '월 합계(분)']].concat(Object.keys(tot).sort((a, b) => a.localeCompare(b, 'ko')).map(n => [n, Math.round(tot[n] * 10) / 10]));
+  return { daily, sum };
+}
+function downloadCallSummary(allMonths) {
+  const rows = callSummaryRows();
+  if (!rows.length) { alert('다운로드할 통화 데이터가 없습니다'); return; }
+  const wb = XLSX.utils.book_new();
+  const months = allMonths ? [...new Set(rows.map(r => r.day.substring(0, 7)))].sort() : [document.getElementById('callExportMonth').value];
+  months.forEach(ym => {
+    const { daily, sum } = monthSheets(rows, ym);
+    const ws1 = XLSX.utils.aoa_to_sheet(daily); ws1['!cols'] = [{ wch: 12 }, { wch: 12 }, { wch: 14 }];
+    const ws2 = XLSX.utils.aoa_to_sheet(sum); ws2['!cols'] = [{ wch: 12 }, { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws1, allMonths ? ym + ' 일별' : '일별');
+    XLSX.utils.book_append_sheet(wb, ws2, allMonths ? ym + ' 합계' : '사원별 합계');
+  });
+  const stamp = (STATE.lastUploadLabel || '').replace(/[\/: ]/g, (c) => c === '/' ? '-' : c === ' ' ? '_' : '');
+  XLSX.writeFile(wb, `통화시간_${allMonths ? '전체월' : months[0]}${stamp ? '_업로드' + stamp : ''}.xlsx`);
 }
 
 function removeFile(i) {
