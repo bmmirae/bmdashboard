@@ -497,7 +497,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.7.1';
+const DASHBOARD_VERSION = 'v8.7.2';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1224,6 +1224,12 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     const myOutCalls = myCalls.filter(c => c['유형'] === 'out');
     const totalSec = computeCallTimeSec(myOutCalls); // 아웃콜만 집계, 중복번호 최장통화만 + 20분 캡 적용
     const totalMin = totalSec / 60;
+    // 요일별 통화시간(분): 카드 막대의 요일 색 구분용 (건당 20분 캡·번호 중복 제거는 하루 단위로 동일 적용)
+    const dayMins = rangeDates.map(dt => {
+      const ds = dateStr(dt);
+      const cs = myOutCalls.filter(c => String(c['날짜']).substring(0, 10) === ds);
+      return { ds, dow: dt.getDay(), min: computeCallTimeSec(cs) / 60, hol: holidaySet.has(ds), pre: !!(JOIN_DATES[name] && ds < JOIN_DATES[name]) };
+    }).filter(x => x.min > 0 || (x.dow >= 1 && x.dow <= 5 && !x.hol && !x.pre));
     const callCount = myCalls.length;
     const outCount = myOutCalls.length;
 
@@ -1272,7 +1278,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
     };
 
     agentData[name] = {
-      dailyGoal, weekGoalMin, totalMin, totalSec, callCount, outCount,
+      dailyGoal, weekGoalMin, totalMin, totalSec, callCount, outCount, dayMins,
       weekSalesGoal, totalSalesAmt, leaveDays, monthlyTotal, monthlyExempt, monthlyReverseTotal, penaltyMin, penaltyRows,
       prevMonthTotal, prevMonthReverseTotal, prevMonthExempt,
       weekSalesCount: mySales.length, monthSalesCount: myMonthSales.length, newBigTransferCount,
@@ -1781,6 +1787,23 @@ function weeklyPctHtml(name) {
   return `<div class="metric-detail" style="margin-top:6px;font-size:12px;"><span style="color:var(--text-dim)">📅 이번달 주차별</span> ${chips.join('<span style="color:var(--text-dim)"> - </span>')}</div>`;
 }
 
+// 요일별 색 (월~금 + 주말). 혜택 구간은 기존 파란색 유지
+const DOW_COLORS = { 1: '#8b5cf6', 2: '#14b8a6', 3: '#f59e0b', 4: '#ec4899', 5: '#84cc16', 6: '#94a3b8', 0: '#94a3b8' };
+const DOW_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+function dayStackBar(d, benefitMin, effectivePct) {
+  const goal = d.weekGoalMin;
+  const eff = d.totalMin + benefitMin;
+  const scale = Math.max(1, eff / goal); // 100% 초과면 전체를 100% 폭에 맞춰 비율 유지
+  const seg = (w, c, t) => w > 0 ? `<div class="progress-fill" style="width:${w}%;background:${c};border-radius:0;" title="${t}"></div>` : '';
+  let segs = (d.dayMins || []).map(x => seg(x.min / goal * 100 / scale, DOW_COLORS[x.dow], `${DOW_NAMES[x.dow]} ${Math.round(x.min)}분`)).join('');
+  segs += seg(benefitMin / goal * 100 / scale, 'var(--blue)', `혜택 ${Math.round(benefitMin)}분`);
+  const bar = `<div class="progress-bar" style="display:flex;">${segs}</div>`;
+  const legend = (d.dayMins || []).map(x =>
+    `<span style="white-space:nowrap;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${DOW_COLORS[x.dow]};margin-right:3px;"></span>${DOW_NAMES[x.dow]} ${Math.round(x.min)}</span>`
+  ).join(' ');
+  return bar + `<div class="metric-detail" style="font-size:11px;display:flex;gap:8px;flex-wrap:wrap;">${legend}</div>`;
+}
+
 function renderPersonCard(name, d) {
   let badge = '';
   if (d.dailyGoal === 0) {
@@ -1890,16 +1913,7 @@ function renderPersonCard(name, d) {
     const benefitWidthPct = Math.max(0, totalWidthPct - actualWidthPct);
     const icon = effectivePct >= 100 ? ' ✅' : '';
 
-    let barHtml;
-    if (effectivePct >= 100) {
-      barHtml = `<div class="progress-bar"><div class="progress-fill fill-green" style="width:100%"></div></div>`;
-    } else {
-      const actualCls = effectivePct >= 70 ? 'fill-yellow' : 'fill-red';
-      barHtml = `<div class="progress-bar" style="display:flex;">
-        <div class="progress-fill ${actualCls}" style="width:${actualWidthPct}%"></div>
-        <div class="progress-fill" style="width:${benefitWidthPct}%;background:var(--blue);"></div>
-      </div>`;
-    }
+    const barHtml = dayStackBar(d, benefitMin, effectivePct);
     const benefitParts = [];
     if (d.prospectWeekPromoNew > 0) benefitParts.push(`신규P ${d.prospectWeekPromoNew}건 × ${STATE.promoBenefit.perCase}분`);
     if (d.newBigTransferCount > 0) benefitParts.push(`월간 신규이관 ${d.newBigTransferCount}건 × ${NEW_BIG_TRANSFER_BONUS_MIN}분`);
