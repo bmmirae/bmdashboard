@@ -497,7 +497,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.7.2';
+const DASHBOARD_VERSION = 'v8.7.3';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1790,14 +1790,15 @@ function weeklyPctHtml(name) {
 // 요일별 색 (월~금 + 주말). 혜택 구간은 기존 파란색 유지
 const DOW_COLORS = { 1: '#8b5cf6', 2: '#14b8a6', 3: '#f59e0b', 4: '#ec4899', 5: '#84cc16', 6: '#94a3b8', 0: '#94a3b8' };
 const DOW_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
-function dayStackBar(d, benefitMin, effectivePct) {
+function dayStackBar(d, benefitMin, effectivePct, compact) {
   const goal = d.weekGoalMin;
   const eff = d.totalMin + benefitMin;
   const scale = Math.max(1, eff / goal); // 100% 초과면 전체를 100% 폭에 맞춰 비율 유지
   const seg = (w, c, t) => w > 0 ? `<div class="progress-fill" style="width:${w}%;background:${c};border-radius:0;" title="${t}"></div>` : '';
   let segs = (d.dayMins || []).map(x => seg(x.min / goal * 100 / scale, DOW_COLORS[x.dow], `${DOW_NAMES[x.dow]} ${Math.round(x.min)}분`)).join('');
   segs += seg(benefitMin / goal * 100 / scale, 'var(--blue)', `혜택 ${Math.round(benefitMin)}분`);
-  const bar = `<div class="progress-bar" style="display:flex;">${segs}</div>`;
+  const bar = `<div class="progress-bar" style="display:flex;${compact ? 'height:5px;' : ''}">${segs}</div>`;
+  if (compact) return bar; // 주간미션요약: 범례는 표 상단에 한 번만
   const legend = (d.dayMins || []).map(x =>
     `<span style="white-space:nowrap;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${DOW_COLORS[x.dow]};margin-right:3px;"></span>${DOW_NAMES[x.dow]} ${Math.round(x.min)}</span>`
   ).join(' ');
@@ -2019,7 +2020,9 @@ function renderMissionSummaryTable() {
   if (headerEl && STATE.weekStart && STATE.weekEnd) {
     const dateRangeText = `📅 데이터 기준: ${fmt(STATE.weekStart)} ~ ${fmt(STATE.weekEnd)} 주`;
     const uploadText = STATE.lastUploadLabel ? `📤 마지막 업로드: ${STATE.lastUploadLabel}` : '';
-    headerEl.innerHTML = `<span>${dateRangeText}</span><span>${uploadText}</span>`;
+    const dowLegend = [1,2,3,4,5].map(k => `<span style="white-space:nowrap;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${DOW_COLORS[k]};margin-right:3px;"></span>${DOW_NAMES[k]}</span>`).join(' ')
+      + ` <span style="white-space:nowrap;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--blue);margin-right:3px;"></span>혜택</span>`;
+    headerEl.innerHTML = `<span>${dateRangeText}</span><span style="display:flex;gap:8px;align-items:center;">${dowLegend}</span><span>${uploadText}</span>`;
   }
 
   const agentData = computeAgentDataForRange(STATE.weekStart, STATE.weekEnd, STATE.weekOffset);
@@ -2053,7 +2056,8 @@ function renderMissionSummaryTable() {
       prospectTotal: prospect.weekNew || 0,
       prospectWeekPromoNew: prospect.weekPromoNew || 0,
       projectedCallPct: d.projectedCallPct,
-      newBigTransferCount: d.newBigTransferCount
+      newBigTransferCount: d.newBigTransferCount,
+      dayMins: d.dayMins
     };
   }).filter(Boolean);
 
@@ -2106,15 +2110,7 @@ function renderMissionSummaryTable() {
         ? ` · 예상 ${Math.round(projPct)}%`
         : '';
       callLabel = `${Math.round(row.totalMin)}/${Math.round(row.weekGoalMin)}분 (${Math.round(effectivePct)}%${icon})${benefitNote}${projectionNote}`;
-      if (effectivePct >= 100) {
-        barHtml = `<div class="progress-bar" style="height:5px;"><div class="progress-fill fill-green" style="width:100%"></div></div>`;
-      } else {
-        const actualCls = effectivePct >= 70 ? 'fill-yellow' : 'fill-red';
-        barHtml = `<div class="progress-bar" style="height:5px;display:flex;">
-          <div class="progress-fill ${actualCls}" style="width:${actualWidthPct}%"></div>
-          <div class="progress-fill" style="width:${benefitWidthPct}%;background:var(--blue);"></div>
-        </div>`;
-      }
+      barHtml = dayStackBar(row, benefitMin, effectivePct, true);
     }
     const weekHigh = row.weekSalesAmt >= row.weekSalesGoal && row.weekSalesGoal > 0;
     const monthHigh = row.monthlyTotal >= MONTHLY_EXEMPT_AMOUNT;
