@@ -331,7 +331,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
     <div class="upload-status" id="uploadStatus"></div>
     <div style="margin-top:28px;padding-top:16px;border-top:1px solid var(--border);">
       <div class="form-title">📥 통화시간 정리 파일 다운로드</div>
-      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">사원명 · 날짜 · 통화시간(분) — 아웃콜만, 같은 날 같은 번호는 최장 통화 1건만, 건당 최대 20분 적용 (대시보드 집계와 동일). 마지막 업로드까지의 데이터 기준.</div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:10px;">사원명 · 날짜 · 통화시간(분) — 아웃콜만, 같은 날 같은 번호는 전체 통화를 합산하되 합계 최대 20분까지만 인정 (대시보드 집계와 동일). 마지막 업로드까지의 데이터 기준.</div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <select id="callExportMonth" style="padding:7px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;"></select>
         <button class="upload-btn" style="margin:0;" onclick="downloadCallSummary(false)">선택 월 다운로드</button>
@@ -497,7 +497,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.7.3';
+const DASHBOARD_VERSION = 'v8.7.4';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -540,7 +540,7 @@ const JOIN_DATES = {
 
 const MONTHLY_EXEMPT_AMOUNT = 3000000; // 월 300만원 이상 달성 시 주간 이관목표 면제
 const WEEKLY_SALES_GOAL_DEFAULT = 2000000;
-const CALL_CAP_SEC = 1200; // 콜당 최대 20분 인정
+const CALL_CAP_SEC = 1200; // 같은 날 같은 번호 합산 최대 20분 인정
 // 당월 신규영업 이관완료 건 보너스: 이관매출 입력에서 '신규' 체크 + 건당 금액이 기준 이상이면, 그 입력일이 속한 주에 보너스 분 부여 (가망건 P와 같은 주간 상한 안에서 합산)
 const NEW_BIG_TRANSFER_AMOUNT = 500000;
 const NEW_BIG_TRANSFER_BONUS_MIN = 20;
@@ -876,7 +876,7 @@ function normalizeDuration(val) {
   return parseInt(s) || 0;
 }
 
-// 같은 날짜+전화번호는 최장 통화만 인정, 콜당 최대 20분(CALL_CAP_SEC) 캡 적용
+// 같은 날짜+전화번호는 통화를 전부 합산하되, 합계가 20분(CALL_CAP_SEC)을 넘으면 20분까지만 인정
 // 날짜가 바뀌면 그룹키(날짜 포함)가 달라지므로 자동으로 다시 집계됨
 function computeCallTimeSec(calls) {
   const groups = {};
@@ -885,7 +885,7 @@ function computeCallTimeSec(calls) {
     const phone = c['전화번호'] || '';
     const key = day + '|' + phone;
     const dur = Number(c['통화시간']) || 0;
-    if (!(key in groups) || dur > groups[key]) groups[key] = dur;
+    groups[key] = (groups[key] || 0) + dur;
   });
   let total = 0;
   Object.values(groups).forEach(dur => { total += Math.min(dur, CALL_CAP_SEC); });
@@ -928,7 +928,7 @@ function renderFileTags() {
 
 // ── 통화시간 정리 파일 (사원명·날짜·분) ──
 function callSummaryRows() {
-  // 사원+날짜별 집계: 아웃콜만, 날짜+번호 중복은 최장 1건, 건당 20분 캡 (computeCallTimeSec와 동일)
+  // 사원+날짜별 집계: 아웃콜만, 같은 날 같은 번호는 합산 후 20분 캡 (computeCallTimeSec와 동일)
   const byKey = {};
   STATE.calls.filter(c => c['유형'] === 'out').forEach(c => {
     const k = c['사원명'] + '|' + String(c['날짜']).substring(0, 10);
@@ -1222,7 +1222,7 @@ function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) 
 
     const myCalls = weekCalls.filter(c => c['사원명'] === name);
     const myOutCalls = myCalls.filter(c => c['유형'] === 'out');
-    const totalSec = computeCallTimeSec(myOutCalls); // 아웃콜만 집계, 중복번호 최장통화만 + 20분 캡 적용
+    const totalSec = computeCallTimeSec(myOutCalls); // 아웃콜만 집계, 같은 날 같은 번호는 합산 후 20분 캡
     const totalMin = totalSec / 60;
     // 요일별 통화시간(분): 카드 막대의 요일 색 구분용 (건당 20분 캡·번호 중복 제거는 하루 단위로 동일 적용)
     const dayMins = rangeDates.map(dt => {
