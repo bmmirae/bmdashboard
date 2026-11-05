@@ -94,6 +94,7 @@
   [v1.06] 프로모션 탭 회차 선택: 🎓 수능 일타강사(11월, 기본) · 🎲 기타매체 달리자!(지난 회차) 버튼으로 전환 — 새 파일 promo/suneung-iltta-2611.html
   [v1.07] 오른쪽 위 🧮 마크업·부가세 계산기(광고비 기준 / 입금금액 역산, 마크업 수정·부가세 10% 고정, 입력 즉시 계산, 결과 복사, 입금 계좌 복사)
   [v1.08] 🧮 계산기 탭 추가: 예상 성과(예산→클릭·문의·CPA, 예산별 비교표, 상담 문구 복사) · ROAS 역산(허용 CPA·CPC, 필요 광고비, 현재 CPC 기준 예상 ROAS) · 일예산(하루 권장액·소진 속도·월 환산), 입력 금액 부가세 별도/포함 선택
+  [v1.09] 🧮 ROAS 역산 개편: 궁금한 것 먼저 고르기(필요 전환수 · 예상 ROAS · 필요 예산 · 손익분기) → 필요한 칸만, 마진율·CPC는 선택, 결과마다 상담 문구 복사 (허용 CPC 위주 화면 제거)
 -->
 <html lang="ko">
 <head>
@@ -104,7 +105,7 @@
 if(/github\.io$|member-dashboard-dn6\.pages\.dev$/i.test(h)){var o={},n=0;try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^m2/.test(k)&&k!=='m2_api'&&k!=='m2_rtk'){o[k]=localStorage.getItem(k);n++;}}}catch(e){}
   location.replace(NEW+location.search+(n?'#m2mig='+encodeURIComponent(JSON.stringify(o)):location.hash));return;}
 if(location.hash.indexOf('#m2mig=')===0){try{var d=JSON.parse(decodeURIComponent(location.hash.slice(7)));for(var k in d)if(localStorage.getItem(k)===null)localStorage.setItem(k,d[k]);}catch(e){}try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}})();</script>
-<title>미래아이엔씨 통합DB v1.08</title>
+<title>미래아이엔씨 통합DB v1.09</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f0f2f5;--surface:#fff;--surface2:#f5f7ff;--border:#e8eaf6;--text:#333;--text-sub:#4b5260;--text-muted:#6b7280;--header-bg:linear-gradient(135deg,#0B13E7,#080ead);--primary:#3949ab;--primary-soft:#e8eaf6;--th-bg:#e8eaf6;--danger:#c62828;--danger-soft:#fdecec;--warn:#e65100;--warn-soft:#fff3e8;--ok:#2e7d32;--ok-soft:#e9f5ea;--purple:#6a1b9a;--purple-soft:#f3e5f5;}
@@ -474,6 +475,7 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
 .calc-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin:-2px -2px 10px;}.calc-tabs button{flex:1;border:none;background:none;padding:7px 2px;font-size:12.5px;color:var(--text-sub);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;}.calc-tabs button.on{color:#1a237e;font-weight:700;border-bottom-color:#3949ab;}
 .calc-vat{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;font-size:12px;}.calc-vat .seg button{padding:4px 10px;font-size:12px;}
 .calc-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px;}.calc-f label{font-size:11.5px;color:var(--text-sub);}.calc-f{min-width:0;}.calc-f .calc-box{min-width:0;}.calc-box.sm input{width:100%;font-size:14px;padding:6px 0;}
+.calc-q{display:flex;gap:4px;margin-bottom:4px;}.calc-q button{flex:1;padding:6px 2px;font-size:12px;border:1px solid var(--border);background:#fff;border-radius:8px;cursor:pointer;white-space:nowrap;}.calc-q button.on{background:#3949ab;color:#fff;border-color:#3949ab;font-weight:700;}.calc-qd{font-size:11.5px;color:var(--text-muted);margin-bottom:8px;}
 .calc-empty{color:var(--text-muted);font-size:12px;text-align:center;padding:14px 0;}.calc-note{font-size:11px;color:var(--text-muted);margin-top:8px;}
 .calc-cmp{width:100%;border-collapse:collapse;font-size:11.5px;margin-top:8px;}.calc-cmp th{color:var(--text-muted);font-weight:500;text-align:right;padding:3px 4px;border-bottom:1px solid var(--border);}.calc-cmp td{text-align:right;padding:3px 4px;}.calc-cmp th:first-child,.calc-cmp td:first-child{text-align:left;}
 .calc-seg{display:flex;width:100%;margin-bottom:10px;}.calc-seg button{flex:1;white-space:nowrap;}
@@ -669,7 +671,7 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
     <div id="testBanner" class="test-banner hidden">테스트 시트에 연결되어 있음 · 실제 업무 데이터 아님</div>
     <div class="hdr"><div class="top-in">
       <div class="logo" onclick="goHome()" style="cursor:pointer" title="오늘 할 일로"><img src="data:image/png;base64,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" alt="CI"></div>
-      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.08</span></h1>
+      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.09</span></h1>
       <div class="who"><select id="hqPick" class="hbtn hidden" style="padding:5px 8px;" title="본부" onchange="pickFilter('hq',this.value)"></select><select id="teamPick" class="hbtn hidden" style="padding:5px 8px;" title="팀" onchange="pickFilter('team',this.value)"></select><select id="viewPick" class="hbtn hidden" style="padding:5px 10px;" title="볼 인원 선택" onchange="if(this.value)changeViewAs(this.value)"></select><button id="calcBtn" class="hbtn bell" onclick="openCalc(event)" title="계산기 (마크업·예상 성과·ROAS·일예산)">🧮</button><button id="bellBtn" class="hbtn bell" onclick="toggleMenu('bell',event)" title="알림">🔔<i id="bellDot" class="sgdot hidden"></i></button><span class="um-wrap"><button id="whoName" class="user-chip" onclick="toggleMenu('user',event)"></button><div id="userMenu" class="hmenu hidden"></div></span><div id="bellMenu" class="hmenu bellm hidden"></div><button id="cmtBtn" class="hbtn hidden" onclick="openInbox()">💬 코멘트<i id="cmtDot" class="sgdot hidden"></i></button><button id="sgBtn" class="hbtn" onclick="openSg()" title="대시보드 수정·개선 건의">💡 수정건의<i id="sgDot" class="sgdot hidden"></i></button><a id="sheetLink" class="hbtn hidden" target="_blank" rel="noopener" style="text-decoration:none;" title="내 구글시트 새 창으로 열기">📄 내 구글시트</a><button class="hbtn" onclick="loadRows();loadBoard();sgCount()">새로고침</button><button class="hbtn" id="btnLogout" onclick="logout()">로그아웃</button></div>
     </div></div>
     <div class="tabs">
@@ -713,7 +715,7 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
 // 파일럿 Apps Script 웹앱 주소. 비워두면 로그인 화면의 '서버 주소 설정'으로 입력 (이 브라우저에 저장됨)
 // 테스트 기간 자동 로그인 (테스트 시트 하나만 연결된 동안만 사용). 파일럿 사원 확정되면 null로 바꾸면 로그인 화면이 다시 나옴
 const AUTO_LOGIN = null;
-const APP_VER='v1.08';   // 화면 버전. 바뀌면 이전 접속 기록(테스트 계정 등)을 버리고 다시 로그인
+const APP_VER='v1.09';   // 화면 버전. 바뀌면 이전 접속 기록(테스트 계정 등)을 버리고 다시 로그인
 const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycby040Dne4lMk2Ulgzf5gLG5CPFskadcI4jiBjhuBY7zuMaepufQBoHjoaxHcnVQ5Xvt/exec';
 const PROMO_GRADES = ['단기','장기','권한오픈','권한+브리핑'];
 const INACTIVE_GRADES = ['이관완료','선택없음'];   // 희망건은 진행 중으로 봄 (v0.77)
@@ -1555,7 +1557,7 @@ function renderReport(){
 }
 
 // ── 🧮 마크업·부가세 계산기 (부산지사 마크업계산기와 같은 식, 부가세 10% 고정, 마크업 수정 가능) ──
-const CALC={tab:'mk',vatIn:false,mode:'forward',mk:15,amt:'',budget:'',cpc:'',cvr:'',aov:'',roas:'',goal:'',curCpc:'',spent:'',days:'',daily:'',ACC:'421701-04-211820',BANK:'KB국민은행',HOLDER:'(주)미래아이엔씨(부산지사)'};
+const CALC={tab:'mk',rm:'conv',conv:'',margin:'',vatIn:false,mode:'forward',mk:15,amt:'',budget:'',cpc:'',cvr:'',aov:'',roas:'',goal:'',curCpc:'',spent:'',days:'',daily:'',ACC:'421701-04-211820',BANK:'KB국민은행',HOLDER:'(주)미래아이엔씨(부산지사)'};
 function calcRes(){const a=Number(String(CALC.amt).replace(/[^\d]/g,''))||0,m=(Number(CALC.mk)||0)/100,v=0.1;
   const base=CALC.mode==='forward'?a:a/((1+m)*(1+v)),fin=CALC.mode==='forward'?a*(1+m)*(1+v):a,mu=base*m;
   return {base,adVat:base*v,mu,muVat:mu*v,supply:base+mu,vat:base*v+mu*v,fin};}
@@ -1583,7 +1585,14 @@ function calcSet(el,key,pct){if(pct){CALC[key]=el.value.replace(/[^\d.]/g,'');if
 function cv(key){return Number(String(CALC[key]).replace(/[^\d.]/g,''))||0;}
 function net(v){return CALC.vatIn?v/1.1:v;}   // 입력 금액 → 실제 집행액(부가세 별도)
 function calcEstBody(){return '<div class="calc-grid">'+cIn('budget','월예산','원','500,000')+cIn('cpc','평균 CPC','원','500')+cIn('cvr','전환율','%','3',1)+'</div>';}
-function calcRoasBody(){return '<div class="calc-grid">'+cIn('aov','객단가','원','50,000')+cIn('cvr','전환율','%','2',1)+cIn('roas','목표 ROAS','%','400',1)+cIn('goal','목표 월매출 (선택)','원','5,000,000')+cIn('curCpc','현재 CPC (선택)','원','400')+'</div>';}
+// ROAS: 궁금한 것 고르면 필요한 칸만 (광고비는 부가세 뺀 집행액 기준으로 ROAS 계산)
+const ROAS_M=[['conv','필요 전환수','예산·객단가로 목표 ROAS 맞추려면 몇 건?'],['roas','예상 ROAS','이 예산에 이만큼 팔리면 ROAS는?'],['budget','필요 예산','목표 매출을 ROAS ○%로 내려면 예산은?'],['be','손익분기','마진율 기준 최소 ROAS·순이익']];
+function calcRoasBody(){const m=CALC.rm;
+  const f={conv:cIn('budget','광고비 (월)','원','1,000,000')+cIn('aov','객단가','원','50,000')+cIn('roas','목표 ROAS','%','400',1)+cIn('cpc','평균 CPC (선택)','원','500'),
+    roas:cIn('budget','광고비 (월)','원','1,000,000')+cIn('aov','객단가','원','50,000')+cIn('conv','예상 전환수 (월)','건','80')+cIn('margin','마진율 (선택)','%','30',1),
+    budget:cIn('goal','목표 월매출','원','5,000,000')+cIn('roas','목표 ROAS','%','400',1)+cIn('aov','객단가 (선택)','원','50,000')+cIn('cpc','평균 CPC (선택)','원','500'),
+    be:cIn('margin','마진율','%','30',1)+cIn('budget','광고비 (선택)','원','1,000,000')+cIn('aov','객단가 (선택)','원','50,000')+cIn('conv','전환수 (선택)','건','80')}[m];
+  return '<div class="calc-q">'+ROAS_M.map(([k,l,d])=>'<button class="'+(m===k?'on':'')+'" title="'+d+'" onclick="CALC.rm=\''+k+'\';calcRender(true)">'+l+'</button>').join('')+'</div><div class="calc-qd">'+ROAS_M.find(x=>x[0]===m)[2]+'</div><div class="calc-grid">'+f+'</div>';}
 function calcDayBody(){const t=S.today||ymd(new Date()),d=parseYmd(t),last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();if(!CALC.days)CALC.days=String(last-d.getDate()+1);
   return '<div class="calc-grid">'+cIn('budget','월예산','원','1,000,000')+cIn('spent','이번 달 소진액','원','400,000')+cIn('days','남은 일수 (오늘 포함)','일',String(last-d.getDate()+1))+cIn('daily','일예산 → 월 환산 (선택)','원','30,000')+'</div>';}
 function calcAmtIn(el){const d=el.value.replace(/[^\d]/g,'');CALC.amt=d?Number(d).toLocaleString('ko-KR'):'';el.value=CALC.amt;calcOut2();}
@@ -1596,13 +1605,22 @@ function calcEstOut(o){const B=cv('budget'),c=cv('cpc'),r=cv('cvr')/100,n=net(B)
     '<table class="calc-cmp"><thead><tr><th>월예산</th><th>클릭</th><th>문의</th><th>하루 클릭</th></tr></thead><tbody>'+cmp+'</tbody></table>'+
     '<button class="btn primary sm" style="width:100%;margin-top:8px" onclick="calcClip(CALC.estTxt,\'상담 문구 복사됨\')">상담 문구 복사</button>';
   CALC.estTxt='월 '+Math.round(B/10000).toLocaleString()+'만원 기준(부가세 '+vt+') 예상 클릭 약 '+Math.round(k).toLocaleString()+'회'+(r?', 예상 문의 약 '+(Math.round(q*10)/10)+'건, 문의당 약 '+won(cpa):'')+' (평균 CPC '+c.toLocaleString()+'원'+(r?' · 전환율 '+cv('cvr')+'%':'')+' 기준 예상치)';}
-function calcRoasOut(o){const A=cv('aov'),r=cv('cvr')/100,R=cv('roas')/100,G=cv('goal'),cc=cv('curCpc'),vt=CALC.vatIn?'포함':'별도',vx=x=>CALC.vatIn?x*1.1:x;
-  const row=(a,b)=>'<div class="calc-r"><span>'+a+'</span><b>'+b+'</b></div>';
-  if(!A||!r||!R){o.innerHTML='<div class="calc-empty">객단가·전환율·목표 ROAS를 넣으면 허용 CPC가 나와요</div>';return;}
-  const cpa=A/R,cpc=cpa*r;let h='<div class="calc-tot"><span>허용 CPC (클릭당 최대)</span><b>'+won(cpc)+'</b></div>'+row('허용 CPA (주문당 광고비, 부가세 별도)',won(cpa));
-  if(G){const sp=G/R;h+='<div class="calc-sep"></div>'+row('필요 광고비 (부가세 '+vt+')',won(vx(sp)))+row('필요 클릭',Math.round(sp/cpc).toLocaleString()+'회')+row('예상 주문',Math.round(G/A).toLocaleString()+'건');}
-  if(cc){const er=A*r/cc*100;h+='<div class="calc-sep"></div>'+row('현재 CPC '+cc.toLocaleString()+'원이면 예상 ROAS','<span style="color:'+(er>=R*100?'#2e7d32':'#c62828')+'">'+Math.round(er)+'%</span>');}
-  o.innerHTML=h;}
+function calcRoasOut(o){const m=CALC.rm,B=net(cv('budget')),A=cv('aov'),R=cv('roas')/100,C=cv('conv'),G=cv('goal'),M=cv('margin')/100,P=cv('cpc'),vt=CALC.vatIn?'포함':'별도';
+  const row=(a,b)=>'<div class="calc-r"><span>'+a+'</span><b>'+b+'</b></div>',tot=(a,b)=>'<div class="calc-tot"><span>'+a+'</span><b>'+b+'</b></div>',n1=x=>(Math.round(x*10)/10).toLocaleString(),pc=x=>Math.round(x*100)+'%';
+  const vat=CALC.vatIn?row('실제 광고 집행액 (부가세 별도)',won(B)):'',empty=t=>o.innerHTML='<div class="calc-empty">'+t+'</div>';
+  if(m==='conv'){if(!B||!A||!R)return empty('광고비·객단가·목표 ROAS를 넣어 주세요');const sales=B*R,cv_=sales/A;let h=tot('필요 전환수','월 '+n1(cv_)+'건')+vat+row('필요 매출',won(sales))+row('전환 1건당 광고비 한도',won(B/cv_))+row('하루 필요 전환',n1(cv_/30)+'건');
+    if(P){const clk=B/P;h+='<div class="calc-sep"></div>'+row('예상 클릭 (CPC '+P.toLocaleString()+'원)',Math.round(clk).toLocaleString()+'회')+row('필요 전환율','<span style="color:'+(cv_/clk>0.05?'#c62828':'#1a237e')+'">'+(Math.round(cv_/clk*1000)/10)+'%</span>');}
+    CALC.roasTxt='광고비 월 '+won(cv('budget'))+'(부가세 '+vt+'), 객단가 '+won(A)+' 기준 목표 ROAS '+pc(R)+'를 맞추려면 월 약 '+n1(cv_)+'건 전환(매출 '+won(sales)+')이 필요합니다.';o.innerHTML=h+calcRoasCopy();return;}
+  if(m==='roas'){if(!B||!A||!C)return empty('광고비·객단가·예상 전환수를 넣어 주세요');const sales=A*C,r=sales/B;let h=tot('예상 ROAS',pc(r))+vat+row('예상 매출',won(sales))+row('전환 1건당 광고비',won(B/C));
+    if(M){const pf=sales*M-B;h+='<div class="calc-sep"></div>'+row('손익분기 ROAS (마진 '+pc(M)+')',pc(1/M))+row('광고 후 순이익','<span style="color:'+(pf>=0?'#2e7d32':'#c62828')+'">'+won(pf)+'</span>');}
+    CALC.roasTxt='광고비 월 '+won(cv('budget'))+'(부가세 '+vt+')로 객단가 '+won(A)+' 상품 '+C+'건 판매 시 매출 '+won(sales)+', ROAS 약 '+pc(r)+' 예상입니다.';o.innerHTML=h+calcRoasCopy();return;}
+  if(m==='budget'){if(!G||!R)return empty('목표 월매출·목표 ROAS를 넣어 주세요');const sp=G/R,spv=CALC.vatIn?sp*1.1:sp;let h=tot('필요 광고비 (부가세 '+vt+')',won(spv))+row('하루 광고비',won(spv/30));
+    if(A)h+=row('필요 전환수',n1(G/A)+'건')+row('전환 1건당 광고비 한도',won(sp/(G/A)));if(P)h+=row('필요 클릭 (CPC '+P.toLocaleString()+'원)',Math.round(sp/P).toLocaleString()+'회');
+    CALC.roasTxt='월매출 '+won(G)+'을 ROAS '+pc(R)+'로 달성하려면 월 광고비 약 '+won(spv)+'이 필요합니다(부가세 '+vt+').'+(A?' (전환 약 '+n1(G/A)+'건)':'');o.innerHTML=h+calcRoasCopy();return;}
+  if(!M)return empty('마진율을 넣어 주세요 (예: 매출의 30%가 남으면 30)');let h=tot('손익분기 ROAS',pc(1/M))+'<div class="calc-qd" style="margin:2px 0 6px">이 ROAS보다 낮으면 광고할수록 손해</div>';
+  if(B){h+=row('손익분기 매출',won(B/M));if(A)h+=row('손익분기 전환수',n1(B/M/A)+'건');if(A&&C){const pf=A*C*M-B;h+='<div class="calc-sep"></div>'+row('현재 ROAS',pc(A*C/B))+row('광고 후 순이익','<span style="color:'+(pf>=0?'#2e7d32':'#c62828')+'">'+won(pf)+'</span>');}}
+  CALC.roasTxt='마진율 '+pc(M)+' 기준 손익분기 ROAS는 '+pc(1/M)+'입니다.'+(B?' 광고비 '+won(cv('budget'))+' 기준 최소 매출 '+won(B/M)+(A?'(전환 '+n1(B/M/A)+'건)':'')+'이 필요합니다.':'');o.innerHTML=h+calcRoasCopy();}
+function calcRoasCopy(){return '<button class="btn primary sm" style="width:100%;margin-top:8px" onclick="calcClip(CALC.roasTxt,\'상담 문구 복사됨\')">상담 문구 복사</button>';}
 function calcDayOut(o){const B=cv('budget'),sp=cv('spent'),dl=cv('days'),dy=cv('daily'),t=S.today||ymd(new Date()),d=parseYmd(t),el=d.getDate()-1,last=new Date(d.getFullYear(),d.getMonth()+1,0).getDate();
   const row=(a,b)=>'<div class="calc-r"><span>'+a+'</span><b>'+b+'</b></div>';let h='';
   if(B){const left=B-sp;h+='<div class="calc-tot"><span>하루 권장 일예산</span><b>'+(dl?won(Math.max(0,left)/dl):'-')+'</b></div>'+row('남은 예산',won(left));
