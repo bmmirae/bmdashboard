@@ -145,10 +145,13 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 .person-card.ach-both { border-color:var(--green); box-shadow:0 0 0 1px var(--green); }
 @keyframes riskPulse { 0%,100% { box-shadow:0 0 0 1px var(--red); } 50% { box-shadow:0 0 0 4px var(--red-bg), 0 0 14px var(--red); } }
 .person-card.risk-high { border-color:var(--red); animation:riskPulse 2s ease-in-out infinite; }
-.person-card.risk-warn { border-color:var(--orange); box-shadow:0 0 0 1px var(--orange); }
+.person-card.risk-warn { border-color:#eab308; box-shadow:0 0 0 1px #eab308; }
 @media (prefers-reduced-motion: reduce) { .person-card.risk-high { animation:none; box-shadow:0 0 0 2px var(--red); } }
-.mission-row.risk-high { background:var(--red-bg); border-left:4px solid var(--red); }
-.mission-row.risk-warn { background:var(--orange-bg); border-left:4px solid var(--orange); }
+.mission-row.risk-high { background:rgba(224,69,63,.28); border-left:6px solid #dc2626; }
+.mission-row.risk-warn { background:rgba(250,204,21,.28); border-left:6px solid #eab308; }
+.risk-chip { display:inline-block; margin-left:5px; padding:0 6px; border-radius:8px; font-size:10px; font-weight:800; vertical-align:1px; }
+.risk-chip.high { background:#dc2626; color:#fff; }
+.risk-chip.warn { background:#eab308; color:#3b2f00; }
 .person-card.ach-monthly { border:2px solid var(--purple); box-shadow:0 0 0 2px var(--purple-bg); background:var(--purple-bg); }
 .person-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
 .person-name { font-size:14px; font-weight:700; }
@@ -249,7 +252,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 
 /* ── 주간미션요약 표 ── */
 #missionSummaryCapture { max-width:900px; margin:0 auto; }
-.mission-row { display:grid; gap:6px; align-items:center; padding:7px 8px; border-bottom:1px solid var(--border); border-left:4px solid transparent; font-size:12px; }
+.mission-row { display:grid; gap:6px; align-items:center; padding:7px 8px; border-bottom:1px solid var(--border); border-left:6px solid transparent; font-size:12px; }
 .mission-row.head { font-weight:700; color:var(--text-dim); font-size:11px; border-bottom:2px solid var(--border); }
 .mission-rank { font-weight:700; color:var(--text-dim); }
 .mission-team { color:var(--text-dim); font-size:11px; }
@@ -503,7 +506,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.8.0';
+const DASHBOARD_VERSION = 'v8.8.1';
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -1905,7 +1908,7 @@ function renderPersonCard(name, d) {
   if (risk) {
     achBadge += risk.level === 'high'
       ? ` <span class="person-badge" style="background:var(--red-bg);color:var(--red);border:1px solid var(--red);">⚠️ 예상 ${Math.round(risk.proj)}% · 교육 대상 위험</span>`
-      : ` <span class="person-badge" style="background:var(--orange-bg);color:var(--orange);">예상 ${Math.round(risk.proj)}% · 주의</span>`;
+      : ` <span class="person-badge" style="background:rgba(250,204,21,.25);color:#a16207;border:1px solid #eab308;">예상 ${Math.round(risk.proj)}% · 주의</span>`;
   }
   if (d.prevMonthExempt) achBadge = ''; // 플래티넘 배지가 이미 완전 면제를 뜻하므로 중복 표시 생략
 
@@ -2049,7 +2052,7 @@ function renderMissionSummaryTable() {
     const dowLegend = [1,2,3,4,5].map(k => `<span style="white-space:nowrap;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${DOW_COLORS[k]};margin-right:3px;"></span>${DOW_NAMES[k]}</span>`).join(' ')
       + ` <span style="white-space:nowrap;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--blue);margin-right:3px;"></span>혜택</span>`;
     const riskLegend = (STATE.weekOffset === computeOffsetForToday())
-      ? ` <span style="white-space:nowrap;margin-left:6px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--red);margin-right:3px;"></span>예상 60%↓ 위험</span> <span style="white-space:nowrap;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--orange);margin-right:3px;"></span>90%↓ 주의</span>` : '';
+      ? ` <span style="white-space:nowrap;margin-left:6px;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#dc2626;margin-right:3px;"></span>예상 60%↓ 위험</span> <span style="white-space:nowrap;"><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#eab308;margin-right:3px;"></span>90%↓ 주의</span>` : '';
     headerEl.innerHTML = `<span>${dateRangeText}</span><span style="display:flex;gap:8px;align-items:center;">${dowLegend}${riskLegend}</span><span>${uploadText}</span>`;
   }
 
@@ -2225,7 +2228,7 @@ function renderMissionSummaryTable() {
       <div class="mission-row ${row.risk ? 'risk-' + row.risk.level : ''}" style="grid-template-columns:${COLS};">
         <div class="mission-rank">${rank}</div>
         <div class="mission-team">${row.team}</div>
-        <div class="mission-name">${row.name}</div>
+        <div class="mission-name">${row.name}${row.risk ? `<span class="risk-chip ${row.risk.level}">${row.risk.level === 'high' ? '위험' : '주의'}</span>` : ''}</div>
         <div class="mission-call">
           <div class="mission-call-label">${c.callLabel}</div>
           ${c.barHtml}
