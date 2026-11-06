@@ -99,6 +99,7 @@
   [v1.11] 🧮 계산기 '예상 성과' 탭 이름을 'CPA 성과'로
   [v1.12] 🧮 계산기 📌 고정(창 밖 클릭·Esc로 안 닫힘, 설정 기억) · 제목 줄 끌어서 옮기기(위치 기억) · ▁ 접기
   [v1.13] (서버 s1.05) 광고주관리 💰 비즈머니 잔액: 관리계정 옆 🔑 API 키(이 PC에만 저장, 서명은 브라우저에서), '잔액 새로고침'으로 직접 조회, 10만원 미만 주황·0원 빨강·권한 없음 표시, 마지막 결과 기억
+  [v1.14] (서버 s1.06) 🔑 API 키 창에 CUSTOMER_ID 칸 + 🔍 연결 확인(이 키로 볼 수 있는 광고주 목록과 내 목록 비교), 잔액 칸 '권한 없음'에 마우스 올리면 네이버 오류 문구
 -->
 <html lang="ko">
 <head>
@@ -109,7 +110,7 @@
 if(/github\.io$|member-dashboard-dn6\.pages\.dev$/i.test(h)){var o={},n=0;try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^m2/.test(k)&&k!=='m2_api'&&k!=='m2_rtk'){o[k]=localStorage.getItem(k);n++;}}}catch(e){}
   location.replace(NEW+location.search+(n?'#m2mig='+encodeURIComponent(JSON.stringify(o)):location.hash));return;}
 if(location.hash.indexOf('#m2mig=')===0){try{var d=JSON.parse(decodeURIComponent(location.hash.slice(7)));for(var k in d)if(localStorage.getItem(k)===null)localStorage.setItem(k,d[k]);}catch(e){}try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}})();</script>
-<title>미래아이엔씨 통합DB v1.13</title>
+<title>미래아이엔씨 통합DB v1.14</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f0f2f5;--surface:#fff;--surface2:#f5f7ff;--border:#e8eaf6;--text:#333;--text-sub:#4b5260;--text-muted:#6b7280;--header-bg:linear-gradient(135deg,#0B13E7,#080ead);--primary:#3949ab;--primary-soft:#e8eaf6;--th-bg:#e8eaf6;--danger:#c62828;--danger-soft:#fdecec;--warn:#e65100;--warn-soft:#fff3e8;--ok:#2e7d32;--ok-soft:#e9f5ea;--purple:#6a1b9a;--purple-soft:#f3e5f5;}
@@ -446,6 +447,7 @@ table.nlist td.wide{max-width:320px;}
 .adm-tool{display:flex;align-items:center;gap:10px;padding:0 14px 10px;}.adm-tool .inp{max-width:280px;}
 .adm-t .adm-h{cursor:grab;color:var(--text-muted);font-size:16px;text-align:center;}.adm-t tr.dragging{opacity:.4;}.adm-t tr.editing{background:#fff8e1;}
 .adm-bal{margin-left:auto;display:flex;align-items:center;gap:8px;}.bal{font-weight:700;font-variant-numeric:tabular-nums;}.bal-lo{color:#e65100;}.bal-0{color:#c62828;}.bal-x{font-size:12px;color:var(--text-muted);}
+.nk-res{margin-top:12px;font-size:12.5px;line-height:1.7;}.nk-res .ok-t{color:#2e7d32;}.nk-res .err{color:#c62828;}.nk-ls{display:flex;flex-wrap:wrap;gap:4px;margin:6px 0;max-height:120px;overflow:auto;}.nk-ls span{font-size:11.5px;background:#f0f1f5;border-radius:6px;padding:1px 6px;}.nk-ls span.on{background:#e8f5e9;color:#2e7d32;font-weight:700;}
 .nk-help{font-size:12.5px;line-height:1.7;background:#f5f6fb;border-radius:8px;padding:10px 12px;margin:6px 0 12px;color:var(--text-sub);}
 .adm-a{text-align:right;white-space:nowrap;}.adm-a .btn{margin-left:4px;}
 @media (max-width:800px){.adm-form{grid-template-columns:1fr 1fr;}}
@@ -682,7 +684,7 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
     <div id="testBanner" class="test-banner hidden">테스트 시트에 연결되어 있음 · 실제 업무 데이터 아님</div>
     <div class="hdr"><div class="top-in">
       <div class="logo" onclick="goHome()" style="cursor:pointer" title="오늘 할 일로"><img src="data:image/png;base64,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" alt="CI"></div>
-      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.13</span></h1>
+      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.14</span></h1>
       <div class="who"><select id="hqPick" class="hbtn hidden" style="padding:5px 8px;" title="본부" onchange="pickFilter('hq',this.value)"></select><select id="teamPick" class="hbtn hidden" style="padding:5px 8px;" title="팀" onchange="pickFilter('team',this.value)"></select><select id="viewPick" class="hbtn hidden" style="padding:5px 10px;" title="볼 인원 선택" onchange="if(this.value)changeViewAs(this.value)"></select><button id="calcBtn" class="hbtn bell" onclick="openCalc(event)" title="계산기 (마크업·CPA 성과·ROAS·일예산)">🧮</button><button id="bellBtn" class="hbtn bell" onclick="toggleMenu('bell',event)" title="알림">🔔<i id="bellDot" class="sgdot hidden"></i></button><span class="um-wrap"><button id="whoName" class="user-chip" onclick="toggleMenu('user',event)"></button><div id="userMenu" class="hmenu hidden"></div></span><div id="bellMenu" class="hmenu bellm hidden"></div><button id="cmtBtn" class="hbtn hidden" onclick="openInbox()">💬 코멘트<i id="cmtDot" class="sgdot hidden"></i></button><button id="sgBtn" class="hbtn" onclick="openSg()" title="대시보드 수정·개선 건의">💡 수정건의<i id="sgDot" class="sgdot hidden"></i></button><a id="sheetLink" class="hbtn hidden" target="_blank" rel="noopener" style="text-decoration:none;" title="내 구글시트 새 창으로 열기">📄 내 구글시트</a><button class="hbtn" onclick="loadRows();loadBoard();sgCount()">새로고침</button><button class="hbtn" id="btnLogout" onclick="logout()">로그아웃</button></div>
     </div></div>
     <div class="tabs">
@@ -726,7 +728,7 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
 // 파일럿 Apps Script 웹앱 주소. 비워두면 로그인 화면의 '서버 주소 설정'으로 입력 (이 브라우저에 저장됨)
 // 테스트 기간 자동 로그인 (테스트 시트 하나만 연결된 동안만 사용). 파일럿 사원 확정되면 null로 바꾸면 로그인 화면이 다시 나옴
 const AUTO_LOGIN = null;
-const APP_VER='v1.13';   // 화면 버전. 바뀌면 이전 접속 기록(테스트 계정 등)을 버리고 다시 로그인
+const APP_VER='v1.14';   // 화면 버전. 바뀌면 이전 접속 기록(테스트 계정 등)을 버리고 다시 로그인
 const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycby040Dne4lMk2Ulgzf5gLG5CPFskadcI4jiBjhuBY7zuMaepufQBoHjoaxHcnVQ5Xvt/exec';
 const PROMO_GRADES = ['단기','장기','권한오픈','권한+브리핑'];
 const INACTIVE_GRADES = ['이관완료','선택없음'];   // 희망건은 진행 중으로 봄 (v0.77)
@@ -911,9 +913,21 @@ function nkOpen(){const k=nkGet()||{};
   openBm('<h3>🔑 잔액 조회용 API 키</h3><div class="nk-help">네이버 광고에 <b>관리계정(대행)</b>으로 로그인 → <b>도구 → API 사용 관리</b>에서 발급받은 값을 넣으세요.<br>· <b>이 PC 브라우저에만</b> 저장되고, 비밀키는 서버로 보내지 않음<br>· 권한 위임된 광고주만 잔액이 보임 · 공용 PC에서는 넣지 마세요</div>'+
     '<label class="l">엑세스 라이선스</label><input class="inp" id="nkLic" autocomplete="off" value="'+esc(k.lic||'')+'" placeholder="0100000000…">'+
     '<label class="l" style="margin-top:8px;display:block">비밀키</label><input class="inp" id="nkSec" type="password" autocomplete="off" value="'+esc(k.sec||'')+'" placeholder="AQAAAA…">'+
-    '<div style="display:flex;gap:6px;margin-top:12px"><button class="btn primary" onclick="nkSave()">저장 후 잔액 조회</button>'+(k.lic?'<button class="btn" onclick="nkDel()">이 PC에서 키 지우기</button>':'')+'<button class="btn" style="margin-left:auto" onclick="closeBm()">닫기</button></div>');}
-function nkSave(){const lic=document.getElementById('nkLic').value.trim(),sec=document.getElementById('nkSec').value.trim();if(!lic||!sec){toast('두 칸 모두 넣어 주세요',1600);return;}
-  try{localStorage.setItem(nkKey(),JSON.stringify({lic,sec}));}catch(e){toast('저장 실패 (브라우저 저장소 막힘)',2500);return;}closeBm();admMgrShow();balRefresh();}
+    '<label class="l" style="margin-top:8px;display:block">CUSTOMER_ID <span style="font-weight:400;color:var(--text-muted)">· 같은 화면에 있는 관리계정 번호 (연결 확인용)</span></label><input class="inp" id="nkCid" autocomplete="off" inputmode="numeric" value="'+esc(k.cid||'')+'" placeholder="예) 1234567">'+
+    '<div style="display:flex;gap:6px;margin-top:12px"><button class="btn primary" onclick="nkSave()">저장 후 잔액 조회</button><button class="btn" onclick="nkTest()">🔍 연결 확인</button>'+(k.lic?'<button class="btn" onclick="nkDel()">이 PC에서 키 지우기</button>':'')+'<button class="btn" style="margin-left:auto" onclick="closeBm()">닫기</button></div>');}
+function nkVals(){return {lic:document.getElementById('nkLic').value.trim(),sec:document.getElementById('nkSec').value.trim(),cid:document.getElementById('nkCid').value.replace(/\D/g,'')};}
+// 연결 확인: 이 키로 볼 수 있는 광고주 목록을 받아 내 목록과 비교
+async function nkTest(){const v=nkVals();if(!v.lic||!v.sec||!v.cid){toast('라이선스·비밀키·CUSTOMER_ID 세 칸을 넣어 주세요',2200);return;}
+  const box=document.getElementById('nkRes')||(()=>{const d=document.createElement('div');d.id='nkRes';d.className='nk-res';document.getElementById('bmBox').appendChild(d);return d;})();box.innerHTML='<div class="loading">확인 중…</div>';
+  const ts=String(Date.now()),sig=await nkSign(v.sec,ts+'.GET./customer-links');const r=await api('naverBal',{apiKey:v.lic,calls:[],links:{c:v.cid,ts,sig}},true);
+  if(!r||!r.success){box.innerHTML='<div class="err">'+esc((r&&r.error)||'실패')+'</div>';return;}
+  if(r.linkErr){box.innerHTML='<div class="err">❌ 키 확인 실패 ('+r.linkErr+') '+esc(r.msg||'')+'</div><div class="hint">라이선스·비밀키·CUSTOMER_ID가 <b>같은 화면(같은 계정)</b>에서 나온 값인지, 앞뒤 공백 없이 복사됐는지 확인하세요.</div>';return;}
+  const mine=new Set(ADM.items.map(x=>String(x.id||'').trim())),L=r.links||[],hit=L.filter(x=>mine.has(x.id));
+  box.innerHTML='<div class="ok-t">✅ 키는 정상 · 이 계정에 연결된 광고주 <b>'+L.length+'</b>곳 · 내 목록과 일치 <b>'+hit.length+'</b>곳</div>'+
+    (L.length?'<div class="nk-ls">'+L.slice(0,60).map(x=>'<span class="'+(mine.has(x.id)?'on':'')+'" title="'+esc(x.login)+'">'+esc(x.id)+'</span>').join('')+(L.length>60?' …':'')+'</div>':'<div class="hint">연결된 광고주가 0곳 → 이 키는 <b>광고주 본인 계정</b> 키이거나, 관리계정에 권한 위임된 광고주가 없는 상태</div>')+
+    (L.length&&!hit.length?'<div class="hint">내 목록의 고객ID와 하나도 안 맞음 → 목록 고객ID가 다른 번호(예: 새 광고시스템 계정번호)일 수 있음. 위 번호와 비교해 보세요</div>':'');}
+function nkSave(){const v=nkVals(),lic=v.lic,sec=v.sec;if(!lic||!sec){toast('라이선스·비밀키를 넣어 주세요',1600);return;}
+  try{localStorage.setItem(nkKey(),JSON.stringify({lic,sec,cid:v.cid}));}catch(e){toast('저장 실패 (브라우저 저장소 막힘)',2500);return;}closeBm();admMgrShow();balRefresh();}
 function nkDel(){if(!confirm('이 PC에 저장된 API 키와 잔액 기록을 지울까요?'))return;try{localStorage.removeItem(nkKey());localStorage.removeItem(balKey());}catch(e){}closeBm();admMgrShow();renderAdm();toast('키 지움',1400);}
 async function nkSign(sec,msg){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(sec),{name:'HMAC',hash:'SHA-256'},false,['sign']);const b=new Uint8Array(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg)));let s='';b.forEach(x=>s+=String.fromCharCode(x));return btoa(s);}
 function balBar(){const el=document.getElementById('admBal');if(!el)return;const k=nkGet(),b=balGet();
@@ -925,11 +939,11 @@ async function balRefresh(){const k=nkGet();if(!k){nkOpen();return;}if(!window.c
   const r=await api('naverBal',{apiKey:k.lic,calls},true);
   if(btn){btn.disabled=false;btn.textContent='💰 잔액 새로고침';}
   if(!r||!r.success){toast((r&&r.error)||'잔액 조회 실패',2500);return;}
-  const m={};r.items.forEach(x=>m[x.c]=x.ok?{b:x.bal,lock:x.lock}:{e:x.code});const bad=r.items.filter(x=>!x.ok);
+  const m={};r.items.forEach(x=>m[x.c]=x.ok?{b:x.bal,lock:x.lock}:{e:x.code,msg:x.msg});const bad=r.items.filter(x=>!x.ok);
   try{localStorage.setItem(balKey(),JSON.stringify({at:r.at,m}));}catch(e){}renderAdm();balBar();
   toast(bad.length&&bad.length===r.items.length?'모든 업체 조회 실패 — API 키 또는 권한 위임을 확인하세요':'잔액 조회 완료'+(bad.length?' · '+bad.length+'곳은 권한 없음':''),2600);}
 function balHtml(id){const v=balGet().m[String(id||'').trim()];if(!v)return '<span class="muted">-</span>';
-  if(v.e!==undefined)return '<span class="bal-x" title="오류 '+v.e+' — 이 관리계정에 권한 위임이 안 됐거나 키 확인 필요">'+(v.e===403||v.e===404?'권한 없음':'조회 실패')+'</span>';
+  if(v.e!==undefined)return '<span class="bal-x" title="오류 '+v.e+(v.msg?' · '+esc(v.msg):'')+' — 🔑 API 키 창의 \'연결 확인\'으로 원인 확인">'+(v.e===403||v.e===404?'권한 없음':'조회 실패')+'</span>';
   const c=v.b<=0?'bal-0':v.b<100000?'bal-lo':'';return '<span class="bal '+c+'"'+(v.lock?' title="예산 잠금"':'')+'>'+(v.b<=0?'잔액 없음':Math.round(v.b).toLocaleString('ko-KR')+'원')+(v.lock?' 🔒':'')+'</span>';}
 // ── 광고주관리 탭: 가망DB와 별개로 고객ID·업체명·URL 바로가기 목록 (순서는 끌어서 또는 ▲▼로 변경, 서버 p0.17) ──
 const ADM={items:[],loaded:false,q:'',edit:-1,tab:0,groups:[],memos:{},open:'',memoList:null};
