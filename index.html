@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.103</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.105</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -182,8 +182,9 @@ tr:hover td{background:var(--surface2);}
 .recall-tip .tip-content{display:none;position:fixed;background:#1e2130;color:#e0e4f0;font-size:13px;line-height:1.7;padding:10px 14px;border-radius:8px;white-space:pre-wrap;min-width:200px;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:9999;word-break:keep-all;border:1px solid #2e3250;pointer-events:none;}
 .recall-tip:hover .tip-content{display:block;}
 .recall-tip .tip-content::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1e2130;}
+.ck-card{cursor:pointer;transition:border-color .12s,box-shadow .12s;}.ck-card:hover{border-color:#9fa8da!important;box-shadow:0 2px 10px rgba(57,73,171,.12);}
 .ck-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-.ck-co{min-width:0;max-width:100%;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:4px;padding:1px 4px;margin-left:-4px;border-radius:6px;}.ck-co strong{font-weight:700;}.ck-co:hover{background:#e8eaf6;color:#283593;}.ck-co:hover strong{text-decoration:underline;}
+.ck-co{min-width:0;max-width:100%;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:4px;padding:1px 4px;margin-left:-4px;border-radius:6px;}.ck-co strong{font-weight:700;}.ck-card:hover .ck-co strong{color:#283593;}
 .ck-url{color:#3949ab;font-size:11px;cursor:pointer;}.ck-meta{font-size:11px;color:var(--text-sub);white-space:nowrap;}.ck-sp{flex:1;min-width:8px;}
 .ck-st{font-size:10px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1px 7px;white-space:nowrap;}
 .ck-acts{display:inline-flex;gap:4px;flex-shrink:0;margin-left:6px;}
@@ -209,6 +210,10 @@ tr:hover td{background:var(--surface2);}
 .ch-i .m{font-size:12.5px;background:var(--surface2);border-radius:8px;padding:6px 9px;margin-top:3px;white-space:pre-wrap;}.ch-i .gm{font-size:12px;color:#2e7d32;font-weight:600;margin-top:2px;}
 .ch-cm{display:flex;flex-direction:column;gap:6px;}.ch-c{background:var(--surface2);border-radius:10px;padding:7px 10px;font-size:12.5px;}.ch-c.mgr{background:#eef1ff;}.ch-c .w{font-size:11px;color:var(--text-muted);margin-bottom:2px;display:flex;gap:6px;}.ch-c .w b{color:var(--text);}.ch-c .x{margin-left:auto;border:none;background:none;color:var(--text-muted);cursor:pointer;}
 .ch-cf{display:flex;gap:6px;margin-top:6px;}.ch-cf textarea{flex:1;min-height:52px;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:12.5px;resize:vertical;background:var(--surface);color:var(--text);}.ch-cf button{border:none;background:#3949ab;color:#fff;border-radius:8px;padding:0 14px;font-weight:700;cursor:pointer;}
+.ch-acts{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 10px;border:1px solid var(--border);border-radius:10px;}.ch-st{font-size:12px;color:var(--text-sub);margin-right:auto;}
+.ch-act{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;}
+.ch-act.ok{color:#2e7d32;border-color:#a5d6a7;}.ch-act.ok:hover{background:#2e7d32;color:#fff;}.ch-act.arc{color:#7b1fa2;border-color:#ce93d8;}.ch-act.arc:hover{background:#f3e5f5;}.ch-act.hq{color:#3949ab;border-color:#9fa8da;}.ch-act.hq.on,.ch-act.hq:hover{background:#3949ab;color:#fff;}.ch-act.del{color:#c62828;border-color:#ef9a9a;}.ch-act.del:hover{background:#ffebee;}
+.ch-arc{background:#f3e5f5;border:1px solid #ce93d8;border-radius:10px;padding:8px 10px;}.ch-arc textarea{width:100%;min-height:52px;box-sizing:border-box;border:1px solid var(--border);border-radius:8px;padding:6px 8px;font-size:12.5px;margin:4px 0 6px;}
 .ch-note{font-size:11.5px;color:var(--text-muted);}
 </style>
 </head>
@@ -284,7 +289,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.103</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.105</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -492,6 +497,8 @@ function renderRecallChipsFC(r){
 }
 // [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
 const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+// [v5.105] 히스토리 패널 안에도 확인·보관·본부확인(·삭제) 버튼
+// [v5.104] 카드 아무 곳이나 누르면 패널 열림 (버튼·입력칸 제외)
 // [v5.103] 업체 히스토리 패널 + 사원대시보드 코멘트 연동 (사원대시보드 서버에 부서장 로그인 그대로 넘겨서 저장 → 사원 화면 🔔 알림)
 const MEMBER_API_URL='https://script.google.com/macros/s/AKfycby040Dne4lMk2Ulgzf5gLG5CPFskadcI4jiBjhuBY7zuMaepufQBoHjoaxHcnVQ5Xvt/exec';
 let PSESS=null;
@@ -509,13 +516,19 @@ async function pApi(action,params,retry){
 const CH={r:null,log:null,cmt:null};
 function chEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function chDays(a,b){return Math.round((new Date(b)-new Date(a))/864e5);}
-function openCoHist(company,manager){
+function openCoHist(company,manager,ctx){
   const r=(CURRENT_ROWS||[]).find(x=>x.company===company&&x.manager===manager)||(window._allRows||[]).find(x=>x.company===company&&x.manager===manager);
   if(!r){toast('업체 데이터를 찾을 수 없습니다','err');return;}
-  CH.r=r;CH.log=null;CH.cmt=null;
+  CH.r=r;CH.log=null;CH.cmt=null;CH.ctx=ctx||null;
   let w=document.getElementById('coHistWrap');if(!w){w=document.createElement('div');w.id='coHistWrap';w.onclick=e=>{if(e.target===w)closeCoHist();};document.body.appendChild(w);}
   w.innerHTML='<div id="coHist"></div>';w.style.display='flex';chRender();
   chLoadExtra();
+}
+// 카드 아무 곳이나 눌러도 패널 열기 (버튼·입력칸·링크·날짜칩 툴팁, 글자 드래그 선택은 제외)
+function ckCardClick(e,company,manager,ctx){
+  if(e.target.closest('button,a,textarea,input,select,label,.ck-url,[id^="arcBox_"],[id^="memoInput_"]'))return;
+  const sel=window.getSelection&&String(window.getSelection());if(sel&&sel.trim())return;
+  openCoHist(company,manager,ctx);
 }
 function closeCoHist(){const w=document.getElementById('coHistWrap');if(w)w.style.display='none';CH.r=null;}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&CH.r)closeCoHist();});
@@ -554,12 +567,29 @@ function chRender(){
   box.innerHTML='<div class="ch-h"><div class="t"><b>'+chEsc(r.company)+'</b>'+gradeBadge(r.grade)+'<button class="x" onclick="closeCoHist()">×</button></div>'+
     '<div class="s"><span>👤 '+chEsc(r.manager)+'</span><span>첫콜 '+fmtRecallDate(fc)+'</span><span>통화 '+calls+'회</span>'+(r.nextRecallDate?'<span>다음 재콜 '+fmtRecallDate(r.nextRecallDate)+'</span>':'')+'</div></div>'+
     '<div class="ch-b"><div class="ch-sum"><span class="k">담당자</span><span>'+chEsc(r.advertiserManager||'-')+(r.phone?' · '+chEsc(r.phone):'')+'</span><span class="k">예산</span><span>'+(fmtB(r.budget)||'-')+'</span><span class="k">키워드</span><span>'+chEsc(r.keyword||'-')+(r.rank?' · '+chEsc(r.rank)+(/^\d+$/.test(r.rank)?'위':''):'')+'</span>'+(r.url?'<span class="k">URL</span><span><a href="#" onclick="openUrl(\''+chEsc(r.url)+'\');return false;">'+chEsc(r.url)+'</a></span>':'')+'</div>'+
+    chActsHtml()+
     '<div class="ch-btns"><button onclick=\'closeCoHist();jumpToCompanyInList('+JSON.stringify(r.company).replace(/'/g,"&apos;")+')\'>📋 전체 리스트에서 보기</button><button onclick=\'openMemDash('+JSON.stringify(r.manager).replace(/'/g,"&apos;")+')\'>🖥 사원대시보드 열기</button></div>'+
     '<div class="ch-sec"><h4>💬 코멘트 <span>사원 화면에 알림 · 사원 답글도 여기 보임</span></h4>'+cmHtml+'</div>'+
     '<div class="ch-sec"><h4>📜 히스토리 <span>최신이 위'+(CH.log?'':' · 가망도 변경 불러오는 중…')+'</span></h4>'+
       (fc?'<div class="ch-first"><div class="d">📌 첫콜 '+fmtRecallDate(fc)+'</div>'+(r.content?'<div class="m">'+chEsc(r.content)+'</div>':'')+'</div>':'')+
       '<div class="ch-tl">'+(ev.length?ev.slice().reverse().map(item).join(''):'<div class="ch-note">첫콜 이후 기록 없음</div>')+'</div></div></div>';
 }
+// 패널 안 처리 버튼: 확인 · 보관(사유 필수) · 본부확인 · 삭제 — 카드와 같은 동작, 처리 후 패널 닫힘
+function chActsHtml(){const c=CH.ctx;if(!c)return '';
+  const st=c.kind==='need'?'체크필요':(c.status||'체크필요');
+  const b=(cls,label,fn,on)=>'<button class="ch-act '+cls+(on?' on':'')+'" onclick="'+fn+'">'+label+'</button>';
+  let h='<div class="ch-acts"><span class="ch-st">'+(c.kind==='log'?'<b>'+chEsc(c.cat)+'</b> · ':'')+chEsc(st)+'</span>';
+  if(c.kind==='need')h+=b('ok','✓ 확인','chAct(\'ok\',this)')+b('arc','📌 보관','chArcOpen()');
+  else if(c.arc)h+=b('arc','📌 보관','chArcOpen()');
+  if(c.hq)h+=b('hq',c.hqOn?'🏢 본부확인 ✓':'🏢 본부확인','chAct(\'hq\',this)',c.hqOn);
+  if(c.kind==='log')h+=b('del','🗑 삭제','chAct(\'del\',this)');
+  h+='</div><div id="arcBox_pnl" class="ch-arc" style="display:none"><div class="ch-note" style="color:#6a1b9a;font-weight:600">📌 보관 사유 (필수)</div><textarea id="arcTa_pnl" placeholder="예: 예산 보류, 장기 관망 등"></textarea><div class="ch-btns"><button id="arcBtn_pnl" onclick="chArcSave()" style="background:#7b1fa2;color:#fff;border-color:#7b1fa2">보관 확정</button><button onclick="closeArchiveBox(\'pnl\')">취소</button></div></div>';
+  return h;}
+function chArcOpen(){openArchiveBox('pnl');}
+async function chArcSave(){const c=CH.ctx;if(!c)return;const ta=document.getElementById('arcTa_pnl');if(!ta||!ta.value.trim()){toast('❌ 보관 사유(코멘트)를 입력해주세요','err');if(ta)ta.focus();return;}await confirmArchiveBox('pnl',c.item);closeCoHist();}
+async function chAct(k,btn){const c=CH.ctx;if(!c)return;
+  if(k==='ok')await checkConfirm(btn,c.item);else if(k==='hq')await toggleHqCheck(btn,c.item);else if(k==='del'){await checkDelete(c.del);}
+  closeCoHist();}
 async function chCmtAdd(){const r=CH.r,el=document.getElementById('chCmtIn');if(!r||!el)return;const t=el.value.trim();if(!t){el.focus();return;}
   const b=document.getElementById('chCmtBtn');b.disabled=true;const res=await pApi('cmtAdd',{viewAs:r.manager,cid:r.id,company:r.company,text:t});b.disabled=false;
   if(!res||!res.success){toast((res&&res.error)||'코멘트 저장 실패','err');return;}
@@ -1579,9 +1609,9 @@ function renderCheckSection(rows){
       :'';
     // [v5.9] 체크필요 → 보관 직행 버튼 (필수 코멘트 입력 후 확정)
     const arcUid='need_'+(r.company+'_'+r.manager+'_'+(normalizeDate(r.firstCall)||'')).replace(/[^a-zA-Z0-9가-힣]/g,'_');
-    return`<div class="np-row" style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
+    return`<div class="np-row ck-card" onclick='ckCardClick(event,${JSON.stringify(r.company).replace(/'/g,"&apos;")},${JSON.stringify(r.manager).replace(/'/g,"&apos;")},${JSON.stringify({kind:'need',item:confirmItem,hqOn:!!hqOn,hq:isHqLevel}).replace(/'/g,"&apos;")})' style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
       <div class="ck-top">
-        <div class="ck-co" onclick='openCoHist(${JSON.stringify(r.company).replace(/'/g,"&apos;")},${JSON.stringify(r.manager).replace(/'/g,"&apos;")})' title="눌러서 히스토리·코멘트 보기"><strong>${r.company}</strong>${r.url?`<span onclick="event.stopPropagation();openUrl('${r.url}')" class="ck-url" title="사이트 열기">🔗</span>`:''}</div>
+        <div class="ck-co" title="카드를 누르면 히스토리·코멘트"><strong>${r.company}</strong>${r.url?`<span onclick="event.stopPropagation();openUrl('${r.url}')" class="ck-url" title="사이트 열기">🔗</span>`:''}</div>
         ${badgesHtml}
         <span class="ck-sp"></span>
         <span class="ck-meta">👤 ${r.manager}</span>
@@ -1625,9 +1655,9 @@ function renderCheckSection(rows){
     const url=matched?matched.url:'';
     const memoKey=getCheckKey({company:l.company,manager:l.manager,firstCall:l.firstCall},l.category).replace(/[^a-zA-Z0-9가-힣]/g,'_');
     const hasMemo=!!(l.memo&&l.memo.trim());
-    return`<div style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
+    return`<div class="ck-card" onclick='ckCardClick(event,${JSON.stringify(l.company).replace(/'/g,"&apos;")},${JSON.stringify(l.manager).replace(/'/g,"&apos;")},${JSON.stringify({kind:'log',item:{company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category,grade:matched?matched.grade:''},del:deleteItem,status:l.status||'',cat:l.category,arc:!!showArchiveBtn,hqOn:hqOn,hq:isHqLevel}).replace(/'/g,"&apos;")})' style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
       <div class="ck-top">
-        <div class="ck-co" onclick='openCoHist(${JSON.stringify(l.company).replace(/'/g,"&apos;")},${JSON.stringify(l.manager).replace(/'/g,"&apos;")})' title="눌러서 히스토리·코멘트 보기"><strong>${l.company}</strong>${url?`<span onclick="event.stopPropagation();openUrl('${url}')" class="ck-url" title="사이트 열기">🔗</span>`:''}</div>
+        <div class="ck-co" title="카드를 누르면 히스토리·코멘트"><strong>${l.company}</strong>${url?`<span onclick="event.stopPropagation();openUrl('${url}')" class="ck-url" title="사이트 열기">🔗</span>`:''}</div>
         <span style="background:${CHECK_CAT_COLOR[l.category]}1a;color:${CHECK_CAT_COLOR[l.category]};border:1px solid ${CHECK_CAT_COLOR[l.category]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${l.category}</span>
         ${isHqLevel?`<span class="ck-st">${l.status||'체크필요'}</span>`:''}
         ${(l.gradeSnapshot&&matched&&matched.grade&&l.gradeSnapshot!==matched.grade)?`<span style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;" title="처리 당시와 가망도가 달라졌습니다">⚠️ 현재:${matched.grade} (처리당시:${l.gradeSnapshot})</span>`:''}
