@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.102</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.103</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -182,6 +182,34 @@ tr:hover td{background:var(--surface2);}
 .recall-tip .tip-content{display:none;position:fixed;background:#1e2130;color:#e0e4f0;font-size:13px;line-height:1.7;padding:10px 14px;border-radius:8px;white-space:pre-wrap;min-width:200px;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.4);z-index:9999;word-break:keep-all;border:1px solid #2e3250;pointer-events:none;}
 .recall-tip:hover .tip-content{display:block;}
 .recall-tip .tip-content::after{content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);border:5px solid transparent;border-top-color:#1e2130;}
+.ck-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.ck-co{min-width:0;max-width:100%;cursor:pointer;font-size:13px;display:inline-flex;align-items:center;gap:4px;padding:1px 4px;margin-left:-4px;border-radius:6px;}.ck-co strong{font-weight:700;}.ck-co:hover{background:#e8eaf6;color:#283593;}.ck-co:hover strong{text-decoration:underline;}
+.ck-url{color:#3949ab;font-size:11px;cursor:pointer;}.ck-meta{font-size:11px;color:var(--text-sub);white-space:nowrap;}.ck-sp{flex:1;min-width:8px;}
+.ck-st{font-size:10px;color:var(--text-muted);background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1px 7px;white-space:nowrap;}
+.ck-acts{display:inline-flex;gap:4px;flex-shrink:0;margin-left:6px;}
+.ck-ib{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:var(--surface);display:inline-flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;color:var(--text-sub);padding:0;line-height:1;transition:all .12s;}
+.ck-ib.ok{color:#2e7d32;font-weight:800;font-size:15px;}.ck-ib.ok:hover{background:#2e7d32;border-color:#2e7d32;color:#fff;}
+.ck-ib.arc:hover{background:#f3e5f5;border-color:#ab47bc;}.ck-ib.hq:hover{background:#e8eaf6;border-color:#5c6bc0;}.ck-ib.hq.on{background:#3949ab;border-color:#3949ab;box-shadow:inset 0 0 0 2px #fff;}
+.ck-ib.del{color:#c62828;}.ck-ib.del:hover{background:#ffebee;border-color:#ef9a9a;}
+/* 업체 히스토리 패널 */
+#coHistWrap{position:fixed;inset:0;background:rgba(15,20,40,.35);z-index:300;display:flex;justify-content:flex-end;}
+#coHist{width:480px;max-width:94vw;height:100%;background:var(--surface);box-shadow:-6px 0 24px rgba(0,0,0,.18);overflow:auto;display:flex;flex-direction:column;}
+.ch-h{position:sticky;top:0;background:var(--surface);z-index:2;padding:14px 16px 10px;border-bottom:1px solid var(--border);}
+.ch-h .t{display:flex;align-items:center;gap:8px;}.ch-h .t b{font-size:17px;}.ch-h .x{margin-left:auto;border:none;background:none;font-size:20px;color:var(--text-muted);cursor:pointer;}
+.ch-h .s{font-size:12px;color:var(--text-sub);margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;}
+.ch-b{padding:12px 16px 24px;display:flex;flex-direction:column;gap:12px;}
+.ch-sum{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:12.5px;background:var(--surface2);border-radius:10px;padding:10px 12px;}.ch-sum .k{color:var(--text-muted);}
+.ch-btns{display:flex;gap:6px;flex-wrap:wrap;}.ch-btns button{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;color:var(--text-sub);}.ch-btns button:hover{border-color:#3949ab;color:#3949ab;}
+.ch-sec h4{margin:0 0 8px;font-size:13px;display:flex;align-items:center;gap:6px;}.ch-sec h4 span{font-weight:400;font-size:11px;color:var(--text-muted);}
+.ch-first{background:#f6efff;border:1px solid #d9c3f0;border-radius:10px;padding:9px 12px;margin-bottom:8px;}.ch-first .d{font-size:12.5px;font-weight:700;color:#6a1b9a;}.ch-first .m{font-size:12.5px;margin-top:4px;white-space:pre-wrap;}
+.ch-tl{position:relative;padding-left:16px;}.ch-tl:before{content:'';position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:#e3e6f0;}
+.ch-i{position:relative;margin-bottom:10px;}.ch-i:before{content:'';position:absolute;left:-15px;top:5px;width:9px;height:9px;border-radius:50%;background:#3949ab;}
+.ch-i.g:before{background:#2e7d32;}.ch-i.p:before{background:#fff;border:2px solid #3949ab;width:6px;height:6px;}.ch-i.mv:before{background:#c3c7d4;}
+.ch-i .d{font-size:12px;font-weight:700;}.ch-i .d span{font-weight:400;color:var(--text-muted);font-size:11px;margin-left:4px;}
+.ch-i .m{font-size:12.5px;background:var(--surface2);border-radius:8px;padding:6px 9px;margin-top:3px;white-space:pre-wrap;}.ch-i .gm{font-size:12px;color:#2e7d32;font-weight:600;margin-top:2px;}
+.ch-cm{display:flex;flex-direction:column;gap:6px;}.ch-c{background:var(--surface2);border-radius:10px;padding:7px 10px;font-size:12.5px;}.ch-c.mgr{background:#eef1ff;}.ch-c .w{font-size:11px;color:var(--text-muted);margin-bottom:2px;display:flex;gap:6px;}.ch-c .w b{color:var(--text);}.ch-c .x{margin-left:auto;border:none;background:none;color:var(--text-muted);cursor:pointer;}
+.ch-cf{display:flex;gap:6px;margin-top:6px;}.ch-cf textarea{flex:1;min-height:52px;border:1px solid var(--border);border-radius:8px;padding:7px 9px;font-size:12.5px;resize:vertical;background:var(--surface);color:var(--text);}.ch-cf button{border:none;background:#3949ab;color:#fff;border-radius:8px;padding:0 14px;font-weight:700;cursor:pointer;}
+.ch-note{font-size:11.5px;color:var(--text-muted);}
 </style>
 </head>
 <body>
@@ -256,7 +284,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.102</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.103</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -464,6 +492,79 @@ function renderRecallChipsFC(r){
 }
 // [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
 const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+// [v5.103] 업체 히스토리 패널 + 사원대시보드 코멘트 연동 (사원대시보드 서버에 부서장 로그인 그대로 넘겨서 저장 → 사원 화면 🔔 알림)
+const MEMBER_API_URL='https://script.google.com/macros/s/AKfycby040Dne4lMk2Ulgzf5gLG5CPFskadcI4jiBjhuBY7zuMaepufQBoHjoaxHcnVQ5Xvt/exec';
+let PSESS=null;
+async function pApi(action,params,retry){
+  if(!SESSION||!SESSION.token)return{success:false,error:'로그인이 필요합니다'};
+  if(!PSESS||PSESS.for!==SESSION.token){try{PSESS=JSON.parse(sessionStorage.getItem('psess')||'null');}catch(e){PSESS=null;}if(PSESS&&PSESS.for!==SESSION.token)PSESS=null;}
+  const post=async b=>{const r=await fetch(MEMBER_API_URL,{method:'POST',body:JSON.stringify(b)});return r.json();};
+  try{
+    if(!PSESS){const r=await post({action:'sso',params:{role:SESSION.role,token:SESSION.token}});if(!r||!r.success)return{success:false,error:(r&&r.error)||'사원대시보드 연결 실패'};PSESS={token:r.token,role:r.role,for:SESSION.token};try{sessionStorage.setItem('psess',JSON.stringify(PSESS));}catch(e){}}
+    const r=await post({action,params:Object.assign({token:PSESS.token,role:PSESS.role},params||{})});
+    if(r&&r.expired&&!retry){PSESS=null;try{sessionStorage.removeItem('psess');}catch(e){}return pApi(action,params,true);}
+    return r;
+  }catch(e){return{success:false,error:'사원대시보드 서버 연결 실패 ('+e.message+')'};}
+}
+const CH={r:null,log:null,cmt:null};
+function chEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function chDays(a,b){return Math.round((new Date(b)-new Date(a))/864e5);}
+function openCoHist(company,manager){
+  const r=(CURRENT_ROWS||[]).find(x=>x.company===company&&x.manager===manager)||(window._allRows||[]).find(x=>x.company===company&&x.manager===manager);
+  if(!r){toast('업체 데이터를 찾을 수 없습니다','err');return;}
+  CH.r=r;CH.log=null;CH.cmt=null;
+  let w=document.getElementById('coHistWrap');if(!w){w=document.createElement('div');w.id='coHistWrap';w.onclick=e=>{if(e.target===w)closeCoHist();};document.body.appendChild(w);}
+  w.innerHTML='<div id="coHist"></div>';w.style.display='flex';chRender();
+  chLoadExtra();
+}
+function closeCoHist(){const w=document.getElementById('coHistWrap');if(w)w.style.display='none';CH.r=null;}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&CH.r)closeCoHist();});
+async function chLoadExtra(){
+  const r=CH.r;if(!r)return;
+  const [lg,cm]=await Promise.all([pApi('cardLog',{viewAs:r.manager,id:r.id||'',company:r.company}),pApi('cmtList',{viewAs:r.manager})]);
+  if(CH.r!==r)return;
+  CH.log=(lg&&lg.success)?lg:{items:[],moves:[],err:(lg&&lg.error)||''};
+  CH.cmt=(cm&&cm.success)?{items:(cm.items||[]).filter(c=>r.id?c.cid===r.id:c.company===r.company)}:{items:[],err:(cm&&cm.error)||'코멘트를 불러오지 못했습니다'};
+  chRender();
+  if(r.id&&CH.cmt.items.some(c=>c.unread))pApi('cmtRead',{viewAs:r.manager,cid:r.id});
+}
+function chRender(){
+  const r=CH.r,box=document.getElementById('coHist');if(!r||!box)return;
+  const fc=normalizeDate(r.firstCall)||'',today=(()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');})();
+  const ev=[];
+  (r.recalls||[]).forEach(x=>{const d=normalizeDate(x.date)||x.date;if(!/^\d{4}-\d{2}-\d{2}$/.test(d))return;ev.push(x.memo?{k:/^부재/.test(x.memo)?'abs':'call',date:d,memo:x.memo}:{k:d>=today?'plan':'nomemo',date:d});});
+  if(CH.log){(CH.log.items||[]).forEach(g=>ev.push({k:'grade',date:String(g.at).slice(0,10),at:g.at,from:g.from,to:g.to}));(CH.log.moves||[]).forEach(m=>ev.push({k:'mv',date:String(m.at).slice(0,10),at:m.at,from:m.from,to:m.to}));}
+  // 같은 가망도 변경이 반복되면 첫 기록만
+  {let last='';const gs=ev.filter(e=>e.k==='grade').sort((a,b)=>String(a.at).localeCompare(String(b.at)));const drop=new Set();gs.forEach(e=>{const sg=(e.from||'')+'>'+e.to;if(sg===last)drop.add(e);else last=sg;});for(let i=ev.length-1;i>=0;i--)if(drop.has(ev[i]))ev.splice(i,1);}
+  const ord={grade:1,call:2,abs:2,nomemo:2,mv:3,plan:4};
+  ev.sort((a,b)=>a.date.localeCompare(b.date)||ord[a.k]-ord[b.k]||String(a.at||'').localeCompare(String(b.at||'')));
+  let prev=fc,n=0;ev.forEach(e=>{if(['call','abs','nomemo'].includes(e.k)){if(prev)e.gap=chDays(prev,e.date);prev=e.date;if(e.k==='call')e.n=++n;}});
+  const calls=ev.filter(e=>e.k==='call').length;
+  const item=e=>{const meta=(e.gap!==undefined?(e.gap?'+'+e.gap+'일':'같은 날'):'')+(e.n?' · '+e.n+'번째 통화':'');
+    if(e.k==='call')return '<div class="ch-i"><div class="d">'+fmtRecallDate(e.date)+' 통화<span>'+meta+'</span></div><div class="m">'+chEsc(e.memo)+'</div></div>';
+    if(e.k==='abs')return '<div class="ch-i"><div class="d" style="color:#e65100">'+fmtRecallDate(e.date)+' 부재<span>'+meta+'</span></div></div>';
+    if(e.k==='nomemo')return '<div class="ch-i"><div class="d">'+fmtRecallDate(e.date)+' <span>메모 없음 '+meta+'</span></div></div>';
+    if(e.k==='plan')return '<div class="ch-i p"><div class="d" style="color:#3949ab">'+fmtRecallDate(e.date)+' 재콜 예정</div></div>';
+    if(e.k==='mv')return '<div class="ch-i mv"><div class="d" style="color:var(--text-muted);font-weight:400">'+fmtRecallDate(e.date)+' 📅 미룸 '+(e.from?fmtRecallDate(e.from):'없음')+' → '+(e.to?fmtRecallDate(e.to):'재콜 없음')+'</div></div>';
+    return '<div class="ch-i g"><div class="d">'+fmtRecallDate(e.date)+(String(e.at||'').length>10?' '+String(e.at).slice(11,16):'')+'<span>가망도 변경</span></div><div class="gm">'+chEsc(e.from||'-')+' → '+chEsc(e.to)+'</div></div>';};
+  const cm=CH.cmt;
+  const cmHtml=!cm?'<div class="ch-note">불러오는 중…</div>':cm.err?'<div class="ch-note" style="color:#c62828">'+chEsc(cm.err)+'</div>':
+    (cm.items.length?'<div class="ch-cm">'+cm.items.slice().sort((a,b)=>String(a.ts).localeCompare(String(b.ts))).map(c=>'<div class="ch-c'+(c.role!=='사원'?' mgr':'')+'"><div class="w"><b>'+chEsc(c.author)+'</b>'+(c.role!=='사원'?' <span>'+chEsc(c.role)+'</span>':'')+'<span>'+String(c.ts).slice(5,16)+'</span>'+(c.unread?'<span style="color:#c62828">● 새 답글</span>':'')+(c.mine?'<button class="x" title="삭제" onclick="chCmtDel(\''+chEsc(c.id)+'\')">×</button>':'')+'</div>'+chEsc(c.text).replace(/\n/g,'<br>')+'</div>').join('')+'</div>':'<div class="ch-note">아직 코멘트 없음</div>')+
+    (r.id?'<div class="ch-cf"><textarea id="chCmtIn" maxlength="500" placeholder="'+chEsc(r.manager)+'님에게 남길 코멘트 (사원대시보드 🔔 알림으로 전달) · Ctrl+Enter 등록" onkeydown="if(event.key===\'Enter\'&&(event.ctrlKey||event.metaKey))chCmtAdd()"></textarea><button id="chCmtBtn" onclick="chCmtAdd()">등록</button></div>':'<div class="ch-note">이 업체는 아직 고유번호(AR열)가 없어 코멘트를 남길 수 없음 — 사원대시보드에서 한 번 열리면 자동 부여됨</div>');
+  box.innerHTML='<div class="ch-h"><div class="t"><b>'+chEsc(r.company)+'</b>'+gradeBadge(r.grade)+'<button class="x" onclick="closeCoHist()">×</button></div>'+
+    '<div class="s"><span>👤 '+chEsc(r.manager)+'</span><span>첫콜 '+fmtRecallDate(fc)+'</span><span>통화 '+calls+'회</span>'+(r.nextRecallDate?'<span>다음 재콜 '+fmtRecallDate(r.nextRecallDate)+'</span>':'')+'</div></div>'+
+    '<div class="ch-b"><div class="ch-sum"><span class="k">담당자</span><span>'+chEsc(r.advertiserManager||'-')+(r.phone?' · '+chEsc(r.phone):'')+'</span><span class="k">예산</span><span>'+(fmtB(r.budget)||'-')+'</span><span class="k">키워드</span><span>'+chEsc(r.keyword||'-')+(r.rank?' · '+chEsc(r.rank)+(/^\d+$/.test(r.rank)?'위':''):'')+'</span>'+(r.url?'<span class="k">URL</span><span><a href="#" onclick="openUrl(\''+chEsc(r.url)+'\');return false;">'+chEsc(r.url)+'</a></span>':'')+'</div>'+
+    '<div class="ch-btns"><button onclick=\'closeCoHist();jumpToCompanyInList('+JSON.stringify(r.company).replace(/'/g,"&apos;")+')\'>📋 전체 리스트에서 보기</button><button onclick=\'openMemDash('+JSON.stringify(r.manager).replace(/'/g,"&apos;")+')\'>🖥 사원대시보드 열기</button></div>'+
+    '<div class="ch-sec"><h4>💬 코멘트 <span>사원 화면에 알림 · 사원 답글도 여기 보임</span></h4>'+cmHtml+'</div>'+
+    '<div class="ch-sec"><h4>📜 히스토리 <span>최신이 위'+(CH.log?'':' · 가망도 변경 불러오는 중…')+'</span></h4>'+
+      (fc?'<div class="ch-first"><div class="d">📌 첫콜 '+fmtRecallDate(fc)+'</div>'+(r.content?'<div class="m">'+chEsc(r.content)+'</div>':'')+'</div>':'')+
+      '<div class="ch-tl">'+(ev.length?ev.slice().reverse().map(item).join(''):'<div class="ch-note">첫콜 이후 기록 없음</div>')+'</div></div></div>';
+}
+async function chCmtAdd(){const r=CH.r,el=document.getElementById('chCmtIn');if(!r||!el)return;const t=el.value.trim();if(!t){el.focus();return;}
+  const b=document.getElementById('chCmtBtn');b.disabled=true;const res=await pApi('cmtAdd',{viewAs:r.manager,cid:r.id,company:r.company,text:t});b.disabled=false;
+  if(!res||!res.success){toast((res&&res.error)||'코멘트 저장 실패','err');return;}
+  CH.cmt={items:(res.items||[]).filter(c=>c.cid===r.id)};chRender();toast('💬 '+r.manager+'님에게 코멘트 전달');}
+async function chCmtDel(id){if(!confirm('코멘트를 지울까요?'))return;const r=CH.r;const res=await pApi('cmtDel',{viewAs:r.manager,id});if(!res||!res.success){toast((res&&res.error)||'삭제 실패','err');return;}CH.cmt={items:(res.items||[]).filter(c=>c.cid===r.id)};chRender();}
 function openMemDash(name){const u=MEMBER_DASH_URL+'?view='+encodeURIComponent(name)+(SESSION&&SESSION.token?'#sso='+encodeURIComponent(SESSION.role+'~'+SESSION.token):'');window.open(u,'_blank');}
 function memDashBtn(name){return `<a href="${MEMBER_DASH_URL}?view=${encodeURIComponent(name)}" target="_blank" title="${name} 사원대시보드 열기" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:#e8eaf6;color:#3949ab;border:1px solid #c5cae9;font-size:12px;text-decoration:none;margin-left:2px;vertical-align:middle;" onclick="event.stopPropagation();event.preventDefault();openMemDash('${name}')">🖥</a>`;}
 // [v5.101] 첫콜 칩 (체크 가망건 카드용, 표시 전용 / 호버 시 첫콜 내용 전문)
@@ -1474,19 +1575,22 @@ function renderCheckSection(rows){
       return logEntry&&logEntry.hqChecked==='Y';
     });
     const hqBtn=isHqLevel
-      ?`<button onclick='toggleHqCheck(this,${JSON.stringify(confirmItem).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid ${hqOn?'#3949ab':'var(--border)'};background:${hqOn?'#3949ab':'var(--surface)'};color:${hqOn?'#fff':'var(--text-sub)'};font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🏢 본부확인${hqOn?' ✓':''}</button>`
+      ?`<button class="ck-ib hq${hqOn?' on':''}" title="본부확인${hqOn?' ✓ (누르면 해제)':''}" onclick='toggleHqCheck(this,${JSON.stringify(confirmItem).replace(/'/g,"&apos;")})'>🏢</button>`
       :'';
     // [v5.9] 체크필요 → 보관 직행 버튼 (필수 코멘트 입력 후 확정)
     const arcUid='need_'+(r.company+'_'+r.manager+'_'+(normalizeDate(r.firstCall)||'')).replace(/[^a-zA-Z0-9가-힣]/g,'_');
     return`<div class="np-row" style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-        <button onclick='checkConfirm(this,${JSON.stringify(confirmItem).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:none;background:#2e7d32;color:#fff;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">✔ 확인</button>
-        <button onclick='openArchiveBox("${arcUid}")' style="padding:4px 10px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📌 보관</button>
-        ${hqBtn}
+      <div class="ck-top">
+        <div class="ck-co" onclick='openCoHist(${JSON.stringify(r.company).replace(/'/g,"&apos;")},${JSON.stringify(r.manager).replace(/'/g,"&apos;")})' title="눌러서 히스토리·코멘트 보기"><strong>${r.company}</strong>${r.url?`<span onclick="event.stopPropagation();openUrl('${r.url}')" class="ck-url" title="사이트 열기">🔗</span>`:''}</div>
         ${badgesHtml}
-        <div onclick='jumpToCompanyInList(${JSON.stringify(r.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${r.company}</strong>${r.url?`<span onclick="event.stopPropagation();openUrl('${r.url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
-        <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${r.manager}</div>
-        <div style="font-size:11px;white-space:nowrap;flex-shrink:0;">${gradeBadge(r.grade)}</div>
+        <span class="ck-sp"></span>
+        <span class="ck-meta">👤 ${r.manager}</span>
+        <span class="ck-meta">${gradeBadge(r.grade)}</span>
+        <span class="ck-acts">
+          <button class="ck-ib ok" title="확인 (처리 완료)" onclick='checkConfirm(this,${JSON.stringify(confirmItem).replace(/'/g,"&apos;")})'>✓</button>
+          <button class="ck-ib arc" title="보관 (사유 입력)" onclick='openArchiveBox("${arcUid}")'>📌</button>
+          ${hqBtn}
+        </span>
       </div>
       <div style="display:flex;gap:10px;padding-left:2px;font-size:10px;color:var(--text-muted);flex-wrap:wrap;">
         <span>💰 ${fmtB(r.budget)||'-'}</span>
@@ -1509,29 +1613,28 @@ function renderCheckSection(rows){
     const matched=CURRENT_ROWS.find(rr=>rr.company===l.company&&rr.manager===l.manager&&(normalizeDate(rr.firstCall)||'')===l.firstCall);
     const deleteItem={company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category,grade:matched?matched.grade:'',latestRecall:matched?matched._latestDate:''};
     const actionBtn=showArchiveBtn
-      ?`<button onclick='openArchiveBox("${arcUid}")' style="padding:4px 10px;border-radius:14px;border:1px solid #7b1fa2;background:var(--surface);color:#7b1fa2;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">📌 보관</button>`
-      :`<button onclick='checkDelete(${JSON.stringify(deleteItem).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid #c62828;background:var(--surface);color:#c62828;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🗑 삭제</button>`;
+      ?`<button class="ck-ib arc" title="보관 (사유 입력)" onclick='openArchiveBox("${arcUid}")'>📌</button>`
+      :`<button class="ck-ib del" title="삭제 (처리 기록 지우기)" onclick='checkDelete(${JSON.stringify(deleteItem).replace(/'/g,"&apos;")})'>🗑</button>`;
     const hqOn=l.hqChecked==='Y';
     const hqBtn=isHqLevel
-      ?`<button onclick='toggleHqCheck(this,${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})' style="padding:4px 10px;border-radius:14px;border:1px solid ${hqOn?'#3949ab':'var(--border)'};background:${hqOn?'#3949ab':'var(--surface)'};color:${hqOn?'#fff':'var(--text-sub)'};font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;">🏢 본부확인${hqOn?' ✓':''}</button>`
+      ?`<button class="ck-ib hq${hqOn?' on':''}" title="본부확인${hqOn?' ✓ (누르면 해제)':''}" onclick='toggleHqCheck(this,${JSON.stringify({company:l.company,manager:l.manager,firstCall:l.firstCall,cat:l.category}).replace(/'/g,"&apos;")})'>🏢</button>`
       :'';
     const closeBtn=showArchiveBtn
-      ?`<button onclick='checkDelete(${JSON.stringify(deleteItem).replace(/'/g,"&apos;")})' title="삭제 (중복 등 잘못 처리된 항목 제거)" style="background:none;border:none;color:var(--text-muted);font-size:15px;font-weight:700;cursor:pointer;padding:0 2px;line-height:1;flex-shrink:0;margin-left:auto;">✕</button>`
+      ?`<button class="ck-ib del" title="삭제 (중복 등 잘못 처리된 항목 제거)" onclick='checkDelete(${JSON.stringify(deleteItem).replace(/'/g,"&apos;")})'>✕</button>`
       :'';
     const url=matched?matched.url:'';
     const memoKey=getCheckKey({company:l.company,manager:l.manager,firstCall:l.firstCall},l.category).replace(/[^a-zA-Z0-9가-힣]/g,'_');
     const hasMemo=!!(l.memo&&l.memo.trim());
     return`<div style="display:flex;flex-direction:column;gap:5px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);">
-      <div style="display:flex;align-items:center;gap:6px;">
-        ${actionBtn}
-        ${hqBtn}
-        ${isHqLevel?`<span style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">[${l.status||'체크필요'}]</span>`:''}
+      <div class="ck-top">
+        <div class="ck-co" onclick='openCoHist(${JSON.stringify(l.company).replace(/'/g,"&apos;")},${JSON.stringify(l.manager).replace(/'/g,"&apos;")})' title="눌러서 히스토리·코멘트 보기"><strong>${l.company}</strong>${url?`<span onclick="event.stopPropagation();openUrl('${url}')" class="ck-url" title="사이트 열기">🔗</span>`:''}</div>
         <span style="background:${CHECK_CAT_COLOR[l.category]}1a;color:${CHECK_CAT_COLOR[l.category]};border:1px solid ${CHECK_CAT_COLOR[l.category]}55;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;">${l.category}</span>
+        ${isHqLevel?`<span class="ck-st">${l.status||'체크필요'}</span>`:''}
         ${(l.gradeSnapshot&&matched&&matched.grade&&l.gradeSnapshot!==matched.grade)?`<span style="background:#fff3e0;color:#e65100;border:1px solid #ffb74d;border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;flex-shrink:0;" title="처리 당시와 가망도가 달라졌습니다">⚠️ 현재:${matched.grade} (처리당시:${l.gradeSnapshot})</span>`:''}
-        <div onclick='jumpToCompanyInList(${JSON.stringify(l.company).replace(/'/g,"&apos;")})' style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;" title="클릭하면 전체 가망건 리스트에서 이 업체를 확인합니다"><strong style="font-size:12px;text-decoration:underline;text-decoration-style:dotted;">${l.company}</strong>${url?`<span onclick="event.stopPropagation();openUrl('${url}')" style="margin-left:4px;cursor:pointer;color:#3949ab;font-size:10px;">🔗</span>`:''}</div>
-        <div style="font-size:11px;color:var(--text-sub);white-space:nowrap;flex-shrink:0;">👤 ${l.manager}</div>
-        <div style="font-size:10px;color:var(--text-muted);white-space:nowrap;flex-shrink:0;">${l.actor}·${l.actedAt.slice(5,16)}</div>
-        ${closeBtn}
+        <span class="ck-sp"></span>
+        <span class="ck-meta">👤 ${l.manager}</span>
+        <span class="ck-meta" style="color:var(--text-muted);font-size:10px;">${l.actor}·${l.actedAt.slice(5,16)}</span>
+        <span class="ck-acts">${actionBtn}${hqBtn}${closeBtn}</span>
       </div>
       ${showArchiveBtn
         ?(matched?`<div style="padding-left:2px;">${renderFirstCallChip(matched)}${((l.category==='숨은가망'||l.category==='비가망P')&&matched.recalls&&matched.recalls.length)?renderLongMemoChips(matched.recalls):''}</div>`:'')
