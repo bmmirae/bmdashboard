@@ -506,7 +506,10 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.8.1';
+const DASHBOARD_VERSION = 'v8.8.2';
+// [v8.8.2] 로딩 속도: 서버(c1.01)에 gz=1로 요청 → 압축 데이터 받아 브라우저에서 풀기, 콘솔에 [미션 로딩 진단] 표시
+const CAN_GZ = typeof DecompressionStream !== 'undefined';
+async function gunzipB64(b64) { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text(); }
 const PROSPECT_API = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
 // 가망건 대시보드(별도 시스템)에서 담당자별 신규/기존 건수 집계만 가져옴 (인증 불필요, 서버에서 이미 집계됨)
@@ -798,10 +801,17 @@ async function loadAllData() {
     const wsStr = STATE.weekStart ? fmtDateStr(STATE.weekStart) : null;
     const weStr = STATE.weekEnd ? fmtDateStr(STATE.weekEnd) : null;
     const [res] = await Promise.all([
-      fetch(API_URL + '?action=all&_=' + Date.now(), { cache: 'no-store' }),
+      fetch(API_URL + '?action=all' + (CAN_GZ ? '&gz=1' : '') + '&_=' + Date.now(), { cache: 'no-store' }),
       loadProspectData(wsStr, weStr)
     ]);
-    const data = await res.json();
+    const _t0 = performance.now();
+    let data = await res.json();
+    if (data && data.gz) {
+      const gzKB = Math.round(data.gz.length / 1024), live = data;
+      data = Object.assign(JSON.parse(await gunzipB64(data.gz)), { lastUpload: live.lastUpload, promoBenefit: live.promoBenefit, status: live.status, _diag: live._diag });
+      if (data._diag) data._diag.push('브라우저: 전송 ' + gzKB + 'KB · 받기+풀기 ' + Math.round(performance.now() - _t0) + 'ms');
+    }
+    if (data && data._diag) console.log('%c[미션 로딩 진단]', 'color:#c62828;font-weight:700', data._diag.join('\n'));
     if (data.status !== 'ok') throw new Error(data.message);
 
     STATE.settings = data.settings || [];
