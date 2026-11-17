@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.109</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.110</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -289,7 +289,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.109</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.110</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -498,6 +498,7 @@ function renderRecallChipsFC(r){
 }
 // [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
 const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+// [v5.110] 로딩 속도 ③: 서버 데이터 압축 전송(code2 v5.24 필요) + 화면 데이터 보관을 IndexedDB로(다시 열면 바로 표시 후 백그라운드 갱신, 내용 달라지면 반영)
 // [v5.109] 데이터 로드 시 서버 단계별 소요시간(_diag)을 브라우저 콘솔에 표시 (code2 v5.21 필요)
 // [v5.108] 상단 헤더에 🔄 새로고침 버튼 (기존 버튼은 숨김 처리돼 있었음)
 // [v5.107] 보고 엑셀: 제목 '가망건 보고', 작성·검토·승인 칸 삭제
@@ -704,9 +705,28 @@ function changePerfMonth(val){const parts=val.split('-');PERF_YEAR=parseInt(part
 const LS_VER='v586';
 const LS_TTL=15*60*1000;
 function _lsKey(role){return'dash_'+LS_VER+'_'+role+'_'+new Date().toISOString().slice(0,10);}
-function lsSave(role,data){try{localStorage.setItem(_lsKey(role),JSON.stringify({ts:Date.now(),data}));}catch(e){}}
-function lsLoad(role){try{const r=localStorage.getItem(_lsKey(role));if(!r)return null;const p=JSON.parse(r);return(Date.now()-p.ts>LS_TTL)?null:p.data;}catch(e){return null;}}
-function lsClear(role){try{localStorage.removeItem(_lsKey(role));}catch(e){}}
+// [v5.110] 화면 데이터 보관을 localStorage(5MB 한도라 8MB 데이터는 저장 실패) → IndexedDB로 변경
+const IDB={db:null,open(){if(this.db)return Promise.resolve(this.db);return new Promise((ok,ng)=>{const r=indexedDB.open('bmdash',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>{this.db=r.result;ok(this.db);};r.onerror=()=>ng(r.error);});},
+  async get(k){try{const db=await this.open();return await new Promise(ok=>{const q=db.transaction('kv').objectStore('kv').get(k);q.onsuccess=()=>ok(q.result||null);q.onerror=()=>ok(null);});}catch(e){return null;}},
+  async set(k,v){try{const db=await this.open();await new Promise(ok=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').put(v,k);tx.oncomplete=ok;tx.onerror=ok;tx.onabort=ok;});}catch(e){}},
+  async del(k){try{const db=await this.open();await new Promise(ok=>{const tx=db.transaction('kv','readwrite');tx.objectStore('kv').delete(k);tx.oncomplete=ok;tx.onerror=ok;});}catch(e){}},
+  async clean(keep){try{const db=await this.open();const tx=db.transaction('kv','readwrite'),st=tx.objectStore('kv'),q=st.getAllKeys();q.onsuccess=()=>q.result.forEach(k=>{if(String(k).startsWith('dash_')&&k!==keep)st.delete(k);});}catch(e){}}};
+function lsSave(role,data){const k=_lsKey(role);IDB.set(k,{ts:Date.now(),data}).then(()=>IDB.clean(k));try{Object.keys(localStorage).forEach(x=>{if(x.startsWith('dash_'))localStorage.removeItem(x);});}catch(e){}}
+async function lsLoad(role){const p=await IDB.get(_lsKey(role));if(!p||!p.data)return null;return(Date.now()-p.ts>LS_TTL)?null:p.data;}
+function lsClear(role){IDB.del(_lsKey(role));}
+// [v5.110] 서버 데이터 압축 전송: gz=1 → base64 gzip 받아서 브라우저에서 풀기 (DecompressionStream 없는 브라우저는 기존 방식)
+const CAN_GZ=typeof DecompressionStream!=='undefined';
+async function gunzipB64(b64){const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text();}
+async function callData(params){
+  const t0=performance.now();
+  const res=await callServer('serverData',Object.assign({},params,CAN_GZ?{gz:1}:{}));
+  if(!res||!res.gz){if(res&&res.success)res._net={ms:Math.round(performance.now()-t0),gz:false};return res;}
+  const t1=performance.now();let d;
+  try{d=JSON.parse(await gunzipB64(res.gz));}catch(e){return{success:false,error:'압축 해제 실패: '+e.message};}
+  d._raw=res.raw;d._net={ms:Math.round(performance.now()-t0),unzipMs:Math.round(performance.now()-t1),gzKB:Math.round(res.gz.length/1024),rawKB:Math.round(res.raw/1024),gzMs:res.gzMs,gz:true};
+  return d;
+}
+function logDiag(res,tag){if(!res||!res._diag)return;const n=res._net||{};console.log('%c[로딩 진단]'+(tag?' '+tag:''),'color:#c62828;font-weight:700',(res._cached?'서버캐시 사용\n':'')+res._diag.join('\n')+'\n─ 브라우저: 요청~받기 완료 '+(n.ms!=null?n.ms+'ms':'?')+(n.gz?' · 전송 '+n.gzKB+'KB (원래 '+n.rawKB+'KB, 서버 압축 '+n.gzMs+'ms · 풀기 '+n.unzipMs+'ms)':' · 압축 안 함'));}
 
 // ── 조직 구조 (초기값 · 서버 orgMap으로 덮어씌워짐) ─────────────
 const ORG_MAP={
@@ -739,22 +759,22 @@ function _applyData(res){
 async function loadData(forceRefresh=false){
   if(forceRefresh)lsClear(SESSION.role);
   if(!forceRefresh){
-    const cached=lsLoad(SESSION.role);
+    const cached=await lsLoad(SESSION.role);
     if(cached&&cached.success){
       await loadCheckLog();
       _applyData(cached);loading(false);
       toast('⚡ 빠른 로드 완료 (백그라운드 갱신 중...)');
-      callServer('serverData',{role:SESSION.role,token:SESSION.token,forceRefresh:false})
-        .then(res=>{if(!res.success)return;lsSave(SESSION.role,res);if((res.rows||[]).length!==CURRENT_ROWS.length){_applyData(res);toast('✅ 데이터 갱신 완료');}})
+      callData({role:SESSION.role,token:SESSION.token,forceRefresh:false})
+        .then(res=>{if(!res.success)return;logDiag(res,'(백그라운드)');lsSave(SESSION.role,res);if((res.rows||[]).length!==CURRENT_ROWS.length||(res._raw&&cached._raw&&res._raw!==cached._raw)){_applyData(res);toast('✅ 최신 데이터로 갱신됨');}})
         .catch(()=>{});
       return;
     }
   }
   loading(true,forceRefresh?'🔄 최신 데이터 불러오는 중...':'📡 데이터 불러오는 중...');
   try{
-    const [res]=await Promise.all([callServer('serverData',{role:SESSION.role,token:SESSION.token,forceRefresh}),loadCheckLog()]);
+    const [res]=await Promise.all([callData({role:SESSION.role,token:SESSION.token,forceRefresh}),loadCheckLog()]);
     if(!res.success){if(res.error.includes('세션'))doLogout();throw new Error(res.error);}
-    if(res._diag)console.log('%c[로딩 진단]','color:#c62828;font-weight:700',(res._cached?'서버캐시 사용\n':'')+res._diag.join('\n'));
+    logDiag(res);
     lsSave(SESSION.role,res);_applyData(res);
     toast('✅ 데이터 로드 완료!'+(res._cached?' (서버캐시)':''));
     setTimeout(prefetchPerformance,3000);
