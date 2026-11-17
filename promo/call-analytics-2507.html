@@ -506,7 +506,7 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.8.2';
+const DASHBOARD_VERSION = 'v8.8.3';
 // [v8.8.2] 로딩 속도: 서버(c1.01)에 gz=1로 요청 → 압축 데이터 받아 브라우저에서 풀기, 콘솔에 [미션 로딩 진단] 표시
 const CAN_GZ = typeof DecompressionStream !== 'undefined';
 async function gunzipB64(b64) { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text(); }
@@ -520,11 +520,11 @@ async function loadProspectData(weekStartStr, weekEndStr) {
     const url = PROSPECT_API + '?action=serverGetProspectSummary&params=' + encodeURIComponent(JSON.stringify(paramsObj));
     const res = await fetch(url);
     const data = await res.json();
-    STATE.prospectMap = data.prospectMap || {};
+    STATE.prospectMap = data.prospectMap || {}; bumpDataVer();
     if (weekStartStr) STATE.promoByWeekStart[weekStartStr] = STATE.prospectMap;
   } catch (e) {
     console.warn('가망건 데이터 로드 실패:', e);
-    STATE.prospectMap = {};
+    STATE.prospectMap = {}; bumpDataVer();
   }
 }
 
@@ -815,7 +815,7 @@ async function loadAllData() {
     if (data.status !== 'ok') throw new Error(data.message);
 
     STATE.settings = data.settings || [];
-    STATE.calls = data.calls || [];
+    STATE.calls = data.calls || []; bumpDataVer();
     STATE.attendance = data.attendance || [];
     STATE.sales = data.sales || [];
     STATE.penalty = data.penalty || [];
@@ -1111,7 +1111,17 @@ function computePromoBenefit(pCount, bigCount) {
   return { benefitMin, rawMin };
 }
 
+// [v8.8.3] 같은 주 계산을 사원 수×주 수만큼 반복하던 것 → 데이터가 바뀌기 전까지 결과 재사용
+let _cadVer = 0; const _cadMemo = new Map();
+function bumpDataVer() { _cadVer++; _cadMemo.clear(); }
 function computeAgentDataForRange(rangeStart, rangeEnd, offsetHint, skipExempt) {
+  const k = `${_cadVer}|${rangeStart.getTime()}|${rangeEnd.getTime()}|${offsetHint}|${!!skipExempt}`;
+  if (_cadMemo.has(k)) return _cadMemo.get(k);
+  const r = computeAgentDataForRangeRaw(rangeStart, rangeEnd, offsetHint, skipExempt);
+  _cadMemo.set(k, r);
+  return r;
+}
+function computeAgentDataForRangeRaw(rangeStart, rangeEnd, offsetHint, skipExempt) {
   const dateStr = d => {
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
     return `${y}-${m}-${day}`;
@@ -1476,6 +1486,8 @@ function computeLastWeekAchieved(name, currentOffset) {
 // DASHBOARD RENDERING
 // ══════════════════════════════════════
 function renderDashboard() {
+  const _rt0 = performance.now();
+  setTimeout(() => console.log('%c[미션 렌더 진단]', 'color:#1565c0;font-weight:700', '화면 계산+그리기 ' + Math.round(performance.now() - _rt0) + 'ms'), 0);
   STATE._wkCache = {};
   setTimeout(() => { try { ensureMonthPromos(); } catch (e) {} }, 0);
   const agentData = computeAgentDataForRange(STATE.weekStart, STATE.weekEnd, STATE.weekOffset);
