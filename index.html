@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.105</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.106</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -289,7 +289,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.105</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.106</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -497,6 +497,7 @@ function renderRecallChipsFC(r){
 }
 // [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
 const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+// [v5.106] CHECK에 📑 보고용 탭: 부서장이 서면보고할 가망건 골라 담기(이 브라우저에 저장) → 사원 가망DB 시트와 같은 열 구성으로 엑셀 다운로드(요약·전체·사원별 시트, 재콜 메모는 셀 메모)
 // [v5.105] 히스토리 패널 안에도 확인·보관·본부확인(·삭제) 버튼
 // [v5.104] 카드 아무 곳이나 누르면 패널 열림 (버튼·입력칸 제외)
 // [v5.103] 업체 히스토리 패널 + 사원대시보드 코멘트 연동 (사원대시보드 서버에 부서장 로그인 그대로 넘겨서 저장 → 사원 화면 🔔 알림)
@@ -773,7 +774,7 @@ async function doLogin(){
   try{
     const res=await callServer('serverAuth',{role,password:pw});
     if(!res.success){errEl.textContent=res.error||'인증 실패';errEl.classList.add('show');return;}
-    SESSION={role:res.role,token:res.token,roleInfo:res.roleInfo,scope:res.scope};
+    SESSION={role:res.role,token:res.token,roleInfo:res.roleInfo,scope:res.scope};_rptSel=null;
     sessionStorage.setItem('dash_session',JSON.stringify(SESSION));
     showDash();await loadData();
   }catch(e){errEl.textContent='연결 오류: '+e.message;errEl.classList.add('show');}
@@ -1753,6 +1754,7 @@ function renderCheckSection(rows){
       <button id="ct_archive" onclick="switchCheckTab('archive')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">📌 보관 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${archiveItems.length}</span></button>
       <button id="ct_transfer" onclick="switchCheckTab('transfer')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">🔁 이관완료 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${transferItems.length}</span></button>
       ${isHqLevel?`<button id="ct_hq" onclick="switchCheckTab('hq')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">🏢 본부확인 <span style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${hqItems.length}</span></button>`:''}
+      <button id="ct_report" onclick="switchCheckTab('report')" style="padding:8px 20px;border:none;background:none;font-size:13px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">📑 보고용 <span id="rptTabCnt" style="background:#f0f0f0;color:var(--text-sub);border-radius:10px;padding:1px 8px;font-size:11px;margin-left:4px;">${rptSelRows().length}</span></button>
     </div>
     <div id="ctb_need">${(()=>{
       if(!needItems.length) return emptyMsg('체크할 가망건이 없습니다');
@@ -1823,6 +1825,7 @@ function renderCheckSection(rows){
       </div>
     </div>
     <div id="ctb_transfer" style="display:none;">${renderTransferTab(transferItems)}</div>
+    <div id="ctb_report" style="display:none;"><div id="rptBox">${(window._rptRows=rows,renderReportTab())}</div></div>
     ${isHqLevel?`<div id="ctb_hq" style="display:none;">
       <div style="font-size:11px;color:var(--text-muted);margin-bottom:8px;">ℹ️ 본부장급 이상이 별도로 더블체크 표시한 항목입니다. 팀장의 확인완료/보관 흐름과는 독립적으로 관리되며, 원래 상태([확인완료]/[보관])는 그대로 유지됩니다.</div>
       ${hqItems.length?paginated(hqItems,'hq',l=>renderLogCard(l,l.status==='확인완료')):emptyMsg('본부확인 처리된 항목이 없습니다')}
@@ -1875,11 +1878,11 @@ function switchCheckLogMain(tab,main){
 }
 function switchCheckTab(tab){
   _checkTab=tab;
-  ['need','done','archive','transfer','hq'].forEach(t=>{
+  ['need','done','archive','transfer','hq','report'].forEach(t=>{
     const btn=document.getElementById('ct_'+t);
     const body=document.getElementById('ctb_'+t);
     const isActive=t===tab;
-    const color=t==='need'?'#c62828':t==='done'?'#2e7d32':t==='archive'?'#7b1fa2':t==='transfer'?'#1565c0':'#3949ab';
+    const color=t==='need'?'#c62828':t==='done'?'#2e7d32':t==='archive'?'#7b1fa2':t==='transfer'?'#1565c0':t==='report'?'#00695c':'#3949ab';
     if(btn){btn.style.fontWeight=isActive?'700':'400';btn.style.color=isActive?color:'var(--text-sub)';btn.style.borderBottom=isActive?'3px solid '+color:'3px solid transparent';}
     if(body)body.style.display=isActive?'block':'none';
   });
@@ -1979,6 +1982,114 @@ function changeCheckPage(pageKey,page){
   window._checkPageState[pageKey]=page;
   refreshCheckSectionOnly();
 }
+
+// ═══ [v5.106] 📑 보고용: 서면보고 가망건 담기 + 엑셀 다운로드 ═══
+// 담은 목록 = 이 브라우저(localStorage)에 역할별 저장 · 키 = 담당|업체|첫콜
+let _rptSel=null,_rptQ='',_rptG='',_rptView='pick';
+const RPT_HDR=['가망도','첫콜날짜','키워드','순위','예산','업체명','내용','URL','컨택포인트','광고주담당자','연락처','이메일','재콜예정일'];
+function rptKey(r){return r.manager+'|'+r.company+'|'+(normalizeDate(r.firstCall)||'');}
+function rptSet(){if(_rptSel)return _rptSel;try{_rptSel=new Set(JSON.parse(localStorage.getItem('rptSel_'+(SESSION&&SESSION.role))||'[]'));}catch(e){_rptSel=new Set();}return _rptSel;}
+function rptSave(){try{localStorage.setItem('rptSel_'+SESSION.role,JSON.stringify([...rptSet()]));}catch(e){}}
+function rptOrd(a,b){const bi=x=>{const i=BU_ORDER.indexOf(x.bu);return i<0?99:i;},ti=x=>{const i=TEAM_ORDER.indexOf(x.team);return i<0?99:i;};return bi(a)-bi(b)||ti(a)-ti(b)||String(a.manager).localeCompare(String(b.manager),'ko');}
+function rptSelRows(){const st=rptSet();if(!st.size)return[];return(CURRENT_ROWS||[]).filter(r=>st.has(rptKey(r))).sort(rptOrd);}
+function rptEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
+function rptLastRecall(r){return r.missedRecallDate||'';}
+function rptPickRows(){const q=_rptQ.trim().toLowerCase();return(window._rptRows||CURRENT_ROWS||[]).filter(r=>(!_rptG||r.grade===_rptG)&&(!q||[r.company,r.keyword,r.manager,r.phone,r.contactPoint].some(v=>String(v||'').toLowerCase().includes(q)))).slice().sort(rptOrd);}
+function rptCnt(){const n=rptSelRows().length;const c=document.getElementById('rptTabCnt');if(c)c.textContent=n;document.querySelectorAll('.rpt-n').forEach(e=>e.textContent=n);}
+function rptToggle(k,on){const st=rptSet();on?st.add(k):st.delete(k);rptSave();rptCnt();if(_rptView==='sel')rptRender();}
+function rptBulk(on){const st=rptSet();rptPickRows().forEach(r=>on?st.add(rptKey(r)):st.delete(rptKey(r)));rptSave();rptRender();toast(on?'📑 필터 결과를 담았습니다':'필터 결과를 뺐습니다');}
+function rptClear(){if(!confirm('담은 목록을 모두 비울까요?'))return;rptSet().clear();rptSave();rptRender();}
+function rptSetView(v){_rptView=v;rptRender();}
+function rptRender(){const b=document.getElementById('rptBox');if(b)b.innerHTML=renderReportTab();rptCnt();}
+function rptListOnly(){const b=document.getElementById('rptList');if(b)b.innerHTML=rptPickTable();}
+function rptPickTable(){
+  const st=rptSet(),list=rptPickRows();
+  if(!list.length)return'<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px;">조건에 맞는 가망건이 없습니다</div>';
+  const th='style="padding:6px 8px;text-align:left;font-size:11px;color:var(--text-sub);border-bottom:2px solid var(--border);position:sticky;top:0;background:var(--card,#fff);"';
+  let h=`<div style="max-height:460px;overflow:auto;border:1px solid var(--border);border-radius:8px;"><table style="width:100%;border-collapse:collapse;font-size:12px;"><thead><tr><th ${th}>담기</th><th ${th}>팀</th><th ${th}>담당</th><th ${th}>가망도</th><th ${th}>업체명</th><th ${th}>예산</th><th ${th}>첫콜</th><th ${th}>최근재콜</th><th ${th}>다음재콜</th></tr></thead><tbody>`;
+  list.forEach(r=>{const k=rptKey(r),on=st.has(k);
+    h+=`<tr style="border-bottom:1px solid var(--border);${on?'background:rgba(0,105,92,.06);':''}"><td style="padding:5px 8px;"><input type="checkbox" ${on?'checked':''} onchange="rptToggle(${rptEsc(JSON.stringify(k))},this.checked);this.closest('tr').style.background=this.checked?'rgba(0,105,92,.06)':''" style="width:16px;height:16px;cursor:pointer;"></td><td style="padding:5px 8px;white-space:nowrap;">${rptEsc(r.team)}</td><td style="padding:5px 8px;white-space:nowrap;">${rptEsc(r.manager)}</td><td style="padding:5px 8px;">${gradeBadge(r.grade||'선택없음')}</td><td style="padding:5px 8px;font-weight:700;">${rptEsc(r.company)}</td><td style="padding:5px 8px;text-align:right;">${r.budget?Number(r.budget).toLocaleString():''}</td><td style="padding:5px 8px;white-space:nowrap;">${rptEsc(normalizeDate(r.firstCall))}</td><td style="padding:5px 8px;white-space:nowrap;">${rptEsc(rptLastRecall(r))}</td><td style="padding:5px 8px;white-space:nowrap;">${rptEsc(r.nextRecallDate)}</td></tr>`;});
+  return h+'</tbody></table></div>';
+}
+function renderReportTab(){
+  const sel=rptSelRows(),rows=window._rptRows||CURRENT_ROWS||[];
+  const grades=[...new Set(rows.map(r=>r.grade).filter(Boolean))];
+  const btn=(v,l)=>`<button onclick="rptSetView('${v}')" class="nbtn ${_rptView===v?'na':''}" style="font-size:11px;">${l}</button>`;
+  let h=`<div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">ℹ️ 서면보고할 가망건을 골라 담은 뒤 엑셀로 받으세요. 엑셀은 사원 가망DB(구글시트)와 같은 열 구성입니다. 담은 목록은 이 브라우저에 저장됩니다.</div>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;">${btn('pick','🗂 가망건 고르기 ('+rows.length+')')}${btn('sel','📑 담은 목록 (<span class="rpt-n">'+sel.length+'</span>)')}
+  <span style="flex:1"></span>
+  <button onclick="rptDownload()" style="background:#00695c;color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:700;cursor:pointer;">⬇ 엑셀 다운로드 (<span class="rpt-n">${sel.length}</span>건)</button></div>`;
+  if(_rptView==='pick'){
+    h+=`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
+      <input type="text" value="${rptEsc(_rptQ)}" placeholder="업체명·키워드·담당·연락처 검색" oninput="_rptQ=this.value;rptListOnly()" style="flex:1;min-width:180px;padding:6px 10px;border:1px solid var(--border);border-radius:8px;font-size:12px;">
+      <select onchange="_rptG=this.value;rptListOnly()" style="padding:6px 8px;border:1px solid var(--border);border-radius:8px;font-size:12px;"><option value="">가망도 전체</option>${grades.map(g=>`<option ${g===_rptG?'selected':''}>${rptEsc(g)}</option>`).join('')}</select>
+      <button onclick="rptBulk(true)" class="nbtn" style="font-size:11px;">＋ 검색결과 전체 담기</button>
+      <button onclick="rptBulk(false)" class="nbtn" style="font-size:11px;">－ 검색결과 빼기</button></div>
+      <div id="rptList">${rptPickTable()}</div>`;
+  }else{
+    if(!sel.length)return h+'<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px;">담은 가망건이 없습니다 · 🗂 가망건 고르기에서 체크하세요</div>';
+    const gm={};sel.forEach(r=>{const g=r.grade||'선택없음';gm[g]=(gm[g]||0)+1;});
+    h+=`<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px;font-size:12px;">${Object.entries(gm).map(([g,n])=>`<span style="display:inline-flex;gap:4px;align-items:center;">${gradeBadge(g)}<b>${n}</b></span>`).join('')}<span style="flex:1"></span><button onclick="rptClear()" class="nbtn" style="font-size:11px;">🗑 전체 비우기</button></div>`;
+    let team='',mgr='';
+    sel.forEach(r=>{
+      if(r.team!==team){team=r.team;mgr='';h+=`<div style="font-size:12px;font-weight:800;color:#00695c;margin:12px 0 4px;">👥 ${rptEsc(r.bu)} · ${rptEsc(team)} (${sel.filter(x=>x.team===team).length})</div>`;}
+      if(r.manager!==mgr){mgr=r.manager;h+=`<div style="font-size:11px;font-weight:700;color:var(--text-sub);margin:6px 0 2px 8px;">👤 ${rptEsc(mgr)}</div>`;}
+      h+=`<div style="display:flex;gap:8px;align-items:center;padding:5px 8px 5px 18px;border-bottom:1px solid var(--border);font-size:12px;">${gradeBadge(r.grade||'선택없음')}<b>${rptEsc(r.company)}</b><span style="color:var(--text-muted);">${rptEsc(r.keyword)}</span><span style="margin-left:auto;color:var(--text-sub);white-space:nowrap;">${r.budget?Number(r.budget).toLocaleString():''} · 다음재콜 ${rptEsc(r.nextRecallDate||'-')}</span><button onclick="rptToggle(${rptEsc(JSON.stringify(rptKey(r)))},false)" title="빼기" style="border:none;background:none;cursor:pointer;color:#c62828;font-size:14px;">✕</button></div>`;
+    });
+  }
+  return h;
+}
+function rptLoadLib(){if(window.ExcelJS)return Promise.resolve();return new Promise((ok,ng)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js';sc.onload=ok;sc.onerror=()=>ng(new Error('엑셀 모듈을 불러오지 못했습니다'));document.head.appendChild(sc);});}
+async function rptDownload(){
+  const sel=rptSelRows();if(!sel.length){toast('담은 가망건이 없습니다','err');return;}
+  try{toast('엑셀 만드는 중...');await rptLoadLib();
+    const d=new Date(),ymd=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const ri=(SESSION&&SESSION.roleInfo)||{},who=((ri.name||'')+' '+(ri.title||'')).trim(),scope=ri.scope||'';
+    const nR=Math.max(1,...sel.map(r=>(r.recalls||[]).length));
+    const recH=Array.from({length:nR},(_,i)=>'재콜'+(i+1));
+    const wb=new ExcelJS.Workbook();wb.creator='가망건 통합 대시보드';
+    const thin={style:'thin',color:{argb:'FFBDBDBD'}},bd={top:thin,left:thin,bottom:thin,right:thin};
+    const hdrFill={type:'pattern',pattern:'solid',fgColor:{argb:'FFE8EAF6'}};
+    const styleHdr=row=>row.eachCell(c=>{c.font={bold:true,size:10};c.fill=hdrFill;c.border=bd;c.alignment={vertical:'middle',horizontal:'center',wrapText:true};});
+    const lineOf=r=>[r.grade||'',normalizeDate(r.firstCall)||'',r.keyword||'',r.rank||'',r.budget||'',r.company||'',r.content||'',r.url||'',r.contactPoint||'',r.advertiserManager||'',r.phone||'',r.email||'',r.nextRecallDate||''];
+    const fill=(ws,list,pre)=>{
+      styleHdr(ws.addRow([...(pre?['본부','팀','담당자']:[]),...RPT_HDR,...recH]));
+      const off=pre?3:0;
+      list.forEach(r=>{const rc=r.recalls||[];const row=ws.addRow([...(pre?[r.bu||'',r.team||'',r.manager||'']:[]),...lineOf(r),...recH.map((_,i)=>rc[i]?rc[i].date:'')]);
+        row.eachCell({includeEmpty:true},c=>{c.border=bd;c.font={size:10};c.alignment={vertical:'top'};});
+        row.getCell(off+5).numFmt='#,##0';
+        rc.forEach((x,i)=>{if(x&&x.memo){row.getCell(off+14+i).note=x.memo;}});});
+      ws.views=[{state:'frozen',ySplit:1,xSplit:off+6}];
+      ws.autoFilter={from:{row:1,column:1},to:{row:1,column:off+13+nR}};
+      const W=[9,11,14,6,10,16,26,22,10,10,13,18,11];
+      ws.columns.forEach((col,i)=>{col.width=i<off?9:(i-off<13?W[i-off]:11);});
+    };
+    // 요약
+    const sm=wb.addWorksheet('요약');sm.columns=[{width:14},{width:14},{width:12},{width:10},{width:14},{width:14}];
+    sm.mergeCells('A1:F1');const t=sm.getCell('A1');t.value='가망건 서면보고';t.font={bold:true,size:16};t.alignment={horizontal:'center'};sm.getRow(1).height=28;
+    [['보고일',ymd],['보고자',who],['보고 범위',scope],['보고 건수',sel.length+'건'],['예산 합계',sel.reduce((a,r)=>a+(Number(r.budget)||0),0)]].forEach(([k,v])=>{const r=sm.addRow([k,v]);r.getCell(1).font={bold:true};r.getCell(1).fill=hdrFill;[1,2].forEach(i=>r.getCell(i).border=bd);if(typeof v==='number')r.getCell(2).numFmt='#,##0';});
+    sm.addRow([]);styleHdr(sm.addRow(['가망도','건수','예산 합계']));
+    const gm={};sel.forEach(r=>{const g=r.grade||'선택없음';gm[g]=gm[g]||{n:0,b:0};gm[g].n++;gm[g].b+=Number(r.budget)||0;});
+    Object.entries(gm).forEach(([g,v])=>{const r=sm.addRow([g,v.n,v.b]);[1,2,3].forEach(i=>r.getCell(i).border=bd);r.getCell(3).numFmt='#,##0';});
+    sm.addRow([]);styleHdr(sm.addRow(['본부','팀','담당자','건수','예산 합계']));
+    const mm={};sel.forEach(r=>{const k=r.bu+'|'+r.team+'|'+r.manager;mm[k]=mm[k]||{bu:r.bu,team:r.team,m:r.manager,n:0,b:0};mm[k].n++;mm[k].b+=Number(r.budget)||0;});
+    Object.values(mm).forEach(v=>{const r=sm.addRow([v.bu,v.team,v.m,v.n,v.b]);[1,2,3,4,5].forEach(i=>r.getCell(i).border=bd);r.getCell(5).numFmt='#,##0';});
+    sm.addRow([]);sm.addRow([]);
+    const sg=sm.addRow(['','','','작성','검토','승인']);[4,5,6].forEach(i=>{const c=sg.getCell(i);c.font={bold:true};c.fill=hdrFill;c.border=bd;c.alignment={horizontal:'center'};});
+    const sg2=sm.addRow(['','','','','','']);sg2.height=42;[4,5,6].forEach(i=>sg2.getCell(i).border=bd);
+    sm.pageSetup={paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0};
+    // 전체 + 사원별 (사원 가망DB와 같은 열)
+    const all=wb.addWorksheet('보고_전체');fill(all,sel,true);all.pageSetup={paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
+    const used=new Set(['요약','보고_전체']);
+    [...new Set(sel.map(r=>r.manager))].forEach(m=>{let n=String(m||'미지정').replace(/[\\\/\?\*\[\]:]/g,'').slice(0,28)||'사원',k=n,i=2;while(used.has(k))k=n+i++;used.add(k);
+      const ws=wb.addWorksheet(k);fill(ws,sel.filter(r=>r.manager===m),false);ws.pageSetup={paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};});
+    const buf=await wb.xlsx.writeBuffer();
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+    a.download=`가망건보고_${(scope||who||'').replace(/[\\\/:*?"<>|\s]/g,'')}_${ymd.replace(/-/g,'')}.xlsx`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},1000);
+    toast('⬇ 엑셀 다운로드 ('+sel.length+'건)');
+  }catch(e){toast('엑셀 만들기 실패: '+e.message,'err');}
+}
+
 function refreshCheckSectionOnly(){
   const wrap=document.getElementById('jump-check');if(!wrap)return;
   const rows=CURRENT_FILTER==='all'?CURRENT_ROWS:(()=>{const allNames=Object.values(ORG_MAP).flatMap(bu=>Object.values(bu).flat());const isMember=allNames.includes(CURRENT_FILTER);return isMember?CURRENT_ROWS.filter(r=>r.manager===CURRENT_FILTER):CURRENT_ROWS.filter(r=>r.bu===CURRENT_FILTER||r.team===CURRENT_FILTER);})();
