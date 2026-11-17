@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.107</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.109</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -289,12 +289,13 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.107</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.109</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
     <div class="header-right">
       <span class="user-chip" id="userChip">-</span>
+      <button class="theme-btn" onclick="refreshData()" title="서버에서 최신 데이터 다시 불러오기">🔄 새로고침</button>
       <button class="theme-btn" onclick="toggleTheme()" id="themeBtn">🌙 다크</button>
       <button class="theme-btn" onclick="openCardAdmin()" title="전자명함 관리" style="font-size:16px;padding:5px 10px;">💳</button>
       <button class="theme-btn" onclick="openMemberMgmt()" title="인원 관리" style="font-size:16px;padding:5px 10px;">⚙️</button>
@@ -497,6 +498,8 @@ function renderRecallChipsFC(r){
 }
 // [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
 const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+// [v5.109] 데이터 로드 시 서버 단계별 소요시간(_diag)을 브라우저 콘솔에 표시 (code2 v5.21 필요)
+// [v5.108] 상단 헤더에 🔄 새로고침 버튼 (기존 버튼은 숨김 처리돼 있었음)
 // [v5.107] 보고 엑셀: 제목 '가망건 보고', 작성·검토·승인 칸 삭제
 // [v5.106] CHECK에 📑 보고용 탭: 부서장이 서면보고할 가망건 골라 담기(이 브라우저에 저장) → 사원 가망DB 시트와 같은 열 구성으로 엑셀 다운로드(요약·전체·사원별 시트, 재콜 메모는 셀 메모)
 // [v5.105] 히스토리 패널 안에도 확인·보관·본부확인(·삭제) 버튼
@@ -751,6 +754,7 @@ async function loadData(forceRefresh=false){
   try{
     const [res]=await Promise.all([callServer('serverData',{role:SESSION.role,token:SESSION.token,forceRefresh}),loadCheckLog()]);
     if(!res.success){if(res.error.includes('세션'))doLogout();throw new Error(res.error);}
+    if(res._diag)console.log('%c[로딩 진단]','color:#c62828;font-weight:700',(res._cached?'서버캐시 사용\n':'')+res._diag.join('\n'));
     lsSave(SESSION.role,res);_applyData(res);
     toast('✅ 데이터 로드 완료!'+(res._cached?' (서버캐시)':''));
     setTimeout(prefetchPerformance,3000);
