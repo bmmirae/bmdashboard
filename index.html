@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.106</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.107</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -289,7 +289,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.106</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.107</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -497,6 +497,7 @@ function renderRecallChipsFC(r){
 }
 // [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
 const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+// [v5.107] 보고 엑셀: 제목 '가망건 보고', 작성·검토·승인 칸 삭제
 // [v5.106] CHECK에 📑 보고용 탭: 부서장이 서면보고할 가망건 골라 담기(이 브라우저에 저장) → 사원 가망DB 시트와 같은 열 구성으로 엑셀 다운로드(요약·전체·사원별 시트, 재콜 메모는 셀 메모)
 // [v5.105] 히스토리 패널 안에도 확인·보관·본부확인(·삭제) 버튼
 // [v5.104] 카드 아무 곳이나 누르면 패널 열림 (버튼·입력칸 제외)
@@ -2066,7 +2067,7 @@ async function rptDownload(){
     };
     // 요약
     const sm=wb.addWorksheet('요약');sm.columns=[{width:14},{width:14},{width:12},{width:10},{width:14},{width:14}];
-    sm.mergeCells('A1:F1');const t=sm.getCell('A1');t.value='가망건 서면보고';t.font={bold:true,size:16};t.alignment={horizontal:'center'};sm.getRow(1).height=28;
+    sm.mergeCells('A1:F1');const t=sm.getCell('A1');t.value='가망건 보고';t.font={bold:true,size:16};t.alignment={horizontal:'center'};sm.getRow(1).height=28;
     [['보고일',ymd],['보고자',who],['보고 범위',scope],['보고 건수',sel.length+'건'],['예산 합계',sel.reduce((a,r)=>a+(Number(r.budget)||0),0)]].forEach(([k,v])=>{const r=sm.addRow([k,v]);r.getCell(1).font={bold:true};r.getCell(1).fill=hdrFill;[1,2].forEach(i=>r.getCell(i).border=bd);if(typeof v==='number')r.getCell(2).numFmt='#,##0';});
     sm.addRow([]);styleHdr(sm.addRow(['가망도','건수','예산 합계']));
     const gm={};sel.forEach(r=>{const g=r.grade||'선택없음';gm[g]=gm[g]||{n:0,b:0};gm[g].n++;gm[g].b+=Number(r.budget)||0;});
@@ -2074,9 +2075,6 @@ async function rptDownload(){
     sm.addRow([]);styleHdr(sm.addRow(['본부','팀','담당자','건수','예산 합계']));
     const mm={};sel.forEach(r=>{const k=r.bu+'|'+r.team+'|'+r.manager;mm[k]=mm[k]||{bu:r.bu,team:r.team,m:r.manager,n:0,b:0};mm[k].n++;mm[k].b+=Number(r.budget)||0;});
     Object.values(mm).forEach(v=>{const r=sm.addRow([v.bu,v.team,v.m,v.n,v.b]);[1,2,3,4,5].forEach(i=>r.getCell(i).border=bd);r.getCell(5).numFmt='#,##0';});
-    sm.addRow([]);sm.addRow([]);
-    const sg=sm.addRow(['','','','작성','검토','승인']);[4,5,6].forEach(i=>{const c=sg.getCell(i);c.font={bold:true};c.fill=hdrFill;c.border=bd;c.alignment={horizontal:'center'};});
-    const sg2=sm.addRow(['','','','','','']);sg2.height=42;[4,5,6].forEach(i=>sg2.getCell(i).border=bd);
     sm.pageSetup={paperSize:9,orientation:'portrait',fitToPage:true,fitToWidth:1,fitToHeight:0};
     // 전체 + 사원별 (사원 가망DB와 같은 열)
     const all=wb.addWorksheet('보고_전체');fill(all,sel,true);all.pageSetup={paperSize:9,orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0};
