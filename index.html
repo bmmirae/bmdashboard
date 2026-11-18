@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.110</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.111</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -289,7 +289,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.110</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.111</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -498,6 +498,7 @@ function renderRecallChipsFC(r){
 }
 // [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
 const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+// [v5.111] 히스토리 패널: 코멘트 글자를 드래그해 복사하다 패널 밖에서 손 떼면 패널이 닫히던 문제 수정(회원관리 창도 같은 처리)
 // [v5.110] 로딩 속도 ③: 서버 데이터 압축 전송(code2 v5.24 필요) + 화면 데이터 보관을 IndexedDB로(다시 열면 바로 표시 후 백그라운드 갱신, 내용 달라지면 반영)
 // [v5.109] 데이터 로드 시 서버 단계별 소요시간(_diag)을 브라우저 콘솔에 표시 (code2 v5.21 필요)
 // [v5.108] 상단 헤더에 🔄 새로고침 버튼 (기존 버튼은 숨김 처리돼 있었음)
@@ -526,7 +527,7 @@ function openCoHist(company,manager,ctx){
   const r=(CURRENT_ROWS||[]).find(x=>x.company===company&&x.manager===manager)||(window._allRows||[]).find(x=>x.company===company&&x.manager===manager);
   if(!r){toast('업체 데이터를 찾을 수 없습니다','err');return;}
   CH.r=r;CH.log=null;CH.cmt=null;CH.ctx=ctx||null;
-  let w=document.getElementById('coHistWrap');if(!w){w=document.createElement('div');w.id='coHistWrap';w.onclick=e=>{if(e.target===w)closeCoHist();};document.body.appendChild(w);}
+  let w=document.getElementById('coHistWrap');if(!w){w=document.createElement('div');w.id='coHistWrap';w.onclick=e=>{if(e.target===w&&_downT===w)closeCoHist();};document.body.appendChild(w);}
   w.innerHTML='<div id="coHist"></div>';w.style.display='flex';chRender();
   chLoadExtra();
 }
@@ -536,6 +537,8 @@ function ckCardClick(e,company,manager,ctx){
   const sel=window.getSelection&&String(window.getSelection());if(sel&&sel.trim())return;
   openCoHist(company,manager,ctx);
 }
+// [v5.111] 바깥(어두운 배경) 클릭 닫기는 '누르기·떼기 둘 다 배경'일 때만 — 글자 드래그 선택하다 배경에서 손 떼면 닫히던 문제
+let _downT=null;document.addEventListener('mousedown',e=>{_downT=e.target;},true);
 function closeCoHist(){const w=document.getElementById('coHistWrap');if(w)w.style.display='none';CH.r=null;}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&CH.r)closeCoHist();});
 async function chLoadExtra(){
@@ -2401,7 +2404,7 @@ async function addMember(){const bu=document.getElementById('addBU').value;const
 async function updateMemberInfo(name,team,bu){const title=document.getElementById(`title_${name}`)?.value.trim()||'';const joinDate=document.getElementById(`joinDate_${name}`)?.value.trim()||'';try{const res=await callServer('serverUpdateMemberInfo',{role:SESSION.role,token:SESSION.token,name,team,bu,title,joinDate});if(!res.success){toast('❌ '+res.error,'err');return;}toast('✅ '+res.message);await loadMemberMgmtList();await loadData();}catch(e){toast('❌ '+e.message,'err');}}
 async function deleteMember(name,team,bu){if(!confirm(`${name}을(를) ${team}에서 삭제하시겠습니까?`))return;try{const res=await callServer('serverDeleteMember',{role:SESSION.role,token:SESSION.token,name,team,bu});if(!res.success){toast('❌ '+res.error,'err');return;}toast('✅ '+res.message);await loadMemberMgmtList();await loadData();}catch(e){toast('❌ '+e.message,'err');}}
 function showAddMsg(msg,type){const el=document.getElementById('addMsg');el.textContent=(type==='err'?'❌ ':'✅ ')+msg;el.style.display='block';el.style.color=type==='err'?'#c62828':'#2e7d32';setTimeout(()=>{el.style.display='none';},3000);}
-document.addEventListener('click',e=>{const modal=document.getElementById('memberMgmtModal');if(modal&&e.target===modal)closeMemberMgmt();});
+document.addEventListener('click',e=>{const modal=document.getElementById('memberMgmtModal');if(modal&&e.target===modal&&_downT===modal)closeMemberMgmt();});
 
 // ── 세션 복구 ─────────────────────────────────
 let _panelType=null;
