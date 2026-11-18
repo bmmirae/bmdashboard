@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.111</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.112</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -246,6 +246,7 @@ tr:hover td{background:var(--surface2);}
         <label>비밀번호</label>
         <input type="password" id="pwInput" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()"/>
       </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-sub);margin:-4px 0 12px;cursor:pointer;"><input type="checkbox" id="keepLogin" style="width:15px;height:15px;cursor:pointer;"> 로그인 유지 (30일 · 이 PC에서만)</label>
       <button class="login-btn" id="loginBtn" onclick="doLogin()">로그인</button>
       <div class="login-error" id="loginError"></div>
     </div>
@@ -289,7 +290,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.111</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.112</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -427,9 +428,28 @@ let curPage = 1;
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbwzIzzR-Aj5DZ7lWapTSaA9Fe5V72H53VMpD8WbGyj7KS1crBvmGlQOfNvMO98bfk7s/exec';
 
-function callServer(fnName, params){
+function callServer(fnName, params, _retry){
   const url = API_URL+'?action='+encodeURIComponent(fnName)+'&params='+encodeURIComponent(JSON.stringify(params||{}));
-  return fetch(url).then(r=>r.json()).then(res=>typeof res==='string'?JSON.parse(res):res).catch(e=>({success:false,error:e.message}));
+  return fetch(url).then(r=>r.json()).then(res=>typeof res==='string'?JSON.parse(res):res).then(async res=>{
+    // [v5.112] 세션(1시간) 만료 → 로그인 유지 중이면 새 세션 받아서 한 번 다시 시도
+    if(!_retry&&res&&res.success===false&&/세션이 만료|인증 정보가 없/.test(res.error||'')&&params&&params.token&&rtkGet()){
+      if(await resumeLogin())return callServer(fnName,Object.assign({},params,{token:SESSION.token}),true);
+    }
+    return res;
+  }).catch(e=>({success:false,error:e.message}));
+}
+// [v5.112] 로그인 유지: rtk(서버 발급, 30일·쓸 때마다 연장)만 이 브라우저에 저장 — 비밀번호는 저장 안 함
+function rtkGet(){try{return JSON.parse(localStorage.getItem('bm_rtk')||'null');}catch(e){return null;}}
+let _resumeP=null;
+function resumeLogin(){
+  if(_resumeP)return _resumeP;
+  const k=rtkGet();if(!k)return Promise.resolve(false);
+  _resumeP=callServer('serverResume',{rtk:k.rtk}).then(res=>{
+    if(!res||!res.success){if(res&&res.error&&!/fetch|network/i.test(res.error))localStorage.removeItem('bm_rtk');return false;}
+    SESSION={role:res.role,token:res.token,roleInfo:res.roleInfo,scope:res.scope};
+    sessionStorage.setItem('dash_session',JSON.stringify(SESSION));return true;
+  }).finally(()=>{setTimeout(()=>{_resumeP=null;},0);});
+  return _resumeP;
 }
 
 function toggleTheme(){
@@ -498,6 +518,7 @@ function renderRecallChipsFC(r){
 }
 // [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
 const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+// [v5.112] 로그인 유지(30일, 체크박스) — 새 창·세션 만료 때 자동으로 다시 로그인, 로그아웃하면 해제 (code2 v5.27 필요)
 // [v5.111] 히스토리 패널: 코멘트 글자를 드래그해 복사하다 패널 밖에서 손 떼면 패널이 닫히던 문제 수정(회원관리 창도 같은 처리)
 // [v5.110] 로딩 속도 ③: 서버 데이터 압축 전송(code2 v5.24 필요) + 화면 데이터 보관을 IndexedDB로(다시 열면 바로 표시 후 백그라운드 갱신, 내용 달라지면 반영)
 // [v5.109] 데이터 로드 시 서버 단계별 소요시간(_diag)을 브라우저 콘솔에 표시 (code2 v5.21 필요)
@@ -800,8 +821,10 @@ async function doLogin(){
   if(!pw){errEl.textContent='비밀번호를 입력해주세요.';errEl.classList.add('show');return;}
   loginBtn.disabled=true;loginBtn.textContent='인증 중...';loading(true,'🔐 인증 중...');
   try{
-    const res=await callServer('serverAuth',{role,password:pw});
+    const keep=!!(document.getElementById('keepLogin')||{}).checked;
+    const res=await callServer('serverAuth',{role,password:pw,remember:keep});
     if(!res.success){errEl.textContent=res.error||'인증 실패';errEl.classList.add('show');return;}
+    if(res.rtk)localStorage.setItem('bm_rtk',JSON.stringify({role:res.role,rtk:res.rtk}));else localStorage.removeItem('bm_rtk');
     SESSION={role:res.role,token:res.token,roleInfo:res.roleInfo,scope:res.scope};_rptSel=null;
     sessionStorage.setItem('dash_session',JSON.stringify(SESSION));
     showDash();await loadData();
@@ -810,6 +833,7 @@ async function doLogin(){
 }
 
 function doLogout(){
+  const k=rtkGet();if(k){callServer('serverForget',{rtk:k.rtk});localStorage.removeItem('bm_rtk');}   // [v5.112] 로그아웃 = 로그인 유지 해제
   SESSION=null;sessionStorage.removeItem('dash_session');
   document.getElementById('dashScreen').style.display='none';
   document.getElementById('loginScreen').style.display='block';
@@ -2589,6 +2613,7 @@ window.addEventListener('resize',updateStickyBarTop);
 window.addEventListener('DOMContentLoaded',function(){
   const saved=sessionStorage.getItem('dash_session');
   if(saved){try{SESSION=JSON.parse(saved);showDash();loadData();}catch(e){sessionStorage.removeItem('dash_session');}}
+  else if(rtkGet()){loading(true,'🔐 로그인 유지 확인 중...');resumeLogin().then(ok=>{loading(false);if(ok){showDash();loadData();}}).catch(()=>loading(false));}   // [v5.112]
   updateStickyBarTop();
   document.addEventListener('mouseover',function(e){const tip=e.target.closest('.recall-tip');if(!tip)return;const content=tip.querySelector('.tip-content');if(!content)return;const rect=tip.getBoundingClientRect();if(rect.top>160){content.style.top=(rect.top-10)+'px';content.style.bottom='auto';content.style.transform='translateY(-100%) translateX(-50%)';}else{content.style.top=(rect.bottom+8)+'px';content.style.bottom='auto';content.style.transform='translateX(-50%)';}let left=rect.left+rect.width/2;const tipW=220;if(left-tipW/2<8)left=tipW/2+8;if(left+tipW/2>window.innerWidth-8)left=window.innerWidth-tipW/2-8;content.style.left=left+'px';});
 });
