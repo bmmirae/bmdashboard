@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.112</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.113</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -290,7 +290,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.112</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.113</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -326,7 +326,7 @@ tr:hover td{background:var(--surface2);}
   <div class="container">
     <div style="display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border);">
       <button id="mainTab_db"   onclick="switchMainTab('db')"   style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:700;color:#3949ab;border-bottom:3px solid #3949ab;cursor:pointer;margin-bottom:-2px;">📋 광고주DB</button>
-      <button id="mainTab_perf" onclick="switchMainTab('perf')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">📈 성과지표 <span style="background:#fff3e0;color:#e65100;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:2px;">공사중</span></button>
+      <button id="mainTab_mission" onclick="switchMainTab('mission')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">📊 업무미션</button>
       <button id="mainTab_promo" onclick="switchMainTab('promo')" style="padding:10px 24px;border:none;background:none;font-size:14px;font-weight:400;color:var(--text-sub);border-bottom:3px solid transparent;cursor:pointer;margin-bottom:-2px;">🎯 프로모션</button>
     </div>
     <div id="tabContent_db">
@@ -377,6 +377,7 @@ tr:hover td{background:var(--surface2);}
       <div id="dashContent"></div>
     </div>
     <div id="tabContent_perf" style="display:none;"><div id="perfContent"></div></div>
+    <div id="tabContent_mission" style="display:none;"><div id="missionInner"></div></div>
     <div id="tabContent_promo" style="display:none;"><div id="promoInner" style="padding:4px 0;"></div></div>
   </div>
 </div>
@@ -518,6 +519,7 @@ function renderRecallChipsFC(r){
 }
 // [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
 const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+// [v5.113] 성과지표(공사중) 탭 제거 → 📊 업무미션 탭(주간미션요약 주차별, 전체 인원) · 탭 순서 광고주DB·업무미션·프로모션 · 성과지표 미리 불러오기 중단
 // [v5.112] 로그인 유지(30일, 체크박스) — 새 창·세션 만료 때 자동으로 다시 로그인, 로그아웃하면 해제 (code2 v5.27 필요)
 // [v5.111] 히스토리 패널: 코멘트 글자를 드래그해 복사하다 패널 밖에서 손 떼면 패널이 닫히던 문제 수정(회원관리 창도 같은 처리)
 // [v5.110] 로딩 속도 ③: 서버 데이터 압축 전송(code2 v5.24 필요) + 화면 데이터 보관을 IndexedDB로(다시 열면 바로 표시 후 백그라운드 갱신, 내용 달라지면 반영)
@@ -685,7 +687,7 @@ function prefetchPerformance(){
 
 function switchMainTab(tab){
   CURRENT_MAIN_TAB=tab;
-  ['db','perf','promo'].forEach(t=>{
+  ['db','mission','promo','perf'].forEach(t=>{
     const content=document.getElementById('tabContent_'+t);
     const btn=document.getElementById('mainTab_'+t);
     if(content)content.style.display=t===tab?'block':'none';
@@ -693,7 +695,22 @@ function switchMainTab(tab){
   });
   if(tab==='perf'&&!PERF_DATA)loadPerformance();
   if(tab==='promo'&&!window._promoReady){initPromoTab();window._promoReady=true;}
+  if(tab==='mission')openMissionTab();
 }
+// [v5.113] 업무미션 탭: 미션 대시보드(promo/call-analytics-2507.html)를 '주간미션요약만' 모드로 넣음 — 관리자 로그인 그대로 넘겨서 비밀번호 없이 열림(전체 인원)
+let _missionFor='';
+async function openMissionTab(force){
+  const box=document.getElementById('missionInner');if(!box||!SESSION)return;
+  if(_missionFor===SESSION.token&&!force)return;
+  box.innerHTML='<div style="text-align:center;color:var(--text-muted);padding:40px;font-size:13px;">📊 업무미션 불러오는 중...</div>';
+  await callServer('serverSsoCheck',{role:SESSION.role,token:SESSION.token});   // 세션 만료면 로그인 유지로 새 토큰 받아 둠
+  _missionFor=SESSION.token;
+  const theme=document.documentElement.getAttribute('data-theme')||'light';
+  const src='promo/call-analytics-2507.html?view=summary&theme='+theme+'#sso='+encodeURIComponent(SESSION.role)+'~'+encodeURIComponent(SESSION.token);
+  box.innerHTML='<div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:6px;"><button class="nbtn" style="font-size:11px;" onclick="openMissionTab(true)">🔄 다시 불러오기</button><a class="nbtn" style="font-size:11px;text-decoration:none;" href="promo/call-analytics-2507.html" target="_blank" rel="noopener">↗ 미션 대시보드 전체 열기</a></div>'
+    +'<iframe id="missionFrame" src="'+src+'" style="width:100%;height:900px;border:0;border-radius:12px;background:var(--surface);display:block;" title="주간미션요약"></iframe>';
+}
+window.addEventListener('message',e=>{if(e.origin!==location.origin||!e.data||e.data.type!=='missionHeight')return;const f=document.getElementById('missionFrame');if(f)f.style.height=Math.max(400,Math.ceil(e.data.h)+4)+'px';});
 
 let PERF_YEAR=new Date().getFullYear();
 let PERF_MONTH=new Date().getMonth()+1;
@@ -801,7 +818,6 @@ async function loadData(forceRefresh=false){
     logDiag(res);
     lsSave(SESSION.role,res);_applyData(res);
     toast('✅ 데이터 로드 완료!'+(res._cached?' (서버캐시)':''));
-    setTimeout(prefetchPerformance,3000);
   }catch(e){toast('❌ '+e.message,'err');}
   finally{loading(false);}
 }
