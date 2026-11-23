@@ -277,6 +277,11 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 .toast { position:fixed; bottom:24px; right:24px; background:var(--card); border:1px solid var(--border); padding:12px 20px; border-radius:8px; font-size:13px; z-index:999; opacity:0; transform:translateY(10px); transition:.3s; box-shadow:var(--shadow); }
 .toast.show { opacity:1; transform:translateY(0); }
 
+/* ── [v8.8.6] 주간미션요약만 보기 모드 ── */
+body.view-summary .header, body.view-summary .tab-bar { display:none; }
+body.view-summary { min-height:0; }
+body.view-summary .panel { padding:12px 8px; }
+
 /* ── Responsive ── */
 @media (max-width:640px) {
   .header { padding:12px 16px; }
@@ -508,7 +513,9 @@ body { font-family: -apple-system, 'Pretendard', sans-serif; background:var(--bg
 // CONFIG
 // ══════════════════════════════════════
 const API_URL = 'https://script.google.com/macros/s/AKfycbwcK6nX6iyf2PAg7Cbs3LjplHruF-wYJV_j8f_h0Zr4ZHhv_9I4LcIXqvCaFVgzFiwLLw/exec';
-const DASHBOARD_VERSION = 'v8.8.5';
+const DASHBOARD_VERSION = 'v8.8.6';
+// [v8.8.6] ?view=summary: 주간미션요약만 보이는 모드(관리자 대시보드 업무미션 탭용) — #sso=역할~토큰으로 관리자 로그인 확인되면 비밀번호 없이 열림, 화면 높이를 부모창에 알림, &theme=dark|light
+const VIEW_SUMMARY = new URLSearchParams(location.search).get('view') === 'summary';
 // [v8.8.2] 로딩 속도: 서버(c1.01)에 gz=1로 요청 → 압축 데이터 받아 브라우저에서 풀기, 콘솔에 [미션 로딩 진단] 표시
 const CAN_GZ = typeof DecompressionStream !== 'undefined';
 async function gunzipB64(b64) { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return await new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'))).text(); }
@@ -635,6 +642,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   STATE.weekOffset = computeOffsetForToday();
   STATE.trainingWeekOffset = computeOffsetForToday();
   computeWeekRange();
+  if (VIEW_SUMMARY) await initSummaryView();
   await loadAllData();
 });
 
@@ -650,6 +658,30 @@ function initTheme() {
     applyTheme(next);
     localStorage.setItem('ca-theme', next);
   });
+}
+// [v8.8.6] 주간미션요약만 보기: 요약 패널만 켜고, 관리자 로그인(토큰)을 가망건 서버에 확인 → 맞으면 잠금 해제
+async function initSummaryView() {
+  document.body.classList.add('view-summary');
+  const th = new URLSearchParams(location.search).get('theme');
+  if (th === 'dark' || th === 'light') applyTheme(th);
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-revenue').classList.add('active');
+  const m = (location.hash || '').match(/sso=([^~&]+)~([^&]+)/);
+  if (m) {
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    try {
+      const p = { role: decodeURIComponent(m[1]), token: decodeURIComponent(m[2]) };
+      const r = await (await fetch(PROSPECT_API + '?action=serverSsoCheck&params=' + encodeURIComponent(JSON.stringify(p)))).json();
+      const res = typeof r === 'string' ? JSON.parse(r) : r;
+      if (res && res.success) STATE.revenueAuthed = true;   // 화면 안에서만 (비밀번호 저장 안 함 · 수정 기능 없음)
+    } catch (e) { console.warn('관리자 로그인 확인 실패:', e); }
+  }
+  try { renderLockOrContent('revenue'); } catch (e) {}
+  const t = document.getElementById('missionSummaryTable');
+  if (t && STATE.revenueAuthed) t.innerHTML = '<div class="loading"><div class="spinner"></div><br>데이터 로딩 중...</div>';
+  const post = () => { try { parent.postMessage({ type: 'missionHeight', h: Math.ceil(document.body.getBoundingClientRect().height) + 16 }, location.origin); } catch (e) {} };
+  if (window.ResizeObserver) new ResizeObserver(post).observe(document.body);
+  post();
 }
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
