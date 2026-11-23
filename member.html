@@ -105,6 +105,7 @@
   [v1.17] (서버 s1.11) 저장 후 메모 확인을 느슨하게 (그 날짜에 메모가 있으면 정상)
   [v1.18] 나의 영업DB 📑 보고용: 줄마다 체크 → '보고용' 분류(이 브라우저에 사원별 저장), 보고용 칩으로 모아보기, 구글시트와 같은 열 구성 엑셀 다운로드(요약·보고 시트, 재콜 메모=셀 메모)
   [v1.19] 보고 엑셀: 제목 '가망건 보고', 작성·검토·승인 칸 삭제
+  [v1.20] (서버 s1.13) 🔔 알림: 줄마다 ✓ 읽음 처리 + '모두 읽음' — 카드를 못 여는(삭제된) 업체 알림도 정리 가능
 -->
 <html lang="ko">
 <head>
@@ -115,7 +116,7 @@
 if(/github\.io$|member-dashboard-dn6\.pages\.dev$/i.test(h)){var o={},n=0;try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^m2/.test(k)&&k!=='m2_api'&&k!=='m2_rtk'){o[k]=localStorage.getItem(k);n++;}}}catch(e){}
   location.replace(NEW+location.search+(n?'#m2mig='+encodeURIComponent(JSON.stringify(o)):location.hash));return;}
 if(location.hash.indexOf('#m2mig=')===0){try{var d=JSON.parse(decodeURIComponent(location.hash.slice(7)));for(var k in d)if(localStorage.getItem(k)===null)localStorage.setItem(k,d[k]);}catch(e){}try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}})();</script>
-<title>미래아이엔씨 통합DB v1.19</title>
+<title>미래아이엔씨 통합DB v1.20</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f0f2f5;--surface:#fff;--surface2:#f5f7ff;--border:#e8eaf6;--text:#333;--text-sub:#4b5260;--text-muted:#6b7280;--header-bg:linear-gradient(135deg,#0B13E7,#080ead);--primary:#3949ab;--primary-soft:#e8eaf6;--th-bg:#e8eaf6;--danger:#c62828;--danger-soft:#fdecec;--warn:#e65100;--warn-soft:#fff3e8;--ok:#2e7d32;--ok-soft:#e9f5ea;--purple:#6a1b9a;--purple-soft:#f3e5f5;}
@@ -242,6 +243,7 @@ main{max-width:1700px;margin:0 auto;padding:20px 32px;}
 .hmenu a,.hmenu button{display:flex;align-items:center;gap:8px;width:100%;border:none;background:none;padding:9px 12px;font-size:13px;color:#333;border-radius:8px;text-decoration:none;cursor:pointer;text-align:left;box-sizing:border-box;}
 .hmenu a:hover,.hmenu button:hover{background:#f3f5ff;}.hmenu hr{border:none;border-top:1px solid #eef0f7;margin:4px 0;}
 .hmenu .mh{font-size:11px;color:#6b7280;font-weight:700;padding:8px 12px 4px;}.hmenu .n{margin-left:auto;background:#ff5252;color:#fff;border-radius:9px;padding:0 6px;font-size:11px;font-weight:700;}
+.hmenu .bi-row{display:flex;align-items:stretch;}.hmenu .bi-row .bi{flex:1;width:auto;min-width:0;}.hmenu .bi-done{flex:0 0 auto;width:auto;justify-content:center;color:#9ca3af;font-size:15px;font-weight:700;padding:0 12px;}.hmenu .bi-done:hover{background:#e8f5e9;color:#2e7d32;}.hmenu .bi-all{width:auto;margin-left:auto;border:1px solid #c5cae9;background:#fff;color:#3949ab;font-size:11px;font-weight:700;padding:2px 9px;border-radius:12px;}.hmenu .bi-all:hover{background:#e8eaf6;}
 .bellm{min-width:320px;max-height:420px;overflow:auto;}.bellm .bi{flex-direction:column;align-items:flex-start;gap:2px;}.bellm .bi small{color:#6b7280;font-size:11.5px;}.bellm .empty{padding:18px;text-align:center;color:#6b7280;font-size:13px;}
 #bb{position:sticky;top:calc(var(--topH,110px) + 8px);z-index:15;box-shadow:0 0 0 8px var(--bg,#f4f6fb),0 2px 8px rgba(0,0,0,.06);}
 @media (min-width:900px){#tabNew .sec.new-box{position:sticky;top:calc(var(--topH,110px) + 68px);z-index:14;box-shadow:0 0 0 8px var(--bg,#f4f6fb),0 6px 16px rgba(30,40,110,.10);}}
@@ -687,7 +689,7 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
     <div id="testBanner" class="test-banner hidden">테스트 시트에 연결되어 있음 · 실제 업무 데이터 아님</div>
     <div class="hdr"><div class="top-in">
       <div class="logo" onclick="goHome()" style="cursor:pointer" title="오늘 할 일로"><img src="data:image/png;base64,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" alt="CI"></div>
-      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.19</span></h1>
+      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.20</span></h1>
       <div class="who"><select id="hqPick" class="hbtn hidden" style="padding:5px 8px;" title="본부" onchange="pickFilter('hq',this.value)"></select><select id="teamPick" class="hbtn hidden" style="padding:5px 8px;" title="팀" onchange="pickFilter('team',this.value)"></select><select id="viewPick" class="hbtn hidden" style="padding:5px 10px;" title="볼 인원 선택" onchange="if(this.value)changeViewAs(this.value)"></select><button id="calcBtn" class="hbtn bell" onclick="openCalc(event)" title="계산기 (마크업·CPA 성과·ROAS·일예산)">🧮</button><button id="bellBtn" class="hbtn bell" onclick="toggleMenu('bell',event)" title="알림">🔔<i id="bellDot" class="sgdot hidden"></i></button><span class="um-wrap"><button id="whoName" class="user-chip" onclick="toggleMenu('user',event)"></button><div id="userMenu" class="hmenu hidden"></div></span><div id="bellMenu" class="hmenu bellm hidden"></div><button id="cmtBtn" class="hbtn hidden" onclick="openInbox()">💬 코멘트<i id="cmtDot" class="sgdot hidden"></i></button><button id="sgBtn" class="hbtn" onclick="openSg()" title="대시보드 수정·개선 건의">💡 수정건의<i id="sgDot" class="sgdot hidden"></i></button><a id="sheetLink" class="hbtn hidden" target="_blank" rel="noopener" style="text-decoration:none;" title="내 구글시트 새 창으로 열기">📄 내 구글시트</a><button class="hbtn" onclick="loadRows();loadBoard();sgCount()">새로고침</button><button class="hbtn" id="btnLogout" onclick="logout()">로그아웃</button></div>
     </div></div>
     <div class="tabs">
@@ -731,7 +733,7 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
 // 파일럿 Apps Script 웹앱 주소. 비워두면 로그인 화면의 '서버 주소 설정'으로 입력 (이 브라우저에 저장됨)
 // 테스트 기간 자동 로그인 (테스트 시트 하나만 연결된 동안만 사용). 파일럿 사원 확정되면 null로 바꾸면 로그인 화면이 다시 나옴
 const AUTO_LOGIN = null;
-const APP_VER='v1.19';   // 화면 버전. 바뀌면 이전 접속 기록(테스트 계정 등)을 버리고 다시 로그인
+const APP_VER='v1.20';   // 화면 버전. 바뀌면 이전 접속 기록(테스트 계정 등)을 버리고 다시 로그인
 const DEFAULT_API_URL = 'https://script.google.com/macros/s/AKfycby040Dne4lMk2Ulgzf5gLG5CPFskadcI4jiBjhuBY7zuMaepufQBoHjoaxHcnVQ5Xvt/exec';
 const PROMO_GRADES = ['단기','장기','권한오픈','권한+브리핑'];
 const INACTIVE_GRADES = ['이관완료','선택없음'];   // 희망건은 진행 중으로 봄 (v0.77)
@@ -2574,6 +2576,24 @@ async function usRange(k){
 // ── v0.81 상단: 🔔 알림 하나로 (코멘트 · 수정건의), 이름 누르면 메뉴 (구글시트 · 수정건의 · 목표 · 관리계정 · 로그아웃) ──
 function bellCount(){return (CMT.inbox||[]).length+(S.master?(SG.open||0):(SG.unread||0));}
 function bellDot(){const d=document.getElementById('bellDot');if(!d)return;const n=bellCount();d.textContent=n;d.classList.toggle('hidden',!n);document.getElementById('bellBtn').title=n?'새 알림 '+n+'건':'알림';}
+// [v1.20] 알림 목록: 줄마다 ✓(읽음 처리) + '모두 읽음' — 카드를 열지 않아도 정리 가능 (서버 s1.13 cmtReadIds)
+function renderBellMenu(m){
+  m=m||document.getElementById('bellMenu');if(!m)return;
+  const it=[],viewer=S.master||S.mgr,inbox=(CMT.inbox||[]).slice().sort((a,b)=>a.ts<b.ts?1:-1);
+  inbox.forEach(c=>it.push('<div class="bi-row"><button class="bi" onclick="closeMenus();inboxGo(\''+esc(c.owner)+'\',\''+esc(c.cid)+'\')"><span>💬 '+(viewer?'<b>'+esc(c.owner)+'</b> · ':'')+esc(c.company)+'</span><small>'+esc(c.author)+': '+esc(c.text.length>40?c.text.slice(0,40)+'…':c.text)+' · '+tsMD(c.ts)+' '+tsHM(c.ts)+'</small></button><button class="bi-done" title="읽음 처리 (알림에서 빼기)" onclick="event.stopPropagation();cmtDone([\''+esc(c.id)+'\'])">✓</button></div>'));
+  const sg=S.master?SG.open:SG.unread;
+  if(sg)it.push('<button class="bi" onclick="closeMenus();openSg()"><span>💡 '+(S.master?'새 수정건의 '+sg+'건 (접수)':'수정건의 답변 도착 '+sg+'건')+'</span><small>눌러서 확인</small></button>');
+  m.innerHTML='<div class="mh" style="display:flex;align-items:center;">알림'+(inbox.length?'<button class="bi-all" onclick="event.stopPropagation();cmtDone(null,true)">모두 읽음</button>':'')+'</div>'+(it.length?it.join(''):'<div class="empty">새 알림 없음</div>')+'<hr><button onclick="closeMenus();openInbox()">💬 코멘트 모아보기</button>';
+}
+async function cmtDone(ids,all){
+  const set=new Set(ids||[]),hit=c=>all||set.has(c.id);
+  CMT.inbox=(CMT.inbox||[]).filter(c=>!hit(c));CMT.items.forEach(c=>{if(hit(c))c.unread=false;});cmtDot();
+  const m=document.getElementById('bellMenu');if(m&&!m.classList.contains('hidden'))renderBellMenu(m);
+  const r=await api('cmtReadIds',{ids:ids||[],all:!!all},true);
+  if(!r||!r.success){toast((r&&r.error)||'읽음 처리 실패',2500);loadCmt();return;}
+  CMT.items=r.items||[];CMT.inbox=r.inbox||[];cmtDot();if(m&&!m.classList.contains('hidden'))renderBellMenu(m);if(S.openId)cmtRender();
+  if(all)toast('알림 모두 읽음 처리',1200);
+}
 function closeMenus(){document.querySelectorAll('.hmenu').forEach(m=>m.classList.add('hidden'));}
 document.addEventListener('click',e=>{if(!e.target.closest('.hmenu')&&!e.target.closest('#bellBtn')&&!e.target.closest('#whoName'))closeMenus();});
 function toggleMenu(k,e){
@@ -2585,13 +2605,7 @@ function toggleMenu(k,e){
       (S.mgr?'':'<button onclick="closeMenus();goalEdit()">🎯 오늘 목표 설정 <span class="muted" style="margin-left:auto;font-size:12px">'+(S.goal?S.goal+'건':'미설정')+'</span></button>')+
       (S.mgr?'':'<button onclick="closeMenus();admMgrEditAny()">🔑 네이버 관리계정 번호</button>')+
       (AUTO_LOGIN?'':'<hr><button onclick="closeMenus();logout()">↩ 로그아웃</button>');
-  }else{
-    const it=[],viewer=S.master||S.mgr;
-    (CMT.inbox||[]).slice().sort((a,b)=>a.ts<b.ts?1:-1).forEach(c=>it.push('<button class="bi" onclick="closeMenus();inboxGo(\''+esc(c.owner)+'\',\''+esc(c.cid)+'\')"><span>💬 '+(viewer?'<b>'+esc(c.owner)+'</b> · ':'')+esc(c.company)+'</span><small>'+esc(c.author)+': '+esc(c.text.length>40?c.text.slice(0,40)+'…':c.text)+' · '+tsMD(c.ts)+' '+tsHM(c.ts)+'</small></button>'));
-    const sg=S.master?SG.open:SG.unread;
-    if(sg)it.push('<button class="bi" onclick="closeMenus();openSg()"><span>💡 '+(S.master?'새 수정건의 '+sg+'건 (접수)':'수정건의 답변 도착 '+sg+'건')+'</span><small>눌러서 확인</small></button>');
-    m.innerHTML='<div class="mh">알림</div>'+(it.length?it.join(''):'<div class="empty">새 알림 없음</div>')+'<hr><button onclick="closeMenus();openInbox()">💬 코멘트 모아보기</button>';
-  }
+  }else renderBellMenu(m);
   m.classList.remove('hidden');
 }
 async function admMgrEditAny(){if(!ADM.loaded){const r=await api('adList',{});if(r&&r.success){ADM.items=r.items||[];ADM.groups=r.groups||[];ADM.memos=r.memos||{};ADM.mgrNo=r.mgrNo||'';ADM.loaded=true;}}admMgrEdit();}
