@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.113</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.114</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -290,7 +290,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.113</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.114</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -519,6 +519,7 @@ function renderRecallChipsFC(r){
 }
 // [v5.102] 사원 이름 옆 🖥 = 그 사원의 사원대시보드(통합DB) 열기 — 지금 로그인한 부서장 권한 그대로 넘김(따로 로그인 없음, 보기 전용). 토큰은 주소 # 뒤로만 전달
 const MEMBER_DASH_URL='https://bmdashboard-jax.pages.dev/member';
+// [v5.114] 💳 전자명함 관리 창: 주소에 role·token 싣던 것 중단(링크 유출 방지) — card-admin v4.4와 함께 배포
 // [v5.113] 성과지표(공사중) 탭 제거 → 📊 업무미션 탭(주간미션요약 주차별, 전체 인원) · 탭 순서 광고주DB·업무미션·프로모션 · 성과지표 미리 불러오기 중단
 // [v5.112] 로그인 유지(30일, 체크박스) — 새 창·세션 만료 때 자동으로 다시 로그인, 로그아웃하면 해제 (code2 v5.27 필요)
 // [v5.111] 히스토리 패널: 코멘트 글자를 드래그해 복사하다 패널 밖에서 손 떼면 패널이 닫히던 문제 수정(회원관리 창도 같은 처리)
@@ -2423,8 +2424,8 @@ async function downloadPNG(){document.querySelectorAll('.no-cap').forEach(e=>e.c
 let mgmtTeams=[];
 function openCardAdmin(){
   if(!SESSION||!SESSION.role||!SESSION.token){toast('로그인 정보를 확인할 수 없습니다','err');return;}
-  const url='card-admin.html?role='+encodeURIComponent(SESSION.role)+'&token='+encodeURIComponent(SESSION.token);
-  window.open(url,'cardAdmin','width=1000,height=800,scrollbars=yes');
+  sessionStorage.setItem('dash_session',JSON.stringify(SESSION));   // [v5.114] 로그인 정보는 주소에 안 싣고 새 창에 세션으로 넘김(같은 사이트 창은 세션 복사됨)
+  window.open('card-admin.html','cardAdmin','width=1000,height=800,scrollbars=yes');
 }
 async function openMemberMgmt(){const modal=document.getElementById('memberMgmtModal');modal.style.display='flex';document.getElementById('addMsg').style.display='none';await loadMemberMgmtList();}
 function closeMemberMgmt(){document.getElementById('memberMgmtModal').style.display='none';}
