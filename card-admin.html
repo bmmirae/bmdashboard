@@ -34,14 +34,15 @@
   [v4.0] 액션버튼(전화/이메일/카톡공유) 아이콘 크기 확대 (19px→22px) — 프로필사진버전 접힘선에 영향 없는 선에서 소폭 증가
   [v4.1] 로고 크기 36px/48px 사이 절충 — 40px로 최종 확정
   [v4.2] 태그 표시 개수 2개 → 3개로 확대
-  [v4.3] 태그 3개 이상일 때 줄바꿈되던 것을 한 줄 유지로 변경 — 로고 쪽 여백까지 침범하며 로고 아래로 깔리도록 처리(줄바꿈보다 한 줄 유지 우선)
+  [v4.3] 태그 3개 이상일 때 줄바꿈되던 것을 한 줄 유지로 변경 — 로고 쪽 여백까지 침범
+  [v4.4] 보안: 주소(?role=&token=)로 로그인 정보 받던 것 중단 — 관리자 대시보드 창의 로그인(세션)만 사용, 없으면 '로그인 유지'로 복원, 둘 다 없으면 열리지 않음 · 주소에 남은 값은 지움하며 로고 아래로 깔리도록 처리(줄바꿈보다 한 줄 유지 우선)
 -->
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v4.3</title>
+<title>💳 전자명함 관리 v4.4</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -335,12 +336,32 @@ function shareKakao(){
 function getParam(name){
   return new URLSearchParams(window.location.search).get(name) || '';
 }
-const ROLE = getParam('role');
-const TOKEN = getParam('token');
-
-function callServer(fnName, params){
+// [v4.4] 주소창의 role·token은 더 이상 받지 않음(링크로 새어 나가도 못 쓰게) — 관리자 대시보드 창에서 연 경우 그 창의 로그인 정보 사용
+let ROLE = '', TOKEN = '';
+if (location.search) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+function loadAuth(){
+  try { const s = JSON.parse(sessionStorage.getItem('dash_session') || 'null'); if (s && s.role && s.token) { ROLE = s.role; TOKEN = s.token; return true; } } catch (e) {}
+  return false;
+}
+async function resumeAuth(){
+  let k = null; try { k = JSON.parse(localStorage.getItem('bm_rtk') || 'null'); } catch (e) {}
+  if (!k || !k.rtk) return false;
+  const res = await rawCall('serverResume', { rtk: k.rtk });
+  if (!res || !res.success) return false;
+  ROLE = res.role; TOKEN = res.token;
+  try { const s = JSON.parse(sessionStorage.getItem('dash_session') || 'null') || {}; sessionStorage.setItem('dash_session', JSON.stringify(Object.assign(s, { role: res.role, token: res.token, roleInfo: res.roleInfo, scope: res.scope }))); } catch (e) {}
+  return true;
+}
+function rawCall(fnName, params){
   const url = API_URL+'?action='+encodeURIComponent(fnName)+'&params='+encodeURIComponent(JSON.stringify(params||{}));
   return fetch(url).then(r=>r.json()).then(res=>typeof res==='string'?JSON.parse(res):res).catch(e=>({success:false,error:e.message}));
+}
+async function callServer(fnName, params){
+  let res = await rawCall(fnName, params);
+  // 세션(1시간) 만료 → 로그인 유지로 새 토큰 받아 한 번 다시 시도
+  if (res && res.success === false && /세션이 만료|인증 정보가 없/.test(res.error || '') && params && params.token && await resumeAuth())
+    res = await rawCall(fnName, Object.assign({}, params, { role: ROLE, token: TOKEN }));
+  return res;
 }
 
 // 사진 업로드처럼 대용량 데이터는 GET URL 길이 제한에 걸리므로 POST로 전송
@@ -494,8 +515,8 @@ let ADDABLE_ORGS=[];
 let SELECTED=null; // 현재 폼에 로드된 카드(수정 시) 또는 null(신규 추가 모드)
 
 async function init(){
-  if(!ROLE||!TOKEN){
-    document.getElementById('loginScreen').innerHTML='<div style="color:#c62828;font-size:14px;">로그인 정보가 없습니다. 대시보드에서 다시 열어주세요.</div>';
+  if(!loadAuth()&&!(await resumeAuth())){
+    document.getElementById('loginScreen').innerHTML='<div style="color:#c62828;font-size:14px;">관리자 대시보드에 로그인한 뒤, 상단 💳 버튼으로 열어주세요.</div>';
     return;
   }
   const res=await callServer('serverGetCardList',{role:ROLE,token:TOKEN});
