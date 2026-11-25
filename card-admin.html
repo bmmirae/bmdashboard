@@ -35,6 +35,7 @@
   [v4.1] 로고 크기 36px/48px 사이 절충 — 40px로 최종 확정
   [v4.2] 태그 표시 개수 2개 → 3개로 확대
   [v4.3] 태그 3개 이상일 때 줄바꿈되던 것을 한 줄 유지로 변경 — 로고 쪽 여백까지 침범
+  [v4.5] 이 페이지 전용 로그인 화면(명함관리 계정 · 로그인 유지 30일 · 로그아웃) — 관리자 대시보드 💳로 열면 지금처럼 바로 열림 (code2 v5.28 필요)
   [v4.4] 보안: 주소(?role=&token=)로 로그인 정보 받던 것 중단 — 관리자 대시보드 창의 로그인(세션)만 사용, 없으면 '로그인 유지'로 복원, 둘 다 없으면 열리지 않음 · 주소에 남은 값은 지움하며 로고 아래로 깔리도록 처리(줄바꿈보다 한 줄 유지 우선)
 -->
 <html lang="ko">
@@ -42,7 +43,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v4.4</title>
+<title>💳 전자명함 관리 v4.5</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -133,7 +134,7 @@ textarea{resize:vertical;min-height:60px;}
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v4.3</span></h1>
+    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v4.5</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
   <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
@@ -148,7 +149,7 @@ textarea{resize:vertical;min-height:60px;}
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <div style="font-size:14px;font-weight:700;">👥 명함 목록</div>
-        <button class="add-btn" onclick="openAddForm()" style="margin-bottom:0;">+ 신규 인원 추가</button>
+        <span style="display:flex;gap:6px;align-items:center;"><button class="add-btn" onclick="openAddForm()" style="margin-bottom:0;">+ 신규 인원 추가</button><button id="cardLogoutBtn" onclick="cardLogout()" style="display:none;border:1px solid var(--border);background:none;border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;color:var(--text-sub);">로그아웃</button></span>
       </div>
       <div id="empListWrap"></div>
     </div>
@@ -339,18 +340,59 @@ function getParam(name){
 // [v4.4] 주소창의 role·token은 더 이상 받지 않음(링크로 새어 나가도 못 쓰게) — 관리자 대시보드 창에서 연 경우 그 창의 로그인 정보 사용
 let ROLE = '', TOKEN = '';
 if (location.search) { try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+let CARD_LOGIN = false;   // [v4.5] 이 페이지 자체 로그인(명함관리 계정)으로 들어왔는지
 function loadAuth(){
-  try { const s = JSON.parse(sessionStorage.getItem('dash_session') || 'null'); if (s && s.role && s.token) { ROLE = s.role; TOKEN = s.token; return true; } } catch (e) {}
+  for (const k of ['dash_session', 'card_session']) {
+    try { const s = JSON.parse(sessionStorage.getItem(k) || 'null'); if (s && s.role && s.token) { ROLE = s.role; TOKEN = s.token; CARD_LOGIN = k === 'card_session'; return true; } } catch (e) {}
+  }
   return false;
 }
 async function resumeAuth(){
-  let k = null; try { k = JSON.parse(localStorage.getItem('bm_rtk') || 'null'); } catch (e) {}
-  if (!k || !k.rtk) return false;
-  const res = await rawCall('serverResume', { rtk: k.rtk });
-  if (!res || !res.success) return false;
-  ROLE = res.role; TOKEN = res.token;
-  try { const s = JSON.parse(sessionStorage.getItem('dash_session') || 'null') || {}; sessionStorage.setItem('dash_session', JSON.stringify(Object.assign(s, { role: res.role, token: res.token, roleInfo: res.roleInfo, scope: res.scope }))); } catch (e) {}
-  return true;
+  // 관리자 대시보드 로그인 유지(bm_rtk) → 명함 전용 로그인 유지(bm_card_rtk) 순서
+  for (const [lk, sk] of [['bm_rtk', 'dash_session'], ['bm_card_rtk', 'card_session']]) {
+    let k = null; try { k = JSON.parse(localStorage.getItem(lk) || 'null'); } catch (e) {}
+    if (!k || !k.rtk) continue;
+    const res = await rawCall('serverResume', { rtk: k.rtk });
+    if (!res || !res.success) { if (res && res.error && !/fetch|network/i.test(res.error)) localStorage.removeItem(lk); continue; }
+    ROLE = res.role; TOKEN = res.token; CARD_LOGIN = sk === 'card_session';
+    try { const s = JSON.parse(sessionStorage.getItem(sk) || 'null') || {}; sessionStorage.setItem(sk, JSON.stringify(Object.assign(s, { role: res.role, token: res.token, roleInfo: res.roleInfo, scope: res.scope }))); } catch (e) {}
+    return true;
+  }
+  return false;
+}
+// [v4.5] 명함 관리 전용 로그인
+function showCardLogin(msg){
+  const el = document.getElementById('loginScreen'); el.style.display = 'block';
+  document.getElementById('mainScreen').style.display = 'none';
+  el.innerHTML = '<div style="font-size:18px;font-weight:800;margin-bottom:4px;">💳 전자명함 관리</div>'
+    + '<div style="font-size:12px;color:var(--text-sub);margin-bottom:16px;">명함 관리 계정으로 로그인하세요</div>'
+    + '<input id="clId" placeholder="계정" value="명함관리" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:14px;box-sizing:border-box;">'
+    + '<input id="clPw" type="password" placeholder="비밀번호" onkeydown="if(event.key===\'Enter\')cardLogin()" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;font-size:14px;box-sizing:border-box;">'
+    + '<label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-sub);margin-bottom:12px;cursor:pointer;"><input type="checkbox" id="clKeep"> 로그인 유지 (30일 · 이 PC에서만)</label>'
+    + '<button id="clBtn" onclick="cardLogin()" style="width:100%;padding:11px;border:none;border-radius:8px;background:#3949ab;color:#fff;font-size:14px;font-weight:700;cursor:pointer;">로그인</button>'
+    + '<div id="clErr" style="color:#c62828;font-size:12px;margin-top:10px;min-height:16px;">' + (msg || '') + '</div>'
+    + '<div style="font-size:11px;color:var(--text-muted,#999);margin-top:8px;">관리자 대시보드 사용자는 대시보드 상단 💳 버튼으로 열면 로그인 없이 들어옵니다</div>';
+  setTimeout(() => { const p = document.getElementById('clPw'); if (p) p.focus(); }, 50);
+}
+async function cardLogin(){
+  const id = document.getElementById('clId').value.trim(), pw = document.getElementById('clPw').value, keep = document.getElementById('clKeep').checked;
+  const err = document.getElementById('clErr'), btn = document.getElementById('clBtn');
+  if (!id || !pw) { err.textContent = '계정과 비밀번호를 입력하세요'; return; }
+  btn.disabled = true; btn.textContent = '확인 중...'; err.textContent = '';
+  const res = await rawCall('serverCardAuth', { id, password: pw, remember: keep });
+  btn.disabled = false; btn.textContent = '로그인';
+  if (!res || !res.success) { err.textContent = (res && res.error) || '로그인 실패'; return; }
+  ROLE = res.role; TOKEN = res.token; CARD_LOGIN = true;
+  sessionStorage.setItem('card_session', JSON.stringify({ role: res.role, token: res.token, roleInfo: res.roleInfo, scope: res.scope }));
+  if (res.rtk) localStorage.setItem('bm_card_rtk', JSON.stringify({ role: res.role, rtk: res.rtk })); else localStorage.removeItem('bm_card_rtk');
+  document.getElementById('loginScreen').innerHTML = '<div style="font-size:14px;color:var(--text-sub);">명함 목록을 불러오는 중...</div>';
+  init();
+}
+function cardLogout(){
+  let k = null; try { k = JSON.parse(localStorage.getItem('bm_card_rtk') || 'null'); } catch (e) {}
+  if (k && k.rtk) rawCall('serverForget', { rtk: k.rtk });
+  localStorage.removeItem('bm_card_rtk'); sessionStorage.removeItem('card_session');
+  ROLE = ''; TOKEN = ''; CARD_LOGIN = false; showCardLogin('로그아웃되었습니다');
 }
 function rawCall(fnName, params){
   const url = API_URL+'?action='+encodeURIComponent(fnName)+'&params='+encodeURIComponent(JSON.stringify(params||{}));
@@ -515,15 +557,14 @@ let ADDABLE_ORGS=[];
 let SELECTED=null; // 현재 폼에 로드된 카드(수정 시) 또는 null(신규 추가 모드)
 
 async function init(){
-  if(!loadAuth()&&!(await resumeAuth())){
-    document.getElementById('loginScreen').innerHTML='<div style="color:#c62828;font-size:14px;">관리자 대시보드에 로그인한 뒤, 상단 💳 버튼으로 열어주세요.</div>';
-    return;
-  }
+  if(!ROLE&&!loadAuth()&&!(await resumeAuth())){ showCardLogin(); return; }
   const res=await callServer('serverGetCardList',{role:ROLE,token:TOKEN});
   if(!res||!res.success){
+    if(CARD_LOGIN||/세션|인증|권한/.test((res&&res.error)||'')){ sessionStorage.removeItem('card_session'); ROLE='';TOKEN=''; showCardLogin((res&&res.error)||'로드 실패'); return; }
     document.getElementById('loginScreen').innerHTML='<div style="color:#c62828;font-size:14px;">'+(res&&res.error||'로드 실패')+'</div>';
     return;
   }
+  const lo=document.getElementById('cardLogoutBtn');if(lo)lo.style.display=CARD_LOGIN?'inline-block':'none';
   CARDS=res.cards||[];
   ADDABLE_ORGS=res.addableOrgs||[];
   document.getElementById('loginScreen').style.display='none';
