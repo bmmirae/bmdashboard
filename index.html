@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 통합DB (관리자용) v5.135</title>
+<title>미래아이엔씨 통합DB (관리자용) v5.137</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link id="nvFont" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -345,7 +345,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.135</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.137</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -887,6 +887,8 @@ function _applyData(res){
     if(el)el.textContent=`${ri.name} ${ri.title||''}${ri.joinDate?` (${ri.joinDate.slice(0,7)})`:''}`; 
     sessionStorage.setItem('dash_session',JSON.stringify(SESSION));
   }
+  if(typeof nvEnabled==='function'&&nvEnabled())return;   // [v5.136] 새 화면만 씀 → 예전 화면(차트·CHECK·전체 리스트) 그리지 않음
+  if(SESSION&&SESSION.scope&&SESSION.scope.type==='member'){location.href=MEMBER_DASH_URL;return;}   // 사원 계정은 사원 화면으로
   buildNav(calcClientStats(CURRENT_ROWS));
   renderDash(calcClientStats(CURRENT_ROWS),res.roleInfo);
   updateNavSummary();
@@ -2741,6 +2743,8 @@ function _promoTeamSW(team){_PRteam=team;_PRpromo=null;_promoRender();}
 function _promoRoundSW(id){const data=_PR&&_PR[_PRbu];const list=Array.isArray(data)?data:(data&&_PRteam?data[_PRteam]:[]);const p=(list||[]).find(x=>x.id===id);if(p){_PRpromo=p;_promoLoad(p);}}
 function _promoLoad(promo){const el=document.getElementById('promoContent');if(!el)return;el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';fetch(promo.file+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('파일을 불러올 수 없습니다 ('+r.status+')');return r.text();}).then(html=>{el.innerHTML='';const iframe=document.createElement('iframe');iframe.style.cssText='width:100%;border:none;display:block;min-height:200px;';iframe.scrolling='no';el.appendChild(iframe);iframe.srcdoc=html;iframe.addEventListener('load',function(){try{const body=iframe.contentDocument.body;iframe.style.height=(body.scrollHeight+40)+'px';const ro=new ResizeObserver(function(){try{iframe.style.height=(iframe.contentDocument.body.scrollHeight+40)+'px';}catch(e){}});ro.observe(body);}catch(e){iframe.style.height='800px';}});}).catch(e=>{el.innerHTML='<div style="text-align:center;padding:60px;color:#c62828;">❌ '+e.message+'</div>';});}
 </script>
+<!-- [v5.137] 프로모션 화면 제목 옆 안내 문구 제거 -->
+<!-- [v5.136] 4단계: 새 리포트(신규 · 이관 · 파이프라인+컨택포인트, 기간 선택, 엑셀 받기) · 이전 화면 제거(메뉴·버튼 없앰, 예전 화면 그리기 생략으로 로딩도 가벼워짐 · 사원 계정은 사원 화면으로) · 인원 관리 새 디자인 -->
 <!-- [v5.135] 부서 프로모션 등록·관리는 공지·쿠폰 > 프로모션 탭으로 · 업무 > 프로모션은 본부 프로모션 페이지 중심(진행 중 부서 프로모션은 위에 보기 전용 카드) -->
 <!-- [v5.134] 가망건 숫자 수정(권한+브리핑·권한오픈·단기·장기만, 아래에 전체 DB·이관완료) · 3-3 부서 프로모션: 공지+이관 쿠폰 한 번에 등록 · 기간 이관 현황·당첨자 · 취소 — 사원 서버 s1.19 필요 -->
 <!-- [v5.133] 시간대 그래프에 재콜 추가: [신규등록 | 재콜 | 전체] 전환 (사원 화면에서 기록한 통화완료·부재·미루기) — 사원 서버 s1.18 필요 -->
@@ -2778,7 +2782,7 @@ body.nv-t-dark .nv-pill.on,body.nv-t-dark .nv-tab.on,body.nv-t-dark .nv-chip.on,
 #nv{position:fixed;inset:0;z-index:150;display:none;background:var(--bg);color:var(--tx);font-family:'Noto Sans KR','Pretendard',system-ui,sans-serif;font-size:15px;}
 body.nv-on{overflow:hidden}
 body.nv-on #nv{display:flex}
-body.nv-on .jump-fab{display:none!important}
+body.nv-on .jump-fab,body.nv-on #dashScreen>.header,body.nv-on #dashScreen>.container{display:none!important}
 #nv *{box-sizing:border-box}
 #nv button{font:inherit;cursor:pointer}
 #nv input,#nv select{font:inherit}
@@ -2996,7 +3000,9 @@ body.nv-on #coHist{zoom:1.06}
 .nv-pgrid{display:grid;grid-template-columns:minmax(380px,460px) minmax(0,1fr);gap:16px;align-items:start}
 .nv-form{position:sticky;top:0}
 .nv-form .bd{padding:16px;display:flex;flex-direction:column;gap:12px}
-.nv-form label{display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--t2);font-weight:500}
+.nv-form label{display:block;font-size:14px;color:var(--t2);font-weight:500;min-width:0}
+.nv-form label>input:not([type=checkbox]),.nv-form label>select,.nv-form label>textarea,.nv-form label>.seg{display:flex;width:100%;margin-top:6px;box-sizing:border-box}
+.nv-form label small{margin-left:4px}
 .nv-form label small{font-weight:400;color:var(--t4);font-size:12px}
 .nv-form input:not([type=checkbox]),.nv-form select,.nv-form textarea{height:38px;border:1px solid var(--ln3);border-radius:8px;padding:0 10px;font:inherit;font-size:14px;font-weight:400;color:var(--tx);background:var(--sf)}
 .nv-form textarea{height:auto;padding:10px;resize:vertical;line-height:1.6}
@@ -3006,7 +3012,7 @@ body.nv-on #coHist{zoom:1.06}
 .nv-form .seg button{height:34px;padding:0 12px;border:1px solid var(--ln3);border-radius:8px;background:var(--sf);font-size:14px;color:var(--t2)}
 .nv-form .seg button.on{background:var(--tx);border-color:var(--tx);color:#fff}
 .nv-form .chk{display:flex;flex-direction:column;gap:6px}
-.nv-form .chk label{flex-direction:row;align-items:center;gap:7px;font-weight:400}
+.nv-form .chk label{display:flex;flex-direction:row;align-items:center;gap:7px;font-weight:400}
 .nv-form .chk input{width:16px;height:16px;accent-color:var(--ac)}
 .nv-form .hint{font-size:13px;color:var(--t4);line-height:1.5;margin-top:-4px}
 .nv-form .act{display:flex;align-items:center;gap:10px;justify-content:flex-end}
@@ -3146,6 +3152,20 @@ body.nv-on.nv-t-dark #coHist .ch-h{background:var(--sf)}
 .pm-b .lb{font-weight:500;color:var(--t3);margin-right:2px}
 .pm-b>span:not(.lb){padding:2px 9px;border-radius:12px;background:var(--mut);color:var(--t2)}
 .pm-b b{color:var(--ac);font-weight:500}.pm-b small{color:var(--t4)}
+.rp-g2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.rp-cv{height:300px;padding:12px 16px 16px;position:relative}
+.rp-d{height:34px;border:1px solid var(--ln3);border-radius:8px;padding:0 8px;background:var(--sf);color:var(--tx);font:inherit;font-size:14px}
+.rp-tw{overflow-x:auto}
+.rp-t{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.rp-t th{background:var(--sf2);color:var(--t3);font-weight:500;font-size:13px;text-align:left;padding:10px 16px;border-bottom:1px solid var(--ln2);white-space:nowrap}
+.rp-t td{padding:10px 16px;border-bottom:1px solid var(--ln2);white-space:nowrap}
+.rp-t .n{text-align:right}.rp-t tbody tr:hover{background:var(--hv)}
+.mm-l{padding:4px 0}
+.mm-g{margin-bottom:6px}
+.mm-gh{padding:12px 16px 6px;font-size:14px;font-weight:700;color:var(--tx)}.mm-gh span{font-weight:400;color:var(--t4);font-size:13px;margin-left:4px}
+.mm-t td{vertical-align:middle}.mm-t tr.ed{background:var(--ac-s)}
+.mm-t input{height:32px;border:1px solid var(--ln3);border-radius:7px;padding:0 8px;background:var(--sf);color:var(--tx);font:inherit;font-size:13px;width:130px}
+.nv-btn.sm{height:30px;padding:0 10px;font-size:13px}.nv-btn.dn{color:var(--red);border-color:var(--red-l)}
 .nv-note{background:var(--sf);border:1px dashed var(--ln3);border-radius:12px;padding:28px;color:var(--t3);line-height:1.7}
 #nvBack{position:fixed;left:16px;bottom:16px;z-index:400;display:none;height:40px;padding:0 16px;border-radius:20px;border:0;background:#0810E0;color:#fff;font:500 13px 'Noto Sans KR',sans-serif;box-shadow:0 4px 14px rgba(8,16,224,.3);cursor:pointer}
 body.nv-old #nvBack{display:block}
@@ -3202,7 +3222,7 @@ function nvFixMt(r){const m=r&&r.mtime;if(!m||/^\d{4}-\d{2}-\d{2}/.test(m))retur
 function nvNowTs(){const d=new Date(),p=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+' '+p(d.getHours())+':'+p(d.getMinutes())+':'+p(d.getSeconds());}   // 한국 시각 (서버 기록과 같은 형식)
 function nvBig(){return localStorage.getItem('bm_nvbig')==='1';}
 function nvSetBig(on){localStorage.setItem('bm_nvbig',on?'1':'0');document.body.classList.toggle('nv-big',!!on);nvRender();}
-function nvEnabled(){const s=myScope();return !!SESSION&&['all','bu','team'].includes(s.type)&&localStorage.getItem('bm_nv')!=='0';}
+function nvEnabled(){const s=myScope();return !!SESSION&&['all','bu','team'].includes(s.type);}   // [v5.136] 이전 화면 없앰 — 부서장·관리자는 항상 새 화면
 
 // ── 화면 틀 ──
 function nvBuild(){
@@ -3215,9 +3235,9 @@ function nvBuild(){
 function nvSideHtml(){
   const it=(p,label,extra)=>'<button class="nv-nav'+(NV.page===p?' on':'')+'" onclick="nvGo(\''+p+'\')" title="'+label+'">'+nvSvg(p)+'<span class="lb">'+label+'</span>'+(extra||'')+'</button>';
   const gl=t=>'<div class="nv-gl"><span>'+t+'</span></div>';
-  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.135</small></div></div>'+
+  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.137</small></div></div>'+
     '<button class="nv-col" onclick="nvSetCol(!nvCol())" title="'+(nvCol()?'메뉴 펼치기':'메뉴 접기')+'">'+(nvCol()?'»':'«')+'<span class="lb">메뉴 접기</span></button>'+
-    '<div class="nv-navs">'+it('home','팀 홈')+it('db','팀원 DB')+it('fav','DB 즐겨찾기','<span class="n nv-fav-n">'+nvFavRows().length+'</span>')+it('report','리포트','<span class="soon">이전 화면</span>')+
+    '<div class="nv-navs">'+it('home','팀 홈')+it('db','팀원 DB')+it('fav','DB 즐겨찾기','<span class="n nv-fav-n">'+nvFavRows().length+'</span>')+it('report','리포트')+
     gl('업무')+it('mission','업무미션')+it('promo','프로모션')+it('bm','사이트 북마크')+
     gl('관리')+it('post','공지·쿠폰')+it('card','명함 관리')+it('mem','인원 관리')+'</div>';
 }
@@ -3238,7 +3258,7 @@ function nvMeToggle(e,keep){if(e)e.stopPropagation();let m=document.getElementBy
   m.innerHTML='<div class="hd"><b>'+nvE(L.name)+' '+nvE(L.title)+'</b><span>'+nvE(s.type==='team'?s.bu+' · '+s.team:s.type==='bu'?s.bu+' 전체':'전체 현황')+'</span></div>'+
     '<div class="rw"><span>화면 모드</span>'+seg([['light','밝음'],['gray','그레이'],['dark','어두움']],t,'nvSetTheme')+'</div>'+
     '<div class="rw"><span>글자 크기</span>'+seg([['0','보통'],['1','크게']],nvBig()?'1':'0','nvSetBigS')+'</div>'+
-    '<div class="ln"></div><button class="it" onclick="nvOff()">↩ 이전 화면으로 <small>예전 대시보드</small></button><button class="it dn" onclick="doLogout()">로그아웃</button>';
+    '<div class="ln"></div><button class="it dn" onclick="doLogout()">로그아웃</button>';
   m.style.display='block';}
 function nvSetBigS(v){nvSetBig(v==='1');nvMeToggle(null,true);}
 // 데이터 기준 시각 (서버에서 받은 시각 · 빠른 로드는 저장해 둔 시각)
@@ -3266,12 +3286,11 @@ function nvShow(){
 }
 function nvHide(){nvUnmount();document.body.classList.remove('nv-on','nv-old');document.documentElement.setAttribute('data-theme',localStorage.getItem('dash_theme')||'light');}
 function nvOff(){localStorage.setItem('bm_nv','0');nvHide();nvHeaderBtn();toast('이전 화면으로 전환 · 상단 ✨새 화면 버튼으로 돌아올 수 있음');}
-function nvHeaderBtn(){const hr=document.querySelector('.header-right');if(!hr)return;let b=document.getElementById('nvHdrBtn');
+function nvHeaderBtn(){return;const hr=document.querySelector('.header-right');if(!hr)return;let b=document.getElementById('nvHdrBtn');
   const ok=SESSION&&['all','bu','team'].includes(myScope().type);
   if(!ok){if(b)b.remove();return;}
   if(!b){b=document.createElement('button');b.id='nvHdrBtn';b.className='theme-btn nv-hbtn';b.textContent='✨ 새 화면';b.onclick=nvShow;hr.insertBefore(b,hr.firstChild);}}
 function nvGo(p){
-  if(p==='report'){nvUnmount();document.body.classList.remove('nv-on');document.documentElement.setAttribute('data-theme',localStorage.getItem('dash_theme')||'light');document.body.classList.add('nv-old');switchMainTab('db');window.scrollTo(0,0);return;}
   NV.page=p;nvRender();
 }
 function nvUnmount(){NV.mounted.forEach(m=>{if(m.p)m.p.insertBefore(m.el,m.n||null);});NV.mounted=[];}
@@ -3286,14 +3305,13 @@ function nvRender(){
   if(NV.page==='home'){body.innerHTML=nvHomeHtml();nvNoticeLoad();nvTalkLoad();nvRegLoad();return;}   // 팀 홈 안 변경은 nvRefreshDb()로 다시 그림
 
   if(NV.page==='bm'){body.innerHTML=nvBmHtml();nvBmLoad();return;}
+  if(NV.page==='report'){body.innerHTML=nvRepHtml();nvRepCharts();return;}
   if(NV.page==='post'){body.innerHTML=nvPostHtml();nvPostLoad();return;}
   if(NV.page==='card'){try{sessionStorage.setItem('dash_session',JSON.stringify(SESSION));}catch(e){}
     body.innerHTML='<div class="nv-wrap nv-full"><div class="nv-h1"><h1>명함 관리</h1><span class="nv-sub">전자명함 등록 · 수정 · 공유 링크</span><a class="nv-link" href="card-admin.html" target="_blank" onclick="try{sessionStorage.setItem(\'dash_session\',JSON.stringify(SESSION));}catch(e){}">'+nvSvg('ext',14)+'새 창으로</a></div><iframe class="nv-frame" src="card-admin.html" title="명함 관리"></iframe></div>';return;}
-  if(NV.page==='mem'){body.innerHTML='<div class="nv-wrap"><div class="nv-h1"><h1>인원 관리</h1><span class="nv-sub">인원DB 시트 · 추가하면 다음 새로고침부터 팀원 DB·보드에 반영</span></div><div id="nvMemSlot"></div></div>';
-    const md=document.getElementById('memberMgmtModal'),inner=md&&md.firstElementChild;if(inner){nvMount(inner);document.getElementById('nvMemSlot').appendChild(inner);}
-    openMemberMgmt();if(md)md.style.display='none';return;}
+  if(NV.page==='mem'){body.innerHTML=nvMemHtml();nvMemLoad();return;}
   if(NV.page==='mission'||NV.page==='promo'){
-    body.innerHTML='<div class="nv-wrap"><div class="nv-h1"><h1>'+(NV.page==='mission'?'업무미션':'프로모션')+'</h1>'+(NV.page==='promo'?'<span class="nv-sub">본부 프로모션 페이지 · 부서 프로모션 등록은 관리 › 공지·쿠폰 › 프로모션</span>':'')+'</div>'+(NV.page==='promo'?'<div id="nvPromoV"></div>':'')+'<div id="nvSlot"></div></div>';
+    body.innerHTML='<div class="nv-wrap"><div class="nv-h1"><h1>'+(NV.page==='mission'?'업무미션':'프로모션')+'</h1>'+''+'</div>'+(NV.page==='promo'?'<div id="nvPromoV"></div>':'')+'<div id="nvSlot"></div></div>';
     if(NV.page==='promo')nvPromoLoad();
     const el=nvMount(NV.page==='mission'?'missionInner':'promoInner');if(el)document.getElementById('nvSlot').appendChild(el);
     if(NV.page==='mission')openMissionTab();else if(!window._promoReady){initPromoTab();window._promoReady=true;}
@@ -3533,6 +3551,116 @@ function nvBmDs(e){BMK.drag=e.currentTarget.dataset.id;e.dataTransfer.effectAllo
 async function nvBmDrop(e){e.preventDefault();const to=e.currentTarget.dataset.id,from=BMK.drag;BMK.drag=null;if(!from||from===to)return;
   const L=BMK.items,a=L.findIndex(x=>x.id===from),b=L.findIndex(x=>x.id===to);if(a<0||b<0)return;const [m]=L.splice(a,1);L.splice(b,0,m);nvBmRedraw();
   const r=await callServer('serverBmOp',{role:SESSION.role,token:SESSION.token,op:'order',ids:L.map(x=>x.id)});if(!r||!r.success)toast('순서 저장 실패','err');}
+
+// ══ [v5.136] 인원 관리 (새 디자인) — 인원DB 시트 · 서버 기존 기능(serverGetMembers·Add·Update·Delete) ══
+const MM={list:null,teams:[],err:'',q:'',edit:null};
+async function nvMemLoad(force){if(MM.list&&!force){nvMemDraw();return;}const r=await callServer('serverGetMembers',{role:SESSION.role,token:SESSION.token});
+  if(r&&r.success){MM.list=r.members||[];MM.teams=r.teams||[];MM.err='';}else{MM.list=null;MM.err=(r&&r.error)||'불러오지 못함';}nvMemDraw();}
+function nvMemDraw(){const b=document.getElementById('nvBody');if(b&&NV.page==='mem'){const y=b.scrollTop;b.innerHTML=nvMemHtml();b.scrollTop=y;}}
+function nvMemHtml(){
+  const T=MM.teams||[],bus=[...new Set(T.map(x=>x.bu))],selBu=MM.bu&&bus.includes(MM.bu)?MM.bu:bus[0]||'';
+  const form='<section class="nv-card nv-form"><div class="nv-sec-h"><h2>인원 추가</h2></div><div class="bd">'+
+    '<div class="row2"><label>본부<select id="mmBu" onchange="MM.bu=this.value;nvMemDraw()">'+bus.map(x=>'<option'+(x===selBu?' selected':'')+'>'+nvE(x)+'</option>').join('')+'</select></label><label>팀<select id="mmTeam">'+T.filter(x=>x.bu===selBu).map(x=>'<option>'+nvE(x.team)+'</option>').join('')+'</select></label></div>'+
+    '<div class="row2"><label>이름<input id="mmName" placeholder="홍길동"></label><label>직급<input id="mmTitle" placeholder="예: 대리, 사원"></label></div>'+
+    '<label>구글 시트 <small>주소를 통째로 붙여넣어도 돼요</small><input id="mmSheet" placeholder="https://docs.google.com/spreadsheets/d/…"></label>'+
+    '<div class="row2"><label>입사일<input type="date" id="mmJoin"></label><label>사번 <small>로그인 ID · 초기 비밀번호</small><input id="mmEmp" placeholder="예: B260315"></label></div>'+
+    '<div class="act"><span id="mmErr" class="err"></span><button class="nv-btn p" id="mmAdd" onclick="nvMemAdd()">인원 추가</button></div></div></section>';
+  let list;
+  if(MM.err&&!MM.list)list='<div class="nv-empty" style="color:var(--red)">'+nvE(MM.err)+' · <a href="#" onclick="nvMemLoad(true);return false">다시 시도</a></div>';
+  else if(!MM.list)list='<div class="nv-empty">불러오는 중…</div>';
+  else{const q=MM.q.trim(),L=MM.list.filter(m=>!q||[m.name,m.team,m.title,m.empId].some(v=>String(v||'').includes(q))),g={};L.forEach(m=>{(g[m.bu+' · '+m.team]=g[m.bu+' · '+m.team]||[]).push(m);});
+    list=Object.keys(g).length?Object.keys(g).sort((a,b)=>a.localeCompare(b,'ko',{numeric:true})).map(k=>'<div class="mm-g"><div class="mm-gh">'+nvE(k)+' <span>'+g[k].length+'명</span></div><table class="rp-t mm-t"><thead><tr><th>이름</th><th>직급</th><th>입사일</th><th>사번</th><th>가망 시트</th><th></th></tr></thead><tbody>'+
+      g[k].map(m=>{const ed=MM.edit===m.team+'|'+m.name;const q2=s=>nvE(s).replace(/'/g,"\\'");
+        return '<tr'+(ed?' class="ed"':'')+'><td><b>'+nvE(m.name)+'</b></td>'+(ed?'<td><input id="mmEt" value="'+nvE(m.title)+'"></td><td><input type="date" id="mmEj" value="'+nvE(nvYmd(m.joinDate)||'')+'"></td>':'<td>'+nvE(m.title||'-')+'</td><td>'+nvE(m.joinDate||'-')+'</td>')+'<td class="mu">'+nvE(m.empId||'-')+'</td>'+
+          '<td>'+(m.sheetId?'<a class="nv-ntc-w" style="margin:0" href="https://docs.google.com/spreadsheets/d/'+nvE(m.sheetId)+'" target="_blank" rel="noopener">시트 열기 ↗</a>':'<span class="mu">-</span>')+'</td>'+
+          '<td class="n">'+(ed?'<button class="nv-btn p sm" onclick="nvMemSave(\''+q2(m.team)+'\',\''+q2(m.name)+'\')">저장</button> <button class="nv-btn sm" onclick="MM.edit=null;nvMemDraw()">취소</button>':'<button class="nv-btn sm" onclick="MM.edit=\''+q2(m.team+'|'+m.name)+'\';nvMemDraw()">수정</button> <button class="nv-btn sm dn" onclick="nvMemDel(\''+q2(m.team)+'\',\''+q2(m.name)+'\')">삭제</button>')+'</td></tr>';}).join('')+'</tbody></table></div>').join(''):'<div class="nv-empty">'+(q?'검색 결과가 없어요':'등록된 인원이 없어요')+'</div>';}
+  return '<div class="nv-wrap"><div class="nv-h1"><h1>인원 관리</h1><span class="nv-sub">인원DB 시트 · 추가·수정하면 다음 새로고침부터 팀원 DB·보드에 반영돼요</span></div><div class="nv-pgrid">'+form+
+    '<section class="nv-card"><div class="nv-sec-h"><h2>현재 인원</h2><span>'+(MM.list?MM.list.length+'명':'')+'</span><span class="r" style="display:flex;gap:8px;align-items:center"><input class="rp-d" style="width:180px" placeholder="이름·팀·사번 검색" value="'+nvE(MM.q)+'" oninput="MM.q=this.value;clearTimeout(MM._t);MM._t=setTimeout(nvMemDraw,250)"><button class="nv-ib sm" title="새로고침" onclick="MM.list=null;nvMemDraw();nvMemLoad(true)">'+nvSvg('ref',14)+'</button></span></div><div class="mm-l">'+list+'</div></section></div></div>';}
+async function nvMemAdd(){const g=id=>(document.getElementById(id)||{}).value||'',err=document.getElementById('mmErr');
+  const sid=(/\/d\/([a-zA-Z0-9_-]{20,})/.exec(g('mmSheet'))||[])[1]||g('mmSheet').trim();
+  const p={bu:g('mmBu'),team:g('mmTeam'),name:g('mmName').trim(),sheetId:sid,title:g('mmTitle').trim(),joinDate:g('mmJoin'),empId:g('mmEmp').trim()};
+  if(!p.name){err.textContent='이름을 입력하세요';return;}if(!p.sheetId){err.textContent='가망 시트 주소(또는 ID)를 입력하세요';return;}
+  const b=document.getElementById('mmAdd');b.disabled=true;const r=await callServer('serverAddMember',Object.assign({role:SESSION.role,token:SESSION.token},p));b.disabled=false;
+  if(!r||!r.success){err.textContent=(r&&r.error)||'추가 실패';return;}toast('👤 '+p.name+' 추가 완료');MM.list=null;nvMemLoad(true);}
+async function nvMemSave(team,name){const t=(document.getElementById('mmEt')||{}).value||'',j=(document.getElementById('mmEj')||{}).value||'';
+  const r=await callServer('serverUpdateMember',{role:SESSION.role,token:SESSION.token,team,name,title:t.trim(),joinDate:j});if(!r||!r.success){toast((r&&r.error)||'수정 실패','err');return;}
+  toast(name+' 정보 수정');MM.edit=null;nvMemLoad(true);}
+async function nvMemDel(team,name){if(!confirm(name+'('+team+')님을 인원DB에서 지울까요?\n가망 시트 파일은 지워지지 않아요'))return;
+  const r=await callServer('serverDeleteMember',{role:SESSION.role,token:SESSION.token,team,name});if(!r||!r.success){toast((r&&r.error)||'삭제 실패','err');return;}toast(name+' 삭제');nvMemLoad(true);}
+
+// ══ [v5.136] 리포트: 신규 · 이관 · 파이프라인(+컨택포인트) — 범위는 상단 본부·팀(·팀원) 선택 그대로 ══
+const RP={tab:'new',per:'m0',from:'',to:'',charts:[],data:null};
+const NV_BANDS=[['50만 미만',0,500000],['50~100만',500000,1000000],['100~300만',1000000,3000000],['300~500만',3000000,5000000],['500만 이상',5000000,1e15]];
+function rpYmd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function rpRange(){const t=new Date(),y=t.getFullYear(),m=t.getMonth();
+  if(RP.per==='m0')return [rpYmd(new Date(y,m,1)),rpYmd(t)];
+  if(RP.per==='m1')return [rpYmd(new Date(y,m-1,1)),rpYmd(new Date(y,m,0))];
+  if(RP.per==='m3')return [rpYmd(new Date(y,m-2,1)),rpYmd(t)];
+  if(RP.per==='m6')return [rpYmd(new Date(y,m-5,1)),rpYmd(t)];
+  return [RP.from||rpYmd(new Date(y,m,1)),RP.to||rpYmd(t)];}
+function rpMonths(to){const d=new Date(to.slice(0,4),+to.slice(5,7)-1,1),out=[];for(let i=11;i>=0;i--){const x=new Date(d.getFullYear(),d.getMonth()-i,1);out.push(rpYmd(x).slice(0,7));}return out;}
+function rpNames(){return NV.mem?[NV.mem]:[...new Set(nvMembersInSel().flatMap(g=>g.names))];}
+function rpIsP(r){return NV_PROMO.includes(r.grade)&&r.budget>0&&r.advertiserManager&&r.phone&&r.email;}
+function rpTrfDate(r){return nvYmd(String(r.transferDate||'').slice(0,10));}
+function rpCalc(){
+  const [f,t]=rpRange(),rows=nvSelRows(),names=rpNames(),ms=rpMonths(t),inP=d=>d&&d>=f&&d<=t;
+  const nw=rows.filter(r=>inP(nvFc(r))),trf=rows.filter(r=>r.grade==='이관완료'&&inP(rpTrfDate(r)));
+  const byM=(arr,key)=>ms.map(m=>arr.filter(r=>(key(r)||'').slice(0,7)===m));
+  const allNew=rows.filter(r=>ms.includes((nvFc(r)||'').slice(0,7))),allTrf=rows.filter(r=>r.grade==='이관완료'&&ms.includes(rpTrfDate(r).slice(0,7)));
+  const mem=names.map(n=>{const a=nw.filter(r=>r.manager===n),b=trf.filter(r=>r.manager===n);return {n,new:a.length,gm:a.filter(r=>NV_PROMO.includes(r.grade)||r.grade==='이관완료').length,p:a.filter(rpIsP).length,trf:b.length,amt:b.reduce((x,r)=>x+(r.budget||0),0)};});
+  return {f,t,rows,names,ms,nw,trf,mem,mNew:byM(allNew,nvFc),mTrf:byM(allTrf,rpTrfDate)};}
+function nvRepHtml(){
+  const d=RP.data=rpCalc(),tab=(k,l)=>'<button class="nv-tab'+(RP.tab===k?' on':'')+'" onclick="RP.tab=\''+k+'\';nvRender()">'+l+'</button>';
+  const per=[['m0','이번 달'],['m1','지난달'],['m3','최근 3개월'],['m6','최근 6개월'],['c','직접']];
+  const head='<div class="nv-h1"><h1>리포트</h1><div class="nv-gtabs" style="padding:4px;border-radius:10px">'+tab('new','🟢 신규')+tab('trf','🏆 이관')+tab('pipe','🎯 파이프라인')+'</div>'+
+    '<span class="nv-seg2" style="margin-left:auto">'+per.map(([k,l])=>'<button class="'+(RP.per===k?'on':'')+'" onclick="RP.per=\''+k+'\';nvRender()">'+l+'</button>').join('')+'</span>'+
+    (RP.per==='c'?'<input type="date" class="rp-d" value="'+d.f+'" onchange="RP.from=this.value;nvRender()"><span>~</span><input type="date" class="rp-d" value="'+d.t+'" onchange="RP.to=this.value;nvRender()">':'<span class="nv-sub">'+d.f.slice(5).replace('-','/')+' ~ '+d.t.slice(5).replace('-','/')+'</span>')+'</div>';
+  const kp=(k,v,s)=>'<div class="nv-kpi"><div class="k">'+k+'</div><div class="v">'+v+(s?' <small>'+s+'</small>':'')+'</div></div>';
+  const xb=k=>'<button class="nv-btn" onclick="rpXls(\''+k+'\')">⬇ 엑셀</button>';
+  let body='';
+  if(RP.tab==='new'){const n=d.nw.length,gm=d.nw.filter(r=>NV_PROMO.includes(r.grade)||r.grade==='이관완료').length,p=d.nw.filter(rpIsP).length,days=Math.max(1,nvDays(d.f,d.t)+1);
+    body='<div class="nv-kpis">'+kp('신규 DB',n.toLocaleString(),'하루 평균 '+(n/days).toFixed(1))+kp('신규 가망건',gm.toLocaleString(),'가망 '+(n?Math.round(gm/n*100):0)+'%')+kp('P인정',p.toLocaleString(),'신규 가망건의 '+(gm?Math.round(p/gm*100):0)+'%')+kp('팀원',d.names.length+'명','1인 평균 '+(d.names.length?(n/d.names.length).toFixed(1):0))+'</div>'+
+      '<div class="rp-g2"><section class="nv-card"><div class="nv-sec-h"><h2>월별 신규 추이</h2><span>최근 12개월 · 첫콜 기준</span></div><div class="rp-cv"><canvas id="rpC1"></canvas></div></section>'+
+      '<section class="nv-card"><div class="nv-sec-h"><h2>팀원별 신규</h2><span>선택 기간</span></div><div class="rp-cv"><canvas id="rpC2"></canvas></div></section></div>'+
+      rpTable('팀원별 신규 현황',['팀원','신규 DB','신규 가망건','P인정','P율'],d.mem.map(m=>[m.n,m.new,m.gm,m.p,(m.gm?Math.round(m.p/m.gm*100):0)+'%']),xb('new'));}
+  else if(RP.tab==='trf'){const n=d.trf.length,amt=d.trf.reduce((a,r)=>a+(r.budget||0),0),lead=d.trf.map(r=>{const a=nvFc(r),b=rpTrfDate(r);return a&&b?nvDays(a,b):null;}).filter(x=>x!=null&&x>=0);
+    body='<div class="nv-kpis">'+kp('이관',n+'건')+kp('이관 금액',Math.round(amt/10000).toLocaleString()+'만원','예산(E열) 기준')+kp('평균 금액',n?Math.round(amt/n/10000).toLocaleString()+'만원':'-')+kp('평균 소요일',lead.length?Math.round(lead.reduce((a,b)=>a+b,0)/lead.length)+'일':'-','첫콜 → 이관')+'</div>'+
+      '<div class="rp-g2"><section class="nv-card"><div class="nv-sec-h"><h2>월별 이관</h2><span>최근 12개월 · 건수와 금액</span></div><div class="rp-cv"><canvas id="rpC1"></canvas></div></section>'+
+      '<section class="nv-card"><div class="nv-sec-h"><h2>팀원별 이관</h2><span>선택 기간</span></div><div class="rp-cv"><canvas id="rpC2"></canvas></div></section></div>'+
+      rpTable('이관 목록 ('+n+'건)',['이관일','업체','팀원','금액','첫콜','소요일'],d.trf.slice().sort((a,b)=>rpTrfDate(b).localeCompare(rpTrfDate(a))).map(r=>[rpTrfDate(r),r.company,r.manager,r.budget>0?fmtB(r.budget):'-',nvFc(r)||'-',(nvFc(r)&&rpTrfDate(r))?nvDays(nvFc(r),rpTrfDate(r))+'일':'-']),xb('trf'));}
+  else{const act=d.rows.filter(r=>NV_PROMO.includes(r.grade)),cps={};d.nw.forEach(r=>{const c=String(r.contactPoint||'').trim()||'(미입력)';cps[c]=cps[c]||{};cps[c][r.manager]=(cps[c][r.manager]||0)+1;});
+    const cpK=Object.keys(cps).sort((a,b)=>Object.values(cps[b]).reduce((x,y)=>x+y,0)-Object.values(cps[a]).reduce((x,y)=>x+y,0));RP.cps={cps,cpK};
+    body='<div class="nv-kpis">'+kp('가망건',act.length.toLocaleString(),'권한+브리핑·권한오픈·단기·장기')+kp('예산 합계',Math.round(act.reduce((a,r)=>a+(r.budget||0),0)/10000).toLocaleString()+'만원','가망건 예산(E열)')+kp('예산 입력률',(act.length?Math.round(act.filter(r=>r.budget>0).length/act.length*100):0)+'%')+kp('신규 유입 경로',cpK.length+'개','선택 기간 신규 기준')+'</div>'+
+      '<div class="rp-g2"><section class="nv-card"><div class="nv-sec-h"><h2>팀원별 가망도 분포</h2><span>지금 기준</span></div><div class="rp-cv"><canvas id="rpC1"></canvas></div></section>'+
+      '<section class="nv-card"><div class="nv-sec-h"><h2>가망건 예산 구간</h2><span>지금 기준</span></div><div class="rp-cv"><canvas id="rpC2"></canvas></div></section></div>'+
+      rpTable('컨택포인트 현황 (선택 기간 신규 · 담당자별)',['컨택포인트','합계'].concat(d.names),cpK.map(c=>[c,Object.values(cps[c]).reduce((x,y)=>x+y,0)].concat(d.names.map(n=>cps[c][n]||0))),xb('cp'));}
+  return '<div class="nv-wrap">'+head+body+'</div>';}
+function rpTable(title,hd,rows,btn){return '<section class="nv-card"><div class="nv-sec-h"><h2>'+title+'</h2><span class="r">'+btn+'</span></div><div class="rp-tw"><table class="rp-t"><thead><tr>'+hd.map((h,i)=>'<th'+(i?' class="n"':'')+'>'+nvE(h)+'</th>').join('')+'</tr></thead><tbody>'+
+  (rows.length?rows.map(r=>'<tr>'+r.map((v,i)=>'<td'+(i?' class="n"':'')+'>'+nvE(v)+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+hd.length+'" class="nv-empty">해당 기간 데이터가 없어요</td></tr>')+'</tbody></table></div></section>';}
+function rpCss(v){return getComputedStyle(document.body).getPropertyValue(v).trim()||'#888';}
+function nvRepCharts(){RP.charts.forEach(c=>{try{c.destroy();}catch(e){}});RP.charts=[];if(!window.Chart||!RP.data)return;
+  const d=RP.data,ac=rpCss('--ac'),acl=rpCss('--ac-l'),tx=rpCss('--t3'),ln=rpCss('--ln2'),ml=d.ms.map(m=>+m.slice(5)+'월');
+  Chart.defaults.color=tx;Chart.defaults.font.family="'Noto Sans KR',sans-serif";
+  const opt=(stack,y2)=>({responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{boxWidth:10}}},scales:{x:{stacked:!!stack,grid:{display:false}},y:{stacked:!!stack,beginAtZero:true,grid:{color:ln}},...(y2?{y2:{position:'right',beginAtZero:true,grid:{display:false}}}:{})}});
+  const mk=(id,cfg)=>{const el=document.getElementById(id);if(el)RP.charts.push(new Chart(el,cfg));};
+  if(RP.tab==='new'){
+    mk('rpC1',{type:'bar',data:{labels:ml,datasets:[{label:'신규 DB',data:d.mNew.map(a=>a.length),backgroundColor:acl,borderRadius:4},{label:'P인정',data:d.mNew.map(a=>a.filter(rpIsP).length),backgroundColor:ac,borderRadius:4}]},options:opt()});
+    mk('rpC2',{type:'bar',data:{labels:d.mem.map(m=>m.n),datasets:[{label:'신규 DB',data:d.mem.map(m=>m.new),backgroundColor:acl,borderRadius:4},{label:'신규 가망건',data:d.mem.map(m=>m.gm),backgroundColor:'#9AA6EC',borderRadius:4},{label:'P인정',data:d.mem.map(m=>m.p),backgroundColor:ac,borderRadius:4}]},options:opt()});}
+  else if(RP.tab==='trf'){
+    mk('rpC1',{type:'bar',data:{labels:ml,datasets:[{label:'이관 건수',data:d.mTrf.map(a=>a.length),backgroundColor:ac,borderRadius:4,yAxisID:'y'},{type:'line',label:'금액(만원)',data:d.mTrf.map(a=>Math.round(a.reduce((x,r)=>x+(r.budget||0),0)/10000)),borderColor:rpCss('--grn'),backgroundColor:rpCss('--grn'),tension:.3,yAxisID:'y2'}]},options:opt(false,true)});
+    mk('rpC2',{type:'bar',data:{labels:d.mem.map(m=>m.n),datasets:[{label:'이관 건수',data:d.mem.map(m=>m.trf),backgroundColor:ac,borderRadius:4,yAxisID:'y'},{label:'금액(만원)',data:d.mem.map(m=>Math.round(m.amt/10000)),backgroundColor:acl,borderRadius:4,yAxisID:'y2'}]},options:opt(false,true)});}
+  else{const G=['권한+브리핑','권한오픈','단기','장기'];
+    mk('rpC1',{type:'bar',data:{labels:d.names,datasets:G.map(g=>({label:g,data:d.names.map(n=>d.rows.filter(r=>r.manager===n&&r.grade===g).length),backgroundColor:(NV_GC[g]||NV_GC['미분류'])[1],borderRadius:3}))},options:opt(true)});
+    const act=d.rows.filter(r=>NV_PROMO.includes(r.grade)&&r.budget>0);
+    mk('rpC2',{type:'bar',data:{labels:NV_BANDS.map(b=>b[0]),datasets:[{label:'가망건 수',data:NV_BANDS.map(b=>act.filter(r=>r.budget>=b[1]&&r.budget<b[2]).length),backgroundColor:ac,borderRadius:4}]},options:opt()});}
+}
+async function rpXls(k){const d=RP.data;if(!d)return;try{toast('엑셀 만드는 중…');await rptLoadLib();}catch(e){toast('엑셀 도구를 불러오지 못했어요','err');return;}
+  const wb=new ExcelJS.Workbook(),add=(name,hd,rows)=>{const ws=wb.addWorksheet(name);ws.addRow(hd);rows.forEach(r=>ws.addRow(r));ws.getRow(1).font={bold:true};ws.columns.forEach(c=>c.width=14);};
+  const label=(NV.mem||NV.team||NV.bu||'전체')+'_'+d.f+'~'+d.t;
+  if(k==='new')add('팀원별 신규',['팀원','신규 DB','신규 가망건','P인정'],d.mem.map(m=>[m.n,m.new,m.gm,m.p]));
+  if(k==='trf')add('이관 목록',['이관일','업체','팀원','금액(원)','첫콜'],d.trf.map(r=>[rpTrfDate(r),r.company,r.manager,r.budget||0,nvFc(r)]));
+  if(k==='cp'&&RP.cps)add('컨택포인트',['컨택포인트','합계'].concat(d.names),RP.cps.cpK.map(c=>[c,Object.values(RP.cps.cps[c]).reduce((x,y)=>x+y,0)].concat(d.names.map(n=>RP.cps.cps[c][n]||0))));
+  const buf=await wb.xlsx.writeBuffer(),a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf]));a.download='리포트_'+({new:'신규',trf:'이관',cp:'컨택포인트'}[k])+'_'+label+'.xlsx';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000);}
 
 // ══ [v5.134] 부서 프로모션 (공지 + 이관 쿠폰) ══
 const PM={list:null,err:'',type:'txfirst'};
