@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 통합DB (관리자용) v5.126</title>
+<title>미래아이엔씨 통합DB (관리자용) v5.127</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link id="nvFont" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -333,7 +333,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.126</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.127</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -2705,6 +2705,8 @@ function _promoTeamSW(team){_PRteam=team;_PRpromo=null;_promoRender();}
 function _promoRoundSW(id){const data=_PR&&_PR[_PRbu];const list=Array.isArray(data)?data:(data&&_PRteam?data[_PRteam]:[]);const p=(list||[]).find(x=>x.id===id);if(p){_PRpromo=p;_promoLoad(p);}}
 function _promoLoad(promo){const el=document.getElementById('promoContent');if(!el)return;el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';fetch(promo.file+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('파일을 불러올 수 없습니다 ('+r.status+')');return r.text();}).then(html=>{el.innerHTML='';const iframe=document.createElement('iframe');iframe.style.cssText='width:100%;border:none;display:block;min-height:200px;';iframe.scrolling='no';el.appendChild(iframe);iframe.srcdoc=html;iframe.addEventListener('load',function(){try{const body=iframe.contentDocument.body;iframe.style.height=(body.scrollHeight+40)+'px';const ro=new ResizeObserver(function(){try{iframe.style.height=(iframe.contentDocument.body.scrollHeight+40)+'px';}catch(e){}});ro.observe(body);}catch(e){iframe.style.height='800px';}});}).catch(e=>{el.innerHTML='<div style="text-align:center;padding:60px;color:#c62828;">❌ '+e.message+'</div>';});}
 </script>
+<!-- [v5.127] + 사이트 북마크: 카드 그리드(썸네일/아이콘 보기 선택) · 폴더 탭 · 끌어서 순서 · 계정별 서버 저장(code2 v5.33) -->
+<!-- [v5.127] 메뉴 재구성(업무·관리 묶음, 명함·인원 관리 화면 안으로) · 메뉴 접기 · 로고 누르면 팀 홈 · 상단 오른쪽 내 정보 메뉴(화면 모드·글자·이전 화면·로그아웃) · 데이터 기준 시각 · 화면 모드 밝음/그레이/어두움 · 간격 통일 -->
 <!-- [v5.126] 3-2 공지·쿠폰 화면: 공지 쓰기·고치기·내리기·다시 올리기·댓글 보기 / 쿠폰 예약·취소·당첨자 전달 표시 — 사원 서버 기존 기능(board·boardSave·boardStatus·coupon*) 사용 · 공지 줄 고정 표시 수정(pinned) -->
 <!-- [v5.125] 보기 편하게: 새 화면 글자 전체 +1px · 왼쪽 아래 글자 크기 [보통|크게](이 PC에 기억) · 가운데 폭 1600까지 · 살펴볼 업체 칸 넓힘 · 사람 탭 10명 이하는 줄바꿈, 넘으면 드롭다운 · 팀원 보드 막대 칸 줄임 -->
 <!-- [v5.124] 3-1 소통함: 업체별 대화 상태(새 답글·답 기다림·진행 중·완료) · 사원이 읽은 시각 · 완료로 닫기/다시 열기 · 🔔에 새 답글 · 본부장 이상은 내 대화만(스위치로 전체) — 사원 서버 s1.15 필요 -->
@@ -2717,83 +2719,94 @@ function _promoLoad(promo){const el=document.getElementById('promoContent');if(!
 <!-- [v5.117] 보고용 → DB 즐겨찾기(★로 모으기 → 거기서 체크해서 엑셀) -->
 <!-- ═══ [v5.116] 새 부서장 화면 1단계: 화면 틀(왼쪽 메뉴·상단 바) · 팀원 DB · 업체 패널 — 기존 화면은 '이전 화면'으로 그대로 사용 가능 ═══ -->
 <style id="nvCss">
-#nv{--ac:#0810E0;--ac-d:#0609A8;--ac-s:#EEF0FE;--ac-l:#C9CCF8;--tx:#1C1F26;--t2:#4A4F5C;--t3:#6B7080;--t4:#8A8F9C;--ln:#E6E8EC;--ln2:#EEF0F3;--bg:#F6F7F9;--red:#B42D33;--red-s:#FDF3F3;--red-l:#F1C9CB;--amb:#8A5208;--amb-s:#FFF8EC;--amb-l:#F3DDB6;--grn:#22663D;
-  position:fixed;inset:0;z-index:150;display:none;background:var(--bg);color:var(--tx);font-family:'Noto Sans KR','Pretendard',system-ui,sans-serif;font-size:15px;}
+/* [v5.127] 화면 모드: 밝음(기본) · 그레이 · 어두움 — 새 화면·업체 패널·알림창 공통 변수 */
+body.nv-on{--ac:#0810E0;--ac-d:#0609A8;--ac-s:#EEF0FE;--ac-l:#C9CCF8;--tx:#1C1F26;--t2:#4A4F5C;--t3:#6B7080;--t4:#8A8F9C;--ln:#E6E8EC;--ln2:#EEF0F3;--ln3:#E1E4EA;--bg:#F6F7F9;--sf:#FFFFFF;--sf2:#FAFBFC;--hv:#F4F5F8;--mut:#EFF1F4;--side:#FFFFFF;
+  --red:#B42D33;--red-s:#FDF3F3;--red-s2:#FBE4E5;--red-l:#F1C9CB;--amb:#8A5208;--amb-s:#FFF8EC;--amb-s2:#FFF1D6;--amb-l:#F3DDB6;--grn:#22663D;--grn-s:#E7F5EC;--grn-l:#BFE3CB;--shadow:0 16px 40px rgba(20,24,40,.16)}
+body.nv-on.nv-t-gray{--ac:#2B3270;--ac-d:#1E2452;--ac-s:#E2E3EE;--ac-l:#BCBFD8;--tx:#1D1E23;--t2:#41444C;--t3:#62656E;--t4:#878A93;--ln:#D8D8DD;--ln2:#E1E1E5;--ln3:#CDCDD4;--bg:#DFDFE3;--sf:#F1F1F3;--sf2:#EAEAED;--hv:#E5E5E9;--mut:#DCDCE1;--side:#E8E8EC;
+  --red:#A3343A;--red-s:#F3E6E6;--red-s2:#EED8D9;--red-l:#DDB9BB;--amb:#7E5414;--amb-s:#F3EDE2;--amb-s2:#EEE2CB;--amb-l:#DCC9A5;--grn:#2C6243;--grn-s:#E3EDE6;--grn-l:#B9D3C2}
+body.nv-on.nv-t-dark{color-scheme:dark;--ac:#8A93FF;--ac-d:#727CF5;--ac-s:rgba(138,147,255,.15);--ac-l:rgba(138,147,255,.42);--tx:#E8EAEF;--t2:#C4C8D1;--t3:#9DA2AE;--t4:#747986;--ln:#2A2E37;--ln2:#23272F;--ln3:#363B46;--bg:#0F1115;--sf:#171A20;--sf2:#1B1F26;--hv:#1F232B;--mut:#262A33;--side:#13161B;
+  --red:#F08A8E;--red-s:rgba(240,138,142,.10);--red-s2:rgba(240,138,142,.18);--red-l:rgba(240,138,142,.38);--amb:#E6B866;--amb-s:rgba(230,184,102,.10);--amb-s2:rgba(230,184,102,.18);--amb-l:rgba(230,184,102,.38);--grn:#72C996;--grn-s:rgba(114,201,150,.13);--grn-l:rgba(114,201,150,.38);--shadow:0 16px 40px rgba(0,0,0,.5)}
+body.nv-t-gray #coHist{--surface:#F4F4F6;--surface2:#EBEBEE;--border:#D8D8DD;--text:#1D1E23;--text-sub:#62656E}
+body.nv-on.nv-t-dark .nv-side{background:var(--side)}
+body.nv-t-dark .nv-pill.on,body.nv-t-dark .nv-tab.on,body.nv-t-dark .nv-chip.on,body.nv-t-dark .nv-btn.p,body.nv-t-dark .nv-mechip .av,body.nv-t-dark #nvModal .nv-btn.p,body.nv-t-dark .nv-form .seg button.on{color:#0F1115!important}
+#nvNtc:empty{display:none}
+
+#nv{position:fixed;inset:0;z-index:150;display:none;background:var(--bg);color:var(--tx);font-family:'Noto Sans KR','Pretendard',system-ui,sans-serif;font-size:15px;}
 body.nv-on{overflow:hidden}
 body.nv-on #nv{display:flex}
 body.nv-on .jump-fab{display:none!important}
 #nv *{box-sizing:border-box}
 #nv button{font:inherit;cursor:pointer}
 #nv input,#nv select{font:inherit}
-.nv-side{flex:0 0 236px;background:#fff;border-right:1px solid var(--ln);padding:18px 12px;display:flex;flex-direction:column;gap:2px;overflow:auto}
+.nv-side{flex:0 0 236px;background:var(--sf);border-right:1px solid var(--ln);padding:18px 12px;display:flex;flex-direction:column;gap:2px;overflow:auto}
 .nv-brand{display:flex;align-items:center;gap:10px;padding:2px 8px 18px}
 .nv-brand img{width:30px;height:30px;object-fit:contain}
 .nv-brand b{font-size:15px;font-weight:700;white-space:nowrap}
 .nv-brand small{display:block;font-size:12px;color:var(--t4);font-weight:400}
 .nv-nav{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;color:var(--t2);border:0;background:none;text-align:left;width:100%;font-size:15px}
-.nv-nav:hover{background:#EEF0F4}
+.nv-nav:hover{background:var(--hv)}
 .nv-nav.on{background:var(--ac-s);color:var(--ac);font-weight:500}
 .nv-nav svg{flex:0 0 18px}
-.nv-nav .n{margin-left:auto;font-size:12px;padding:1px 7px;border-radius:9px;background:#EEF0F4;color:var(--t3)}
-.nv-nav.on .n{background:#fff;color:var(--ac)}
+.nv-nav .n{margin-left:auto;font-size:12px;padding:1px 7px;border-radius:9px;background:var(--hv);color:var(--t3)}
+.nv-nav.on .n{background:var(--sf);color:var(--ac)}
 .nv-nav .soon{margin-left:auto;font-size:11px;color:var(--t4)}
 .nv-sep{height:1px;background:var(--ln2);margin:10px 6px}
-.nv-me{margin-top:auto;padding:12px;border-radius:10px;background:var(--bg);font-size:13px;color:#5B6070;line-height:1.6}
+.nv-me{margin-top:auto;padding:12px;border-radius:10px;background:var(--bg);font-size:13px;color:var(--t3);line-height:1.6}
 .nv-me b{color:var(--tx);font-weight:500;font-size:14px}
 .nv-me .b{display:flex;gap:6px;margin-top:8px}
-.nv-me .b button{flex:1;height:28px;border:1px solid var(--ln);border-radius:7px;background:#fff;font-size:13px;color:var(--t2)}
-.nv-me .b button:hover{background:#F4F5F8}
+.nv-me .b button{flex:1;height:28px;border:1px solid var(--ln);border-radius:7px;background:var(--sf);font-size:13px;color:var(--t2)}
+.nv-me .b button:hover{background:var(--hv)}
 .nv-main{flex:1;min-width:0;display:flex;flex-direction:column}
-.nv-top{display:flex;align-items:center;gap:10px;padding:12px 28px;background:#fff;border-bottom:1px solid var(--ln);flex-wrap:wrap}
-.nv-crumb{display:flex;align-items:center;gap:6px;font-size:15px;color:#5B6070}
-.nv-crumb select{height:32px;border:1px solid var(--ln);border-radius:8px;padding:0 8px;background:#fff;color:var(--tx)}
+.nv-top{display:flex;align-items:center;gap:10px;padding:12px 28px;background:var(--sf);border-bottom:1px solid var(--ln);flex-wrap:wrap}
+.nv-crumb{display:flex;align-items:center;gap:6px;font-size:15px;color:var(--t3)}
+.nv-crumb select{height:32px;border:1px solid var(--ln);border-radius:8px;padding:0 8px;background:var(--sf);color:var(--tx)}
 .nv-crumb .cur{color:var(--tx);font-weight:500}
-.nv-crumb svg{color:#A5AAB5}
-.nv-search{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid #E1E4EA;border-radius:8px;padding:0 12px;height:36px;width:300px;color:var(--t4)}
+.nv-crumb svg{color:var(--t4)}
+.nv-search{margin-left:auto;display:flex;align-items:center;gap:8px;border:1px solid var(--ln3);border-radius:8px;padding:0 12px;height:36px;width:300px;color:var(--t4)}
 .nv-search:focus-within{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-s)}
 .nv-search input{border:0;outline:0;width:100%;background:transparent;color:var(--tx);font-size:14px}
-.nv-ib{width:36px;height:36px;border:1px solid #E1E4EA;border-radius:8px;background:#fff;color:var(--t2);display:inline-flex;align-items:center;justify-content:center}
-.nv-ib:hover{background:#F4F5F8}
+.nv-ib{width:36px;height:36px;border:1px solid var(--ln3);border-radius:8px;background:var(--sf);color:var(--t2);display:inline-flex;align-items:center;justify-content:center}
+.nv-ib:hover{background:var(--hv)}
 .nv-body{flex:1;overflow:auto;padding:24px 28px 40px}
 .nv-wrap{max-width:none;display:flex;flex-direction:column;gap:16px}
 .nv-h1{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
 .nv-h1 h1{margin:0 8px 0 0;font-size:22px;font-weight:700}
-.nv-chip{height:32px;padding:0 12px;border-radius:8px;border:1px solid #E1E4EA;background:#fff;color:var(--t2);font-size:14px}
-.nv-chip:hover{border-color:#C9CDD6}
+.nv-chip{height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--ln3);background:var(--sf);color:var(--t2);font-size:14px}
+.nv-chip:hover{border-color:var(--ln3)}
 .nv-chip.on{border-color:var(--ac);background:var(--ac);color:#fff}
 .nv-chip small{opacity:.7;margin-left:3px}
-.nv-link{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--ac);border:1px solid var(--ac-l);border-radius:8px;padding:0 12px;height:32px;background:#fff}
+.nv-link{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--ac);border:1px solid var(--ac-l);border-radius:8px;padding:0 12px;height:32px;background:var(--sf)}
 .nv-link:hover{background:var(--ac-s)}
 .nv-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
-.nv-kpi{background:#fff;border:1px solid var(--ln);border-radius:12px;padding:14px 16px}
+.nv-kpi{background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:14px 16px}
 .nv-kpi .k{font-size:13px;color:var(--t3)}
 .nv-kpi .v{font-size:22px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
 .nv-kpi .v small{font-size:15px;color:var(--t3);font-weight:500}
 .nv-kpi.red{border-color:var(--red-l)}.nv-kpi.red .k,.nv-kpi.red .v{color:var(--red)}
-.nv-card{background:#fff;border:1px solid var(--ln);border-radius:12px;overflow:hidden}
+.nv-card{background:var(--sf);border:1px solid var(--ln);border-radius:12px;overflow:hidden}
 .nv-fl{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px 16px;border-bottom:1px solid var(--ln2)}
-.nv-pill{height:28px;padding:0 10px;border-radius:14px;border:1px solid #E1E4EA;background:#fff;color:var(--t2);font-size:13px}
+.nv-pill{height:28px;padding:0 10px;border-radius:14px;border:1px solid var(--ln3);background:var(--sf);color:var(--t2);font-size:13px}
 .nv-pill b{font-weight:500;margin-left:2px}
 .nv-pill.on{background:var(--tx);border-color:var(--tx);color:#fff}
-.nv-pill.r{border-color:var(--red-l);background:var(--red-s);color:#9E2329}.nv-pill.r.on{background:#9E2329;color:#fff;border-color:#9E2329}
+.nv-pill.r{border-color:var(--red-l);background:var(--red-s);color:var(--red)}.nv-pill.r.on{background:var(--red);color:#fff;border-color:var(--red)}
 .nv-pill.a{border-color:var(--amb-l);background:var(--amb-s);color:var(--amb)}.nv-pill.a.on{background:var(--amb);color:#fff;border-color:var(--amb)}
-.nv-vs{width:1px;height:20px;background:#E1E4EA;margin:0 6px}
-.nv-fl2{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--ln2);font-size:14px;color:#5B6070}
-.nv-fl2 select,.nv-fl2 input{height:32px;border:1px solid #E1E4EA;border-radius:8px;padding:0 8px;background:#fff;color:var(--tx)}
-.nv-btn{height:32px;padding:0 12px;border-radius:8px;border:1px solid #E1E4EA;background:#fff;font-size:14px;color:var(--t2)}
-.nv-btn:hover{background:#F4F5F8}
+.nv-vs{width:1px;height:20px;background:var(--ln3);margin:0 6px}
+.nv-fl2{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 16px;border-bottom:1px solid var(--ln2);font-size:14px;color:var(--t3)}
+.nv-fl2 select,.nv-fl2 input{height:32px;border:1px solid var(--ln3);border-radius:8px;padding:0 8px;background:var(--sf);color:var(--tx)}
+.nv-btn{height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--ln3);background:var(--sf);font-size:14px;color:var(--t2)}
+.nv-btn:hover{background:var(--hv)}
 .nv-btn.p{background:var(--ac);border-color:var(--ac);color:#fff}.nv-btn.p:hover{background:var(--ac-d)}
 .nv-tr{display:grid;grid-template-columns:var(--cols);gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--ln2);font-size:14px;font-variant-numeric:tabular-nums;cursor:pointer}
-.nv-tr:hover{background:#F8F9FB}
-.nv-tr.hd{font-size:13px;color:var(--t3);background:#FAFBFC;cursor:default;position:sticky;top:0;z-index:1}
+.nv-tr:hover{background:var(--hv)}
+.nv-tr.hd{font-size:13px;color:var(--t3);background:var(--sf2);cursor:default;position:sticky;top:0;z-index:1}
 .nv-tr.hd span[data-s]{cursor:pointer;user-select:none}
 .nv-tr.hd span[data-s]:hover{color:var(--tx)}
 .nv-tr.hd .on{color:var(--ac);font-weight:500}
 .nv-tr.sel{background:#F6F7FF}
 .nv-tr>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .nv-tr .co{font-weight:500}
-.nv-tr .mu{color:#5B6070}
-.nv-star{border:0;background:none;padding:0;width:22px;height:22px;color:#C3C7D0;display:inline-flex;align-items:center;justify-content:center;border-radius:6px}
+.nv-tr .mu{color:var(--t3)}
+.nv-star{border:0;background:none;padding:0;width:22px;height:22px;color:var(--t4);display:inline-flex;align-items:center;justify-content:center;border-radius:6px}
 .nv-star:hover{background:#FFF6DA;color:#E0A400}
 .nv-star.on{color:#F0B000}
 .nv-star.on svg{fill:#F5B800}
@@ -2812,39 +2825,39 @@ body.nv-on .jump-fab{display:none!important}
 .nv-sec-h .r{margin-left:auto}
 .nv-kpis.k5{grid-template-columns:repeat(5,minmax(0,1fr))}
 .nv-kpi.amb{border-color:var(--amb-l)}.nv-kpi.amb .k,.nv-kpi.amb .v{color:var(--amb)}
-.nv-kpi.clk{cursor:pointer}.nv-kpi.clk:hover{border-color:#C9CDD6}
+.nv-kpi.clk{cursor:pointer}.nv-kpi.clk:hover{border-color:var(--ln3)}
 .nv-tb{display:grid;grid-template-columns:96px 64px 64px 52px minmax(110px,1fr) 88px 70px 64px;gap:8px;align-items:center;padding:10px 16px;border-bottom:1px solid var(--ln2);font-size:14px;font-variant-numeric:tabular-nums;cursor:pointer}
-.nv-tb:hover{background:#F8F9FB}
-.nv-tb.hd{font-size:13px;color:var(--t3);background:#FAFBFC;cursor:default}
-.nv-tb.tm{font-size:13px;color:var(--t3);background:#F6F7F9;cursor:pointer;grid-template-columns:1fr;padding:7px 16px;font-weight:500}
+.nv-tb:hover{background:var(--hv)}
+.nv-tb.hd{font-size:13px;color:var(--t3);background:var(--sf2);cursor:default}
+.nv-tb.tm{font-size:13px;color:var(--t3);background:var(--bg);cursor:pointer;grid-template-columns:1fr;padding:7px 16px;font-weight:500}
 .nv-tb b{font-weight:500}
-.nv-tb .z{color:#B9BDC6}
-.nv-dist{display:flex;height:8px;border-radius:4px;overflow:hidden;background:#EFF1F4}
+.nv-tb .z{color:var(--t4)}
+.nv-dist{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--mut)}
 .nv-dist i{display:block;height:100%}
 .nv-st{display:inline-block;font-size:13px;padding:2px 8px;border-radius:6px;font-weight:500}
-.nv-st.help{background:#FBE4E5;color:#9E2329}.nv-st.warn{background:#FFF1D6;color:var(--amb)}.nv-st.ok{background:#E7F5EC;color:var(--grn)}
+.nv-st.help{background:var(--red-s2);color:var(--red)}.nv-st.warn{background:var(--amb-s2);color:var(--amb)}.nv-st.ok{background:var(--grn-s);color:var(--grn)}
 .nv-legend{display:flex;gap:14px;padding:10px 16px;font-size:13px;color:var(--t3)}
 .nv-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .nv-q{display:flex;align-items:flex-start;gap:10px;padding:11px 16px;border-bottom:1px solid var(--ln2);font-size:14px;cursor:pointer}
-.nv-q:hover{background:#F8F9FB}
+.nv-q:hover{background:var(--hv)}
 .nv-q .dot{flex:0 0 8px;height:8px;border-radius:4px;margin-top:6px}
 .nv-q .m{flex:1;min-width:0}
 .nv-q .m b{font-weight:500}
 .nv-q .m .s{color:var(--t3);font-size:13px;margin-left:4px}
 .nv-q .tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
-.nv-q .tags span{font-size:12px;padding:1px 7px;border-radius:6px;background:#EFF1F4;color:var(--t2)}
+.nv-q .tags span{font-size:12px;padding:1px 7px;border-radius:6px;background:var(--mut);color:var(--t2)}
 .nv-q .bud{font-size:13px;color:var(--t3);white-space:nowrap}
-.nv-ntc{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid var(--ln);border-radius:12px;padding:10px 14px;font-size:14px}
+.nv-ntc{display:flex;align-items:center;gap:10px;background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:10px 14px;font-size:14px}
 .nv-ntc .lb{flex:0 0 auto;font-size:13px;font-weight:500;color:var(--ac);background:var(--ac-s);padding:2px 9px;border-radius:6px}
 .nv-ntc .tt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 .nv-ntc .tt:hover{text-decoration:underline}
 .nv-ntc .sc{color:var(--t4);font-size:13px;margin-left:6px}
 .nv-ntc .nb{border:0;background:none;color:var(--t3);width:26px;height:26px;border-radius:6px}
-.nv-ntc .nb:hover{background:#F0F1F4}
+.nv-ntc .nb:hover{background:var(--hv)}
 #nvModal{position:fixed;inset:0;z-index:600;background:rgba(28,31,38,.35);display:none;align-items:center;justify-content:center;font-family:'Noto Sans KR',sans-serif}
-#nvModal .bx{background:#fff;border-radius:14px;width:560px;max-width:92vw;max-height:80vh;overflow:auto;padding:24px 26px;box-shadow:0 20px 50px rgba(20,24,40,.2);color:#1C1F26}
+#nvModal .bx{background:var(--sf);border-radius:14px;width:560px;max-width:92vw;max-height:80vh;overflow:auto;padding:24px 26px;box-shadow:0 20px 50px rgba(20,24,40,.2);color:var(--tx)}
 #nvModal h3{margin:0 0 4px;font-size:18px}
-#nvModal .mt{font-size:13px;color:#8A8F9C;margin-bottom:14px}
+#nvModal .mt{font-size:13px;color:var(--t4);margin-bottom:14px}
 #nvModal .bd{font-size:15px;line-height:1.75;white-space:pre-wrap;word-break:break-word}
 #nvModal .ft{display:flex;justify-content:flex-end;margin-top:18px}
 .nv-home .nv-hgrid{grid-template-columns:minmax(0,1fr) clamp(380px,32%,480px)}
@@ -2852,44 +2865,44 @@ body.nv-on .jump-fab{display:none!important}
 .nv-cklist{flex:1;overflow:auto;min-height:120px}
 .nv-tab{border:0;background:none;height:32px;padding:0 12px;border-radius:8px;font-size:15px;font-weight:500;color:var(--t3)}
 .nv-tab b{font-weight:500;font-size:13px;margin-left:2px}
-.nv-tab:hover{background:#F2F3F6}
+.nv-tab:hover{background:var(--hv)}
 .nv-tab.on{background:var(--tx);color:#fff}
 .nv-pchips{display:flex;flex-wrap:wrap;gap:6px;padding:10px 16px;border-bottom:1px solid var(--ln2);flex:0 0 auto}
 .nv-pchips.sel{align-items:center;gap:10px}
-.nv-pchips select{height:34px;border:1px solid #E1E4EA;border-radius:8px;padding:0 8px;font:inherit;font-size:14px;min-width:180px;background:#fff}
+.nv-pchips select{height:34px;border:1px solid var(--ln3);border-radius:8px;padding:0 8px;font:inherit;font-size:14px;min-width:180px;background:var(--sf)}
 .nv-pchips .nv-pill{flex:0 0 auto}
 .nv-tb{grid-template-columns:minmax(80px,1.2fr) 60px 64px 46px 84px minmax(92px,1fr) 58px 54px 56px 30px!important;gap:8px!important}
 .nv-tb.tm{grid-template-columns:1fr!important}
 .nv-tb.on{background:var(--ac-s);box-shadow:inset 3px 0 0 var(--ac)}
-.nv-tb.tm.on{background:#E3E6FC}
-.nv-go{border:1px solid var(--ln);background:#fff;border-radius:6px;font-size:14px;height:24px;width:28px;padding:0;color:var(--t3)}
+.nv-tb.tm.on{background:var(--ac-s)}
+.nv-go{border:1px solid var(--ln);background:var(--sf);border-radius:6px;font-size:14px;height:24px;width:28px;padding:0;color:var(--t3)}
 .nv-go:hover{color:var(--ac);border-color:var(--ac-l)}
 .nv-flt{font-size:12px;padding:1px 7px;border-radius:6px;background:var(--ac-s);color:var(--ac);font-weight:500}
 .nv-kpi.on{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-s)}
-.nv-x{border:1px solid var(--ln);background:#fff;border-radius:7px;height:28px;padding:0 10px;font-size:13px;color:var(--t2)}
+.nv-x{border:1px solid var(--ln);background:var(--sf);border-radius:7px;height:28px;padding:0 10px;font-size:13px;color:var(--t2)}
 .nv-focus .nv-sec-h{align-items:center}
 .nv-kpis.k6{grid-template-columns:repeat(6,minmax(0,1fr))}
 .nv-kpi.blu{border-color:var(--ac-l)}.nv-kpi.blu .k,.nv-kpi.blu .v{color:var(--ac)}
-.nv-gtabs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;background:#fff;border:1px solid var(--ln);border-radius:12px;padding:8px}
-.nv-gtabs .nv-tab.au:not(.on){color:#8A5208}
+.nv-gtabs{display:flex;flex-wrap:wrap;gap:4px;align-items:center;background:var(--sf);border:1px solid var(--ln);border-radius:12px;padding:8px}
+.nv-gtabs .nv-tab.au:not(.on){color:var(--amb)}
 .nv-gtabs .nv-tab.add{color:var(--ac)}
 .nv-gtabs .nv-tab.del{margin-left:auto;color:var(--red);font-size:13px}
-.nv-gsel{height:28px;border:1px solid var(--ln);border-radius:7px;padding:0 4px;font-size:13px;background:#fff;max-width:104px;color:var(--t2)}
-.nv-al{height:28px;border:1px dashed #D5D9E2;border-radius:7px;background:#fff;font-size:13px;color:var(--t4);padding:0 8px;white-space:nowrap}
+.nv-gsel{height:28px;border:1px solid var(--ln);border-radius:7px;padding:0 4px;font-size:13px;background:var(--sf);max-width:104px;color:var(--t2)}
+.nv-al{height:28px;border:1px dashed var(--ln3);border-radius:7px;background:var(--sf);font-size:13px;color:var(--t4);padding:0 8px;white-space:nowrap}
 .nv-al:hover{border-color:var(--ac);color:var(--ac)}
 .nv-al.on{border-style:solid;border-color:var(--ac-l);color:var(--ac);background:var(--ac-s)}
 .nv-al.due{border-color:var(--red-l);background:var(--red-s);color:var(--red);font-weight:500}
-.nv-al.done{border-color:var(--ln);background:#F4F5F7;color:var(--t4);text-decoration:line-through}
+.nv-al.done{border-color:var(--ln);background:var(--mut);color:var(--t4);text-decoration:line-through}
 .nv-alq{display:flex;gap:6px;margin-bottom:12px}
-.nv-alq button{height:30px;padding:0 10px;border:1px solid #E1E4EA;border-radius:8px;background:#fff;font-size:13px;cursor:pointer}
-.nv-alq button:hover{border-color:#0810E0;color:#0810E0}
-.nv-all{display:flex;flex-direction:column;gap:4px;font-size:13px;color:#6B7080;margin-bottom:10px}
-.nv-all input,.nv-all textarea{border:1px solid #E1E4EA;border-radius:8px;padding:8px 10px;font:inherit;font-size:14px;color:#1C1F26}
-#nvModal .nv-btn{height:34px;padding:0 14px;border:1px solid #E1E4EA;border-radius:8px;background:#fff;cursor:pointer;font-size:14px}
-#nvModal .nv-btn.p{background:#0810E0;border-color:#0810E0;color:#fff}
+.nv-alq button{height:30px;padding:0 10px;border:1px solid var(--ln3);border-radius:8px;background:var(--sf);font-size:13px;cursor:pointer}
+.nv-alq button:hover{border-color:var(--ac);color:var(--ac)}
+.nv-all{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--t3);margin-bottom:10px}
+.nv-all input,.nv-all textarea{border:1px solid var(--ln3);border-radius:8px;padding:8px 10px;font:inherit;font-size:14px;color:var(--tx)}
+#nvModal .nv-btn{height:34px;padding:0 14px;border:1px solid var(--ln3);border-radius:8px;background:var(--sf);cursor:pointer;font-size:14px}
+#nvModal .nv-btn.p{background:var(--ac);border-color:var(--ac);color:#fff}
 .nv-bellb{position:relative}
 .nv-bell-n{position:absolute;top:-5px;right:-5px;background:#D0383E;color:#fff;font-size:11px;font-weight:700;border-radius:9px;padding:1px 5px;line-height:1.4}
-#nvBell{position:absolute;top:58px;right:28px;width:380px;max-height:70vh;overflow:auto;background:#fff;border:1px solid var(--ln);border-radius:12px;box-shadow:0 16px 40px rgba(20,24,40,.16);z-index:20;display:none}
+#nvBell{position:absolute;top:58px;right:28px;width:380px;max-height:70vh;overflow:auto;background:var(--sf);border:1px solid var(--ln);border-radius:12px;box-shadow:0 16px 40px rgba(20,24,40,.16);z-index:20;display:none}
 #nvBell .hd{padding:12px 16px;font-weight:700;border-bottom:1px solid var(--ln2)}
 #nvBell .hd span{font-weight:400;font-size:13px;color:var(--t4);margin-left:6px}
 #nvBell .it{display:flex;gap:8px;align-items:flex-start;padding:10px 16px;border-bottom:1px solid var(--ln2);font-size:14px}
@@ -2898,18 +2911,18 @@ body.nv-on .jump-fab{display:none!important}
 #nvBell .it b{font-weight:500}
 #nvBell .s{font-size:13px;color:var(--red)}
 #nvBell .mm{font-size:13px;color:var(--t2);margin-top:3px}
-#nvBell .it button{flex:0 0 30px;height:30px;border:1px solid #BFE3CB;background:#fff;color:var(--grn);border-radius:8px}
-#nvBell .it button:hover{background:#E7F5EC}
+#nvBell .it button{flex:0 0 30px;height:30px;border:1px solid var(--grn-l);background:var(--sf);color:var(--grn);border-radius:8px}
+#nvBell .it button:hover{background:var(--grn-s)}
 #nvBell .ft{padding:10px 16px;font-size:13px}
 #nvBell .ft a{color:var(--ac)}
 .nv-q .tags em{font-style:normal;font-size:12px;color:var(--t3);margin-left:4px;align-self:center}
 .nv-qa{display:flex;flex-direction:column;gap:4px;flex:0 0 auto}
-.nv-qa button{height:26px;padding:0 9px;border:1px solid var(--ln);border-radius:7px;background:#fff;font-size:13px;color:var(--t3);white-space:nowrap}
-.nv-qa button:hover{border-color:#C9CDD6;color:var(--tx)}
-.nv-qa button.snd{border-color:#F3DDB6;color:#8A5208;background:#FFFAF1}
-.nv-qa button.snd:hover{background:#FFF1D6}
+.nv-qa button{height:26px;padding:0 9px;border:1px solid var(--ln);border-radius:7px;background:var(--sf);font-size:13px;color:var(--t3);white-space:nowrap}
+.nv-qa button:hover{border-color:var(--ln3);color:var(--tx)}
+.nv-qa button.snd{border-color:var(--amb-l);color:var(--amb);background:var(--amb-s)}
+.nv-qa button.snd:hover{background:var(--amb-s2)}
 .nv-pacts{flex-wrap:wrap;gap:6px}
-.nv-pacts select{height:32px;border:1px solid #E1E4EA;border-radius:8px;padding:0 6px;font-size:14px;margin-left:auto}
+.nv-pacts select{height:32px;border:1px solid var(--ln3);border-radius:8px;padding:0 6px;font-size:14px;margin-left:auto}
 .nv-kpis.k7{grid-template-columns:repeat(7,minmax(0,1fr))}
 .nv-kpis.k7 .nv-kpi{padding:12px 14px}.nv-kpis.k7 .v{font-size:20px}
 .nv-st.bl{background:var(--ac-s);color:var(--ac)}
@@ -2921,16 +2934,16 @@ body.nv-on .jump-fab{display:none!important}
 .nv-sw{display:inline-flex;align-items:center;gap:5px;font-size:13px;color:var(--t3);cursor:pointer;margin-right:6px}
 .nv-sw input{accent-color:var(--ac)}
 .nv-ib.sm{width:28px;height:28px}
-#nvBell .sh{padding:8px 16px 4px;font-size:13px;font-weight:500;color:var(--t3);background:#FAFBFC}
-.ch-c .rd{color:#2F44D0!important}.ch-c .rd.no{color:#9AA0AC!important}
-.ch-cls{margin-left:auto;border:1px solid #BFE3CB;background:#fff;color:#22663D;border-radius:7px;height:26px;padding:0 10px;font-size:13px;cursor:pointer}
-.ch-cls:hover{background:#E7F5EC}
-.ch-done{margin-left:auto;font-size:13px!important;color:#22663D!important;font-weight:500}
-.ch-done+.ch-cls{margin-left:6px;border-color:#E1E4EA;color:#4A4F5C}
+#nvBell .sh{padding:8px 16px 4px;font-size:13px;font-weight:500;color:var(--t3);background:var(--sf2)}
+.ch-c .rd{color:#2F44D0!important}.ch-c .rd.no{color:var(--t4)!important}
+.ch-cls{margin-left:auto;border:1px solid var(--grn-l);background:var(--sf);color:var(--grn);border-radius:7px;height:26px;padding:0 10px;font-size:13px;cursor:pointer}
+.ch-cls:hover{background:var(--grn-s)}
+.ch-done{margin-left:auto;font-size:13px!important;color:var(--grn)!important;font-weight:500}
+.ch-done+.ch-cls{margin-left:6px;border-color:var(--ln3);color:var(--t2)}
 .ch-sec h4{display:flex;align-items:center;gap:6px}
 .nv-fs{display:flex;align-items:center;gap:4px;margin:auto 4px 8px;font-size:13px;color:var(--t4)}
 .nv-fs span{margin-right:4px}
-.nv-fs button{flex:1;height:30px;border:1px solid var(--ln);background:#fff;border-radius:7px;font-size:13px;color:var(--t3)}
+.nv-fs button{flex:1;height:30px;border:1px solid var(--ln);background:var(--sf);border-radius:7px;font-size:13px;color:var(--t3)}
 .nv-fs button.on{background:var(--tx);border-color:var(--tx);color:#fff}
 .nv-fs+.nv-me{margin-top:0}
 body.nv-big #nv{zoom:1.1}
@@ -2941,12 +2954,12 @@ body.nv-on #coHist{zoom:1.06}
 .nv-form .bd{padding:16px;display:flex;flex-direction:column;gap:12px}
 .nv-form label{display:flex;flex-direction:column;gap:5px;font-size:14px;color:var(--t2);font-weight:500}
 .nv-form label small{font-weight:400;color:var(--t4);font-size:12px}
-.nv-form input:not([type=checkbox]),.nv-form select,.nv-form textarea{height:38px;border:1px solid #E1E4EA;border-radius:8px;padding:0 10px;font:inherit;font-size:14px;font-weight:400;color:var(--tx);background:#fff}
+.nv-form input:not([type=checkbox]),.nv-form select,.nv-form textarea{height:38px;border:1px solid var(--ln3);border-radius:8px;padding:0 10px;font:inherit;font-size:14px;font-weight:400;color:var(--tx);background:var(--sf)}
 .nv-form textarea{height:auto;padding:10px;resize:vertical;line-height:1.6}
 .nv-form input:focus,.nv-form select:focus,.nv-form textarea:focus{outline:0;border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-s)}
 .nv-form .row2{display:flex;gap:10px}.nv-form .row2>label{flex:1}
 .nv-form .seg{display:flex;gap:4px}.nv-form .seg.wrap{flex-wrap:wrap}
-.nv-form .seg button{height:34px;padding:0 12px;border:1px solid #E1E4EA;border-radius:8px;background:#fff;font-size:14px;color:var(--t2)}
+.nv-form .seg button{height:34px;padding:0 12px;border:1px solid var(--ln3);border-radius:8px;background:var(--sf);font-size:14px;color:var(--t2)}
 .nv-form .seg button.on{background:var(--tx);border-color:var(--tx);color:#fff}
 .nv-form .chk{display:flex;flex-direction:column;gap:6px}
 .nv-form .chk label{flex-direction:row;align-items:center;gap:7px;font-weight:400}
@@ -2958,27 +2971,105 @@ body.nv-on #coHist{zoom:1.06}
 .nv-np{padding:14px 16px;border-bottom:1px solid var(--ln2)}
 .nv-np .t{font-size:15px}.nv-np .t b{font-weight:500}
 .nv-np .s{font-size:13px;color:var(--t3);margin-top:4px}
-.nv-np .bd2{margin-top:8px;padding:10px 12px;background:#F8F9FB;border-radius:8px;font-size:14px;line-height:1.7;white-space:pre-wrap}
+.nv-np .bd2{margin-top:8px;padding:10px 12px;background:var(--hv);border-radius:8px;font-size:14px;line-height:1.7;white-space:pre-wrap}
 .nv-np .cms{margin-top:8px;border-top:1px solid var(--ln);padding-top:8px;white-space:normal}
 .nv-np .cms div{font-size:13px;padding:2px 0}.nv-np .cms span{color:var(--t4);font-size:12px}
 .nv-np .wn{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:6px;font-size:13px}
 .nv-np .wn small{color:var(--t4)}.nv-np .wn .x{text-decoration:line-through;color:var(--t4)}
 .nv-np .wn label{display:inline-flex;align-items:center;gap:3px;color:var(--grn)}
 .nv-np .b{display:flex;gap:6px;margin-top:8px}
-.nv-np .b button{height:30px;padding:0 12px;border:1px solid var(--ln);border-radius:7px;background:#fff;font-size:13px;color:var(--t2)}
-.nv-np .b button:hover{border-color:#C9CDD6}
+.nv-np .b button{height:30px;padding:0 12px;border:1px solid var(--ln);border-radius:7px;background:var(--sf);font-size:13px;color:var(--t2)}
+.nv-np .b button:hover{border-color:var(--ln3)}
 .nv-np .b button.dn{color:var(--red);border-color:var(--red-l)}
-.nv-note{background:#fff;border:1px dashed #D5D9E2;border-radius:12px;padding:28px;color:#5B6070;line-height:1.7}
+.nv-side{background:var(--side);padding:16px 12px 12px;gap:0;transition:flex-basis .15s}
+.nv-brand{cursor:pointer;border-radius:10px;padding:6px 8px 16px}
+.nv-brand:hover b{color:var(--ac)}
+.nv-navs{display:flex;flex-direction:column;gap:4px}
+.nv-nav{min-height:44px;padding:0 12px;font-size:15px;border-radius:10px}
+.nv-nav svg{flex:0 0 20px;width:20px;height:20px}
+.nv-nav .lb{white-space:nowrap}
+.nv-gl{margin:18px 12px 6px;font-size:12px;font-weight:500;color:var(--t4);letter-spacing:.02em}
+.nv-col{margin-top:auto;display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;border:0;border-radius:10px;background:none;color:var(--t4);font-size:14px}
+.nv-col:hover{background:var(--hv);color:var(--t2)}
+body.nv-colp .nv-side{flex-basis:72px;padding-left:10px;padding-right:10px}
+body.nv-colp .nv-side .lb,body.nv-colp .nv-side .n,body.nv-colp .nv-side .soon,body.nv-colp .nv-gl span{display:none}
+body.nv-colp .nv-gl{height:1px;background:var(--ln2);margin:12px 6px}
+body.nv-colp .nv-nav{justify-content:center;padding:0}
+body.nv-colp .nv-brand{justify-content:center;padding:6px 0 16px}
+body.nv-colp .nv-col{justify-content:center;padding:0}
+.nv-top{padding:12px 28px;gap:10px;min-height:64px}
+.nv-at{font-size:13px;color:var(--t4);white-space:nowrap}
+.nv-mechip{display:flex;align-items:center;gap:8px;height:42px;padding:0 10px 0 5px;border:1px solid var(--ln3);border-radius:21px;background:var(--sf);color:var(--t2)}
+.nv-mechip:hover{border-color:var(--ac-l)}
+.nv-mechip .av{width:32px;height:32px;border-radius:16px;background:var(--ac);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.nv-mechip .tx{display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}
+.nv-mechip .tx small{font-size:11px;color:var(--t4)}
+.nv-mechip .tx b{font-size:14px;font-weight:500;color:var(--tx);white-space:nowrap}
+#nvMe{position:absolute;top:62px;right:28px;width:300px;background:var(--sf);border:1px solid var(--ln);border-radius:14px;box-shadow:var(--shadow);z-index:21;display:none;padding:6px 0}
+#nvMe .hd{padding:12px 16px;border-bottom:1px solid var(--ln2);display:flex;flex-direction:column;gap:2px}
+#nvMe .hd b{font-size:15px;font-weight:700}#nvMe .hd span{font-size:13px;color:var(--t3)}
+#nvMe .rw{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;font-size:14px;color:var(--t2)}
+#nvMe .seg{display:flex;background:var(--mut);border-radius:9px;padding:3px;gap:2px}
+#nvMe .seg button{border:0;background:none;height:28px;padding:0 10px;border-radius:7px;font-size:13px;color:var(--t3)}
+#nvMe .seg button.on{background:var(--sf);color:var(--tx);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+#nvMe .ln{height:1px;background:var(--ln2);margin:6px 0}
+#nvMe .it{display:flex;align-items:center;gap:8px;width:100%;border:0;background:none;text-align:left;padding:10px 16px;font-size:14px;color:var(--t2)}
+#nvMe .it:hover{background:var(--hv)}#nvMe .it small{color:var(--t4);font-size:12px;margin-left:auto}
+#nvMe .it.dn{color:var(--red)}
+.nv-body{padding:24px 28px 48px}
+.nv-wrap{gap:18px}
+.nv-h1{gap:10px;min-height:40px}
+.nv-sub{font-size:14px;color:var(--t3)}
+.nv-sec-h{min-height:52px;padding:12px 18px}
+.nv-full{height:calc(100vh - 64px - 72px)}
+.nv-frame{flex:1;width:100%;min-height:600px;border:1px solid var(--ln);border-radius:12px;background:var(--sf)}
+#nvMemSlot>div{max-width:none!important;max-height:none!important;width:100%!important;margin:0!important;box-shadow:none!important;background:var(--sf)!important;border:1px solid var(--ln);border-radius:12px!important;padding:22px!important;color:var(--tx)}
+#nvMemSlot>div>div:first-child{display:none!important}
+#nvMemSlot input,#nvMemSlot select{height:40px;border:1px solid var(--ln3)!important;background:var(--sf)!important;color:var(--tx)!important;font-size:14px!important;border-radius:8px!important}
+#nvMemSlot>div>div{background:var(--sf2)!important;border-radius:12px!important}
+#nvMemSlot label{font-size:13px!important;color:var(--t3)!important}
+#nvMemSlot button{border-radius:8px!important}
+#nvMemSlot>div>div:nth-child(2) button{background:var(--ac)!important;height:42px;font-size:15px!important}
+body.nv-on.nv-t-dark #coHist,body.nv-on.nv-t-gray #coHist{background:var(--sf);color:var(--tx);border-left-color:var(--ln)}
+body.nv-on.nv-t-dark #coHist .ch-h{background:var(--sf)}
+.nv-seg2{display:inline-flex;background:var(--mut);border-radius:9px;padding:3px;gap:2px}
+.nv-seg2 button{border:0;background:none;height:32px;padding:0 12px;border-radius:7px;font-size:14px;color:var(--t3)}
+.nv-seg2 button.on{background:var(--sf);color:var(--tx);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.nv-bmg{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px}
+.nv-bmg.ico{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.nv-bmc{position:relative;display:flex;flex-direction:column;background:var(--sf);border:1px solid var(--ln);border-radius:14px;overflow:hidden;color:var(--tx);text-decoration:none;transition:transform .12s,box-shadow .12s,border-color .12s}
+.nv-bmc:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(20,24,40,.10);border-color:var(--ac-l)}
+.nv-bmc .th{position:relative;aspect-ratio:16/10;background:var(--mut);overflow:hidden}
+.nv-bmc .th>img{width:100%;height:100%;object-fit:cover;object-position:top;display:block}
+.nv-bmc .th.no>img{display:none}
+.nv-bmc .th .fb{position:absolute;left:12px;bottom:-18px;width:40px;height:40px;border-radius:11px;display:flex;align-items:center;justify-content:center;border:3px solid var(--sf)}
+.nv-bmc .th.no .fb{left:50%;top:50%;bottom:auto;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:16px}
+.nv-bmc .th .fb img{width:22px;height:22px}.nv-bmc .th.no .fb img{width:34px;height:34px}
+.nv-bmc .ic{height:110px;display:flex;align-items:center;justify-content:center}
+.nv-bmc .ic img{width:48px;height:48px;border-radius:12px;background:#fff;padding:6px;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.nv-bmc .ic b{width:56px;height:56px;border-radius:14px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:24px;color:#1C1F26}
+.nv-bmc .tx{padding:14px 14px 14px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.nv-bmc .th+.tx{padding-top:24px}
+.nv-bmc .tx b{font-size:15px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nv-bmc .tx span{font-size:13px;color:var(--t4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nv-bmc .tx em{font-style:normal;font-size:13px;color:var(--t3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nv-bmc .ac{position:absolute;top:8px;right:8px;display:none;gap:4px}
+.nv-bmc:hover .ac{display:flex}
+.nv-bmc .ac button{width:30px;height:30px;border:0;border-radius:8px;background:rgba(255,255,255,.92);color:#1C1F26;font-size:14px;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.nv-bmc .ac button:hover{background:#fff;color:#0810E0}
+#nvModal .bx label small{font-weight:400;color:var(--t4)}
+#nvModal .nv-all input{height:40px}
+.nv-note{background:var(--sf);border:1px dashed var(--ln3);border-radius:12px;padding:28px;color:var(--t3);line-height:1.7}
 #nvBack{position:fixed;left:16px;bottom:16px;z-index:400;display:none;height:40px;padding:0 16px;border-radius:20px;border:0;background:#0810E0;color:#fff;font:500 13px 'Noto Sans KR',sans-serif;box-shadow:0 4px 14px rgba(8,16,224,.3);cursor:pointer}
 body.nv-old #nvBack{display:block}
 .nv-hbtn{background:#0810E0!important;color:#fff!important;border-color:#0810E0!important}
 /* 업체 패널: 새 화면에서는 같은 패널을 새 스타일로 */
 body.nv-on #coHistWrap{background:rgba(28,31,38,.28)}
-body.nv-on #coHist{width:540px;font-family:'Noto Sans KR','Pretendard',sans-serif;background:#fff;color:#1C1F26;box-shadow:-8px 0 30px rgba(20,24,40,.14);border-left:1px solid #E6E8EC}
-body.nv-on #coHist .ch-h{padding:20px 24px 14px;border-bottom:1px solid #EEF0F3;background:#fff}
+body.nv-on #coHist{width:540px;font-family:'Noto Sans KR','Pretendard',sans-serif;background:var(--sf);color:var(--tx);box-shadow:-8px 0 30px rgba(20,24,40,.14);border-left:1px solid var(--ln)}
+body.nv-on #coHist .ch-h{padding:20px 24px 14px;border-bottom:1px solid var(--ln2);background:var(--sf)}
 body.nv-on #coHist .ch-h .t b{font-size:19px}
 body.nv-on #coHist .ch-b{padding:16px 24px}
-body.nv-on #coHist .ch-sum{background:#F8F9FB;border-radius:10px;border:0}
+body.nv-on #coHist .ch-sum{background:var(--hv);border-radius:10px;border:0}
 body.nv-on #coHist .ch-btns button,body.nv-on #coHist .ch-act{border-radius:8px}
 body.nv-on #coHist .ch-sec h4{font-size:16px}
 </style>
@@ -2988,11 +3079,13 @@ body.nv-on #coHist .ch-sec h4{font-size:16px}
 // 팀장·본부장·센터장 같은 화면, 보는 범위만 다름 (로그인 범위 = scope). 데이터는 기존 로딩 그대로 사용(CURRENT_ROWS)
 const NV={talkTab:'',talkAll:false,fg:'',fmem:'',page:'home',ckLim:12,hk:'',hm:'',ht:'',hlim:50,ckTab:'need',bu:'',team:'',mem:'',g:'',flag:'',q:'',dk:'fc',df:'',dt:'',sort:'fc',asc:false,lim:100,view:[],mounted:[]};
 const NV_GO=['권한+브리핑','권한오픈','단기','장기','희망건','메일전송','단순재콜','미분류','이관완료'];
-const NV_GC={'권한+브리핑':['#FFF0E0','#9A4A00'],'권한오픈':['#E5F4F1','#1F6B5C'],'단기':['#E8ECFC','#2B3EBF'],'장기':['#EFEAFB','#5A3BB0'],'희망건':['#FBE8EF','#9C2955'],'메일전송':['#E6F2FA','#1E5F8C'],'단순재콜':['#EFF1F4','#4A4F5C'],'미분류':['#F3F4F6','#8A8F9C'],'이관완료':['#E7F5EC','#22663D']};
+const NV_GC={'권한+브리핑':['#FFF0E0','#9A4A00'],'권한오픈':['#E5F4F1','#1F6B5C'],'단기':['#E8ECFC','#2B3EBF'],'장기':['#EFEAFB','#5A3BB0'],'희망건':['#FBE8EF','#9C2955'],'메일전송':['#E6F2FA','#1E5F8C'],'단순재콜':['var(--mut)','var(--t2)'],'미분류':['var(--mut)','var(--t4)'],'이관완료':['var(--grn-s)','var(--grn)']};
 const NV_PROMO=['단기','장기','권한오픈','권한+브리핑'];
 const NV_IC={
   home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   db:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M9 10v10"/>',
+  bm:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  mem:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.5a3.5 3.5 0 0 1 0 7M18.5 14.8c1.7.8 2.7 2.5 3 5.2"/>',
   post:'<path d="M4 10v4l3 1 2 5h2l-1-4 9 3V5L7 9z"/><path d="M19 9.5a2.5 2.5 0 0 1 0 5"/>',
   fav:'<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z"/>',
   report:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
@@ -3009,7 +3102,9 @@ function nvDays(a,b){const p=x=>{const q=x.split('-');return new Date(+q[0],+q[1
 function nvGap(r){return !!r.gapWarn&&!r.missedRecallDate;}   // 정체 = 평소 간격 초과(놓친 재콜과 중복 제외, 사원 화면과 같음)
 function nvGrp(g){return(!g||g==='선택없음')?'미분류':g;}
 function nvRank(g){const i=NV_GO.indexOf(nvGrp(g));return i<0?NV_GO.length-2:i;}
-function nvBadge(g){const k=nvGrp(g),c=NV_GC[k]||NV_GC['미분류'];return '<span class="nv-g" style="background:'+c[0]+';color:'+c[1]+'">'+nvE(k)+'</span>';}
+function nvHexA(h,a){h=h.replace('#','');const n=parseInt(h,16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';}
+function nvLight(h){h=h.replace('#','');const n=parseInt(h,16),m=x=>Math.round(x+(255-x)*.55);return 'rgb('+m(n>>16&255)+','+m(n>>8&255)+','+m(n&255)+')';}
+function nvBadge(g){const k=nvGrp(g);let c=NV_GC[k]||NV_GC['미분류'];if(nvTheme()==='dark'&&/^#/.test(c[1]))c=[nvHexA(c[1],.2),nvLight(c[1])];return '<span class="nv-g" style="background:'+c[0]+';color:'+c[1]+'">'+nvE(k)+'</span>';}
 function nvYmd(d){return /^\d{4}-\d{2}-\d{2}$/.test(d||'')?d:'';}
 function nvFc(r){return nvYmd(normalizeDate(r.firstCall));}
 function nvShort(d){return d?d.slice(2).replace(/-/g,'.'):'';}
@@ -3031,14 +3126,36 @@ function nvBuild(){
   document.body.appendChild(el);return el;
 }
 function nvSideHtml(){
-  const ri=(SESSION&&SESSION.roleInfo)||{},s=myScope();
-  const it=(p,label,extra)=>'<button class="nv-nav'+(NV.page===p?' on':'')+'" onclick="nvGo(\''+p+'\')">'+nvSvg(p)+label+(extra||'')+'</button>';
-  const where=s.type==='team'?(s.bu+' · '+s.team):s.type==='bu'?s.bu:'전체';
-  return '<div class="nv-brand"><img src="ci_logo/CI-png파일.png" alt=""><div><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.126</small></div></div>'+
-    it('home','팀 홈')+it('db','팀원 DB')+it('post','공지·쿠폰')+it('fav','DB 즐겨찾기','<span class="n nv-fav-n">'+nvFavRows().length+'</span>')+
-    '<div class="nv-sep"></div>'+it('report','리포트','<span class="soon">이전 화면</span>')+it('mission','업무미션')+it('promo','프로모션')+
-    '<div class="nv-fs"><span>글자</span><button class="'+(nvBig()?'':'on')+'" onclick="nvSetBig(0)">보통</button><button class="'+(nvBig()?'on':'')+'" onclick="nvSetBig(1)">크게</button></div>'+'<div class="nv-me"><b>'+nvE(ri.name||'')+' '+nvE(ri.title||'')+'</b><br>'+nvE(where)+'<div class="b"><button onclick="nvOff()" title="예전 대시보드로 (다시 켜려면 상단 ✨새 화면)">이전 화면</button><button onclick="doLogout()">로그아웃</button></div></div>';
+  const it=(p,label,extra)=>'<button class="nv-nav'+(NV.page===p?' on':'')+'" onclick="nvGo(\''+p+'\')" title="'+label+'">'+nvSvg(p)+'<span class="lb">'+label+'</span>'+(extra||'')+'</button>';
+  const gl=t=>'<div class="nv-gl"><span>'+t+'</span></div>';
+  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.127</small></div></div>'+
+    '<div class="nv-navs">'+it('home','팀 홈')+it('db','팀원 DB')+it('fav','DB 즐겨찾기','<span class="n nv-fav-n">'+nvFavRows().length+'</span>')+it('bm','사이트 북마크')+
+    gl('업무')+it('report','리포트','<span class="soon">이전 화면</span>')+it('mission','업무미션')+
+    gl('관리')+it('post','공지·쿠폰')+it('promo','프로모션')+it('card','명함 관리')+it('mem','인원 관리')+'</div>'+
+    '<button class="nv-col" onclick="nvSetCol(!nvCol())" title="'+(nvCol()?'메뉴 펼치기':'메뉴 접기')+'">'+(nvCol()?'»':'«')+'<span class="lb">메뉴 접기</span></button>';
 }
+function nvCol(){return localStorage.getItem('bm_nvcol')==='1';}
+function nvSetCol(on){localStorage.setItem('bm_nvcol',on?'1':'0');document.body.classList.toggle('nv-colp',!!on);nvRender();}
+function nvHome(){NV.q='';NV.page='home';NV.hk='';nvRender();const b=document.getElementById('nvBody');if(b)b.scrollTop=0;}
+// 상단 오른쪽: 내 정보 메뉴 (화면 모드 · 글자 · 이전 화면 · 로그아웃)
+function nvTheme(){const t=localStorage.getItem('bm_nvtheme');return ['light','gray','dark'].includes(t)?t:'light';}
+function nvApplyTheme(){const t=nvTheme();document.body.classList.toggle('nv-t-gray',t==='gray');document.body.classList.toggle('nv-t-dark',t==='dark');
+  if(document.body.classList.contains('nv-on'))document.documentElement.setAttribute('data-theme',t==='dark'?'dark':'light');}
+function nvSetTheme(t){localStorage.setItem('bm_nvtheme',t);nvApplyTheme();nvRender();nvMeToggle(null,true);}
+function nvMeLabel(){const ri=(SESSION&&SESSION.roleInfo)||{},s=myScope();const where=s.type==='team'?s.team:s.type==='bu'?s.bu:'';
+  const t=String(ri.title||'').replace(/^.*?(팀장|본부장)$/,'$1');return {where,name:ri.name||'',title:t};}
+function nvMeToggle(e,keep){if(e)e.stopPropagation();let m=document.getElementById('nvMe');
+  if(!m){m=document.createElement('div');m.id='nvMe';m.onclick=ev=>ev.stopPropagation();document.getElementById('nv').appendChild(m);document.addEventListener('click',()=>{const x=document.getElementById('nvMe');if(x)x.style.display='none';});}
+  if(!keep&&m.style.display==='block'){m.style.display='none';return;}
+  const L=nvMeLabel(),s=myScope(),t=nvTheme(),seg=(arr,cur,fn)=>'<div class="seg">'+arr.map(([k,l])=>'<button class="'+(cur===k?'on':'')+'" onclick="'+fn+'(\''+k+'\')">'+l+'</button>').join('')+'</div>';
+  m.innerHTML='<div class="hd"><b>'+nvE(L.name)+' '+nvE(L.title)+'</b><span>'+nvE(s.type==='team'?s.bu+' · '+s.team:s.type==='bu'?s.bu+' 전체':'전체 현황')+'</span></div>'+
+    '<div class="rw"><span>화면 모드</span>'+seg([['light','밝음'],['gray','그레이'],['dark','어두움']],t,'nvSetTheme')+'</div>'+
+    '<div class="rw"><span>글자 크기</span>'+seg([['0','보통'],['1','크게']],nvBig()?'1':'0','nvSetBigS')+'</div>'+
+    '<div class="ln"></div><button class="it" onclick="nvOff()">↩ 이전 화면으로 <small>예전 대시보드</small></button><button class="it dn" onclick="doLogout()">로그아웃</button>';
+  m.style.display='block';}
+function nvSetBigS(v){nvSetBig(v==='1');nvMeToggle(null,true);}
+// 데이터 기준 시각 (서버에서 받은 시각 · 빠른 로드는 저장해 둔 시각)
+function nvDataAt(){const t=NV.dataAt;if(!t)return '';const d=new Date(t),p=n=>String(n).padStart(2,'0'),today=new Date().toDateString()===d.toDateString();return (today?'':(d.getMonth()+1)+'/'+d.getDate()+' ')+p(d.getHours())+':'+p(d.getMinutes())+' 기준';}
 function nvTopHtml(){
   const s=myScope(),ch=nvSvg('chev',14);
   let c='<div class="nv-crumb">';
@@ -3049,30 +3166,29 @@ function nvTopHtml(){
   if(NV.mem)c+=ch+'<span class="cur">'+nvE(NV.mem)+'</span>';
   c+='</div>';
   return c+'<label class="nv-search">'+nvSvg('search',16)+'<input id="nvQ" placeholder="업체명 · 팀원 · 연락처 · 키워드 검색" value="'+nvE(NV.q)+'" oninput="nvSetQ(this.value)"></label>'+
-    '<button class="nv-ib" title="새로고침" onclick="refreshData()">'+nvSvg('ref',16)+'</button>'+
+    '<span class="nv-at" title="데이터를 받은 시각">'+nvDataAt()+'</span><button class="nv-ib" title="새로고침 (서버에서 최신 데이터)" onclick="refreshData()">'+nvSvg('ref',16)+'</button>'+
     '<button class="nv-ib nv-bellb" title="알림" onclick="nvBellToggle(event)">'+nvSvg('bell',16)+'<span class="nv-bell-n" style="'+(nvDue().length?'':'display:none')+'">'+nvDue().length+'</span></button>'+
-    '<button class="nv-ib" title="전자명함 관리" onclick="openCardAdmin()">'+nvSvg('card',16)+'</button>'+
-    '<button class="nv-ib" title="인원 관리" onclick="openMemberMgmt()">'+nvSvg('gear',16)+'</button>';
+    (()=>{const L=nvMeLabel();return '<button class="nv-mechip" onclick="nvMeToggle(event)" title="내 정보 · 화면 설정"><span class="av">'+nvE((L.name||'?').slice(0,1))+'</span><span class="tx">'+(L.where?'<small>'+nvE(L.where)+'</small>':'')+'<b>'+nvE(L.name)+' '+nvE(L.title)+'</b></span>'+nvSvg('chev',12)+'</button>';})();
 }
 function nvShow(){
   if(!SESSION)return;
   localStorage.setItem('bm_nv','1');
   const s=myScope();if(!NV._init||NV._for!==SESSION.role){NV.bu=s.bu||'';NV.team=s.team||'';NV.mem='';NV._init=1;NV._for=SESSION.role;}
-  nvBuild();document.body.classList.add('nv-on');document.body.classList.toggle('nv-big',nvBig());document.body.classList.remove('nv-old');
+  nvBuild();document.body.classList.add('nv-on');document.body.classList.toggle('nv-big',nvBig());document.body.classList.toggle('nv-colp',nvCol());nvApplyTheme();document.body.classList.remove('nv-old');
   nvRender();
 }
-function nvHide(){nvUnmount();document.body.classList.remove('nv-on','nv-old');}
+function nvHide(){nvUnmount();document.body.classList.remove('nv-on','nv-old');document.documentElement.setAttribute('data-theme',localStorage.getItem('dash_theme')||'light');}
 function nvOff(){localStorage.setItem('bm_nv','0');nvHide();nvHeaderBtn();toast('이전 화면으로 전환 · 상단 ✨새 화면 버튼으로 돌아올 수 있음');}
 function nvHeaderBtn(){const hr=document.querySelector('.header-right');if(!hr)return;let b=document.getElementById('nvHdrBtn');
   const ok=SESSION&&['all','bu','team'].includes(myScope().type);
   if(!ok){if(b)b.remove();return;}
   if(!b){b=document.createElement('button');b.id='nvHdrBtn';b.className='theme-btn nv-hbtn';b.textContent='✨ 새 화면';b.onclick=nvShow;hr.insertBefore(b,hr.firstChild);}}
 function nvGo(p){
-  if(p==='report'){nvUnmount();document.body.classList.remove('nv-on');document.body.classList.add('nv-old');switchMainTab('db');window.scrollTo(0,0);return;}
+  if(p==='report'){nvUnmount();document.body.classList.remove('nv-on');document.documentElement.setAttribute('data-theme',localStorage.getItem('dash_theme')||'light');document.body.classList.add('nv-old');switchMainTab('db');window.scrollTo(0,0);return;}
   NV.page=p;nvRender();
 }
 function nvUnmount(){NV.mounted.forEach(m=>{if(m.p)m.p.insertBefore(m.el,m.n||null);});NV.mounted=[];}
-function nvMount(id){const el=document.getElementById(id);if(!el)return null;NV.mounted.push({el,p:el.parentNode,n:el.nextSibling});return el;}
+function nvMount(id){const el=typeof id==='string'?document.getElementById(id):id;if(!el)return null;NV.mounted.push({el,p:el.parentNode,n:el.nextSibling});return el;}
 function nvRender(){
   if(!document.body.classList.contains('nv-on'))return;
   document.getElementById('nvSide').innerHTML=nvSideHtml();
@@ -3082,7 +3198,13 @@ function nvRender(){
   if(NV.page==='db'||NV.page==='fav'||NV.q){body.innerHTML=nvDbHtml();return;}
   if(NV.page==='home'){body.innerHTML=nvHomeHtml();nvNoticeLoad();nvTalkLoad();return;}   // 팀 홈 안 변경은 nvRefreshDb()로 다시 그림
 
+  if(NV.page==='bm'){body.innerHTML=nvBmHtml();nvBmLoad();return;}
   if(NV.page==='post'){body.innerHTML=nvPostHtml();nvPostLoad();return;}
+  if(NV.page==='card'){try{sessionStorage.setItem('dash_session',JSON.stringify(SESSION));}catch(e){}
+    body.innerHTML='<div class="nv-wrap nv-full"><div class="nv-h1"><h1>명함 관리</h1><span class="nv-sub">전자명함 등록 · 수정 · 공유 링크</span><a class="nv-link" href="card-admin.html" target="_blank" onclick="try{sessionStorage.setItem(\'dash_session\',JSON.stringify(SESSION));}catch(e){}">'+nvSvg('ext',14)+'새 창으로</a></div><iframe class="nv-frame" src="card-admin.html" title="명함 관리"></iframe></div>';return;}
+  if(NV.page==='mem'){body.innerHTML='<div class="nv-wrap"><div class="nv-h1"><h1>인원 관리</h1><span class="nv-sub">인원DB 시트 · 추가하면 다음 새로고침부터 팀원 DB·보드에 반영</span></div><div id="nvMemSlot"></div></div>';
+    const md=document.getElementById('memberMgmtModal'),inner=md&&md.firstElementChild;if(inner){nvMount(inner);document.getElementById('nvMemSlot').appendChild(inner);}
+    openMemberMgmt();if(md)md.style.display='none';return;}
   if(NV.page==='mission'||NV.page==='promo'){
     body.innerHTML='<div class="nv-wrap"><div class="nv-h1"><h1>'+(NV.page==='mission'?'업무미션':'프로모션')+'</h1></div><div id="nvSlot"></div></div>';
     const el=nvMount(NV.page==='mission'?'missionInner':'promoInner');if(el)document.getElementById('nvSlot').appendChild(el);
@@ -3251,6 +3373,51 @@ function nvGroupAdd(){const g=(prompt('새 그룹 이름 (예: 12월 집중, 대
   nvGroups().push(g);nvFavCache();NV.fg=g;nvRefreshDb();nvFavOp('gAdd',[],{group:g});}
 function nvGroupDel(){const g=NV.fg;if(!g||!confirm('"'+g+'" 그룹을 지울까요? 안의 업체는 기본 그룹으로 옮겨져요'))return;
   _nvGroups=nvGroups().filter(x=>x!==g);const m=nvMeta();Object.keys(m).forEach(k=>{if(m[k].g===g)m[k].g='';});nvFavCache();NV.fg='';nvRefreshDb();nvFavOp('gDel',[],{group:g});}
+// ══ [v5.127] 사이트 북마크 ══
+const BMK={items:null,folder:'',drag:null};
+function nvBmView(){return localStorage.getItem('bm_bmview')==='icon'?'icon':'thumb';}
+function nvBmHost(u){try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return u;}}
+function nvBmHue(h){let x=0;for(const c of h)x=(x*31+c.charCodeAt(0))%360;return x;}
+async function nvBmLoad(force){if(BMK.items&&!force)return;const r=await callServer('serverBmGet',{role:SESSION.role,token:SESSION.token});
+  BMK.items=(r&&r.success)?r.items||[]:[];BMK.err=(r&&r.success)?'':((r&&r.error)||'불러오지 못함');if(NV.page==='bm'){const b=document.getElementById('nvBody');if(b)b.innerHTML=nvBmHtml();}}
+function nvBmHtml(){
+  const v=nvBmView(),L=BMK.items;
+  const folders=L?[...new Set(L.map(x=>x.folder).filter(Boolean))]:[];if(BMK.folder&&!folders.includes(BMK.folder))BMK.folder='';
+  const tab=(f,l,n)=>'<button class="nv-tab'+(BMK.folder===f?' on':'')+'" onclick="BMK.folder=\''+nvE(f).replace(/'/g,"\\'")+'\';nvBmRedraw()">'+nvE(l)+' <b>'+n+'</b></button>';
+  const head='<div class="nv-h1"><h1>사이트 북마크</h1><span class="nv-sub">자주 가는 사이트 · 나만 보여요</span><span style="margin-left:auto;display:flex;gap:8px;align-items:center"><span class="nv-seg2"><button class="'+(v==='thumb'?'on':'')+'" onclick="localStorage.setItem(\'bm_bmview\',\'thumb\');nvBmRedraw()">썸네일</button><button class="'+(v==='icon'?'on':'')+'" onclick="localStorage.setItem(\'bm_bmview\',\'icon\');nvBmRedraw()">아이콘</button></span><button class="nv-btn p" style="height:38px;padding:0 16px;font-size:15px" onclick="nvBmEdit()">+ 사이트 추가</button></span></div>';
+  if(!L)return '<div class="nv-wrap">'+head+'<div class="nv-empty">불러오는 중…</div></div>';
+  const tabs=folders.length?'<div class="nv-gtabs">'+tab('','전체',L.length)+folders.map(f=>tab(f,f,L.filter(x=>x.folder===f).length)).join('')+'</div>':'';
+  const list=L.filter(x=>!BMK.folder||x.folder===BMK.folder);
+  const card=x=>{const h=nvBmHost(x.url),hue=nvBmHue(h),fav='https://www.google.com/s2/favicons?sz=64&domain='+encodeURIComponent(h);
+    const top=v==='thumb'?'<div class="th"><img loading="lazy" src="https://s.wordpress.com/mshots/v1/'+encodeURIComponent(x.url)+'?w=640&h=400" alt="" onerror="this.parentNode.classList.add(\'no\')"><span class="fb" style="background:hsl('+hue+' 55% 92%)"><img src="'+fav+'" alt=""></span></div>'
+      :'<div class="ic" style="background:linear-gradient(135deg,hsl('+hue+' 60% 94%),hsl('+((hue+30)%360)+' 55% 88%))"><img src="'+fav+'" alt="" onerror="this.replaceWith(Object.assign(document.createElement(\'b\'),{textContent:\''+nvE((x.name||h).slice(0,1))+'\'}))"></div>';
+    return '<a class="nv-bmc" href="'+nvE(x.url)+'" target="_blank" rel="noopener" draggable="true" data-id="'+nvE(x.id)+'" ondragstart="nvBmDs(event)" ondragover="event.preventDefault()" ondrop="nvBmDrop(event)">'+top+
+      '<div class="tx"><b title="'+nvE(x.name)+'">'+nvE(x.name||h)+'</b><span>'+nvE(h)+(x.folder?' · '+nvE(x.folder):'')+'</span>'+(x.memo?'<em>'+nvE(x.memo)+'</em>':'')+'</div>'+
+      '<span class="ac"><button title="고치기" onclick="event.preventDefault();event.stopPropagation();nvBmEdit(\''+nvE(x.id)+'\')">✎</button><button title="삭제" onclick="event.preventDefault();event.stopPropagation();nvBmDel(\''+nvE(x.id)+'\')">✕</button></span></a>';};
+  return '<div class="nv-wrap">'+head+tabs+(BMK.err?'<div class="nv-empty" style="color:var(--red)">'+nvE(BMK.err)+'</div>':'')+
+    (list.length?'<div class="nv-bmg'+(v==='icon'?' ico':'')+'">'+list.map(card).join('')+'</div>':'<div class="nv-note">아직 북마크가 없어요. <b>+ 사이트 추가</b>로 자주 가는 사이트(네이버 광고, 사내 시트, 참고 사이트 등)를 넣어 두세요.</div>')+
+    (list.length>1?'<div class="nv-sub" style="font-size:13px">카드를 끌어서 순서를 바꿀 수 있어요 · 썸네일은 처음 한 번 만드는 데 몇 초 걸릴 수 있어요</div>':'')+'</div>';}
+function nvBmRedraw(){const b=document.getElementById('nvBody');if(b)b.innerHTML=nvBmHtml();}
+function nvBmEdit(id){const x=(BMK.items||[]).find(y=>y.id===id)||{},folders=[...new Set((BMK.items||[]).map(y=>y.folder).filter(Boolean))];
+  let md=document.getElementById('nvModal');if(!md){md=document.createElement('div');md.id='nvModal';md.onclick=e=>{if(e.target===md&&_downT===md)md.style.display='none';};document.body.appendChild(md);}
+  md.innerHTML='<div class="bx"><h3>'+(id?'북마크 고치기':'사이트 추가')+'</h3><div class="mt">카드를 누르면 새 탭으로 열려요</div>'+
+    '<label class="nv-all">주소<input id="bmU" value="'+nvE(x.url||'')+'" placeholder="예: ads.naver.com"></label>'+
+    '<label class="nv-all">이름 <small>(비우면 주소로)</small><input id="bmN" maxlength="40" value="'+nvE(x.name||'')+'" placeholder="예: 네이버 광고"></label>'+
+    '<label class="nv-all">폴더 <small>(선택)</small><input id="bmF" maxlength="20" list="bmFl" value="'+nvE(x.folder||BMK.folder||'')+'" placeholder="예: 네이버 광고 · 내부 · 참고"><datalist id="bmFl">'+folders.map(f=>'<option value="'+nvE(f)+'">').join('')+'</datalist></label>'+
+    '<label class="nv-all">메모 <small>(선택)</small><input id="bmM" maxlength="100" value="'+nvE(x.memo||'')+'"></label>'+
+    '<div class="ft" style="gap:8px"><span id="bmErr" style="color:var(--red);font-size:13px;margin-right:auto"></span><button class="nv-btn" onclick="document.getElementById(\'nvModal\').style.display=\'none\'">닫기</button><button class="nv-btn p" onclick="nvBmSave(\''+(id||'')+'\')">저장</button></div></div>';
+  md.style.display='flex';setTimeout(()=>{const u=document.getElementById(id?'bmN':'bmU');if(u)u.focus();},50);}
+async function nvBmSave(id){const g=k=>document.getElementById(k).value.trim();const p={op:id?'upd':'add',id,url:g('bmU'),name:g('bmN'),folder:g('bmF'),memo:g('bmM')};
+  if(!p.url){document.getElementById('bmErr').textContent='주소를 입력하세요';return;}
+  const r=await callServer('serverBmOp',Object.assign({role:SESSION.role,token:SESSION.token},p));if(!r||!r.success){document.getElementById('bmErr').textContent=(r&&r.error)||'저장 실패';return;}
+  document.getElementById('nvModal').style.display='none';toast(id?'고쳤어요':'북마크를 추가했어요');nvBmLoad(true);}
+async function nvBmDel(id){const x=(BMK.items||[]).find(y=>y.id===id);if(!x||!confirm('"'+(x.name||x.url)+'" 북마크를 지울까요?'))return;
+  BMK.items=BMK.items.filter(y=>y.id!==id);nvBmRedraw();const r=await callServer('serverBmOp',{role:SESSION.role,token:SESSION.token,op:'del',id});if(!r||!r.success){toast('삭제 실패','err');nvBmLoad(true);}}
+function nvBmDs(e){BMK.drag=e.currentTarget.dataset.id;e.dataTransfer.effectAllowed='move';}
+async function nvBmDrop(e){e.preventDefault();const to=e.currentTarget.dataset.id,from=BMK.drag;BMK.drag=null;if(!from||from===to)return;
+  const L=BMK.items,a=L.findIndex(x=>x.id===from),b=L.findIndex(x=>x.id===to);if(a<0||b<0)return;const [m]=L.splice(a,1);L.splice(b,0,m);nvBmRedraw();
+  const r=await callServer('serverBmOp',{role:SESSION.role,token:SESSION.token,op:'order',ids:L.map(x=>x.id)});if(!r||!r.success)toast('순서 저장 실패','err');}
+
 // ══ [v5.126] 공지·쿠폰 ══
 const NP={tab:'ntc',board:null,cps:null,edit:null,cpType:'drop',open:{}};
 const NP_PER=[['day','하루'],['week','1주'],['month','한 달'],['custom','기간 직접']];
@@ -3265,11 +3432,11 @@ function nvPostTab(t){NP.tab=t;const el=document.getElementById('nvBody');el.inn
 function nvScopeOpts(sel){const L=(NP.board&&NP.board.postScopes)||[];return L.map(x=>'<option value="'+nvE(x[0])+'"'+(x[0]===sel?' selected':'')+'>'+nvE(x[1])+'</option>').join('');}
 function nvPostHtml(){
   const tab=(k,l)=>'<button class="nv-tab'+(NP.tab===k?' on':'')+'" onclick="nvPostTab(\''+k+'\')">'+l+'</button>';
-  const head='<div class="nv-h1"><h1>공지·쿠폰</h1><div class="nv-gtabs" style="padding:4px;border-radius:10px">'+tab('ntc','📢 공지')+tab('cp','🎁 쿠폰')+'</div><span style="font-size:14px;color:#6B7080">사원 화면 상단 공지 줄 · 쿠폰으로 보여요 · 대상은 내 권한 범위 안에서만</span></div>';
+  const head='<div class="nv-h1"><h1>공지·쿠폰</h1><div class="nv-gtabs" style="padding:4px;border-radius:10px">'+tab('ntc','📢 공지')+tab('cp','🎁 쿠폰')+'</div><span style="font-size:14px;color:var(--t3)">사원 화면 상단 공지 줄 · 쿠폰으로 보여요 · 대상은 내 권한 범위 안에서만</span></div>';
   return '<div class="nv-wrap">'+head+(NP.tab==='ntc'?nvNtcPage():nvCpPage())+'</div>';}
 // ── 공지 ──
 function nvNtcPage(){
-  const B=NP.board;if(!B)return '<div class="nv-empty">불러오는 중…</div>';if(B.err)return '<div class="nv-empty" style="color:#B42D33">'+nvE(B.err)+'</div>';
+  const B=NP.board;if(!B)return '<div class="nv-empty">불러오는 중…</div>';if(B.err)return '<div class="nv-empty" style="color:var(--red)">'+nvE(B.err)+'</div>';
   if(!(B.postScopes||[]).length)return '<div class="nv-note">공지를 올릴 수 있는 권한이 없어요.</div>';
   const e=NP.edit||{},now=B.now||nvNowTs(),per=e.period||'week';
   const form='<section class="nv-card nv-form"><div class="nv-sec-h"><h2>'+(e.id?'공지 고치기':'공지 쓰기')+'</h2>'+(e.id?'<button class="nv-x r" onclick="NP.edit=null;nvPostTab(\'ntc\')">새로 쓰기</button>':'')+'</div><div class="bd">'+
@@ -3283,7 +3450,7 @@ function nvNtcPage(){
   const L=(B.manage||[]).filter(b=>b.kind==='공지');
   const st=b=>b.status!=='노출'?['숨김','g']:b.start>now?['예약','b']:b.end<=now?['끝남','g']:['노출 중','ok'];
   const list='<section class="nv-card"><div class="nv-sec-h"><h2>공지 목록</h2><span>최근 60일 · 진행 중 '+L.filter(b=>st(b)[1]==='ok').length+'건</span><button class="nv-ib sm r" title="새로고침" onclick="NP.board=null;nvPostLoad(true)">'+nvSvg('ref',14)+'</button></div>'+
-    (L.length?L.map(b=>{const s2=st(b),cm=(b.comments||[]).length;return '<div class="nv-np"><div class="t"><span class="nv-st '+(s2[1]==='ok'?'ok':s2[1]==='b'?'bl':'')+'" style="'+(s2[1]==='g'?'background:#EFF1F4;color:#6B7080':'')+'">'+s2[0]+'</span>'+(b.pinned?' 📌':'')+' <b>'+nvE(b.title)+'</b></div>'+
+    (L.length?L.map(b=>{const s2=st(b),cm=(b.comments||[]).length;return '<div class="nv-np"><div class="t"><span class="nv-st '+(s2[1]==='ok'?'ok':s2[1]==='b'?'bl':'')+'" style="'+(s2[1]==='g'?'background:var(--mut);color:var(--t3)':'')+'">'+s2[0]+'</span>'+(b.pinned?' 📌':'')+' <b>'+nvE(b.title)+'</b></div>'+
       '<div class="s">'+nvE(b.scopeLabel||'')+' · '+nvE(b.author||'')+' · '+nvE(String(b.start).slice(5,16).replace('-','/'))+' ~ '+nvE(String(b.end).slice(5,16).replace('-','/'))+(b.cmt?' · 댓글 '+cm:'')+'</div>'+
       (NP.open[b.id]?'<div class="bd2">'+nvE(b.body||'(내용 없음)')+(cm?'<div class="cms">'+b.comments.map(c=>'<div><b>'+nvE(c.name||c.author||'')+'</b> '+nvE(c.text||'')+' <span>'+nvE(String(c.ts||'').slice(5,16))+'</span></div>').join('')+'</div>':'')+'</div>':'')+
       '<div class="b"><button onclick="NP.open[\''+b.id+'\']=!NP.open[\''+b.id+'\'];nvPostTab(\'ntc\')">'+(NP.open[b.id]?'접기':'내용'+(cm?' · 댓글 '+cm:''))+'</button>'+(b.canEdit?'<button onclick="nvNtcEdit(\''+b.id+'\')">고치기</button>'+(b.status==='노출'&&b.end>now?'<button class="dn" onclick="nvNtcStatus(\''+b.id+'\',\'숨김\')">내리기</button>':'<button onclick="nvNtcStatus(\''+b.id+'\',\'노출\')">다시 올리기</button>'):'<span class="mu" style="font-size:13px">보기만</span>')+'</div></div>';}).join(''):'<div class="nv-empty">올린 공지가 없어요</div>')+'</section>';
@@ -3302,7 +3469,7 @@ async function nvNtcStatus(id,st){if(st==='숨김'&&!confirm('이 공지를 내�
 // ── 쿠폰 ──
 function nvCpDef(t){const d=nvToday();return {drop:[d,d,'14:00','17:00',10],fixed:[d,d,'15:00','15:30',10],raffle:[d,d,'14:00','14:30',0],txfirst:[d,d,'09:00','18:00',0],txdraw:[d,d,'09:00','17:30',0]}[t];}
 function nvCpPage(){
-  const C=NP.cps;if(!C)return '<div class="nv-empty">불러오는 중…</div>';if(C.err)return '<div class="nv-empty" style="color:#B42D33">'+nvE(C.err)+'</div>';
+  const C=NP.cps;if(!C)return '<div class="nv-empty">불러오는 중…</div>';if(C.err)return '<div class="nv-empty" style="color:var(--red)">'+nvE(C.err)+'</div>';
   const t=NP.cpType,df=nvCpDef(t),onScr=['drop','fixed','raffle'].includes(t);
   const form='<section class="nv-card nv-form"><div class="nv-sec-h"><h2>쿠폰 예약</h2></div><div class="bd">'+
     '<label>방식<div class="seg wrap">'+NP_CPT.map(([k,l])=>'<button type="button" class="'+(t===k?'on':'')+'" onclick="NP.cpType=\''+k+'\';nvPostTab(\'cp\')">'+l+'</button>').join('')+'</div></label><div class="hint">'+NP_HINT[t]+'</div>'+
@@ -3317,7 +3484,7 @@ function nvCpPage(){
   const L=C.list||[],md=x=>String(x||'').slice(5,10).replace('-','/'),hm=x=>String(x||'').slice(11,16);
   const stC={예약:'bl',진행:'ok',종료:'',취소:''};
   const list='<section class="nv-card"><div class="nv-sec-h"><h2>쿠폰 목록</h2><span>최근 60일</span><button class="nv-ib sm r" title="새로고침" onclick="NP.cps=null;nvPostLoad(true)">'+nvSvg('ref',14)+'</button></div>'+
-    (L.length?L.map(c=>'<div class="nv-np"><div class="t"><span class="nv-st '+(stC[c.status]||'')+'" style="'+(stC[c.status]?'':'background:#EFF1F4;color:#6B7080')+'">'+nvE(c.status)+(c.live?' · 화면에 떠 있음':'')+'</span> '+nvE(c.icon)+' <b>'+nvE(c.item)+'</b> × '+c.qty+' <span class="mu" style="font-size:13px">'+nvE((NP_CPT.find(x=>x[0]===c.type)||['',c.typeLabel])[1])+'</span></div>'+
+    (L.length?L.map(c=>'<div class="nv-np"><div class="t"><span class="nv-st '+(stC[c.status]||'')+'" style="'+(stC[c.status]?'':'background:var(--mut);color:var(--t3)')+'">'+nvE(c.status)+(c.live?' · 화면에 떠 있음':'')+'</span> '+nvE(c.icon)+' <b>'+nvE(c.item)+'</b> × '+c.qty+' <span class="mu" style="font-size:13px">'+nvE((NP_CPT.find(x=>x[0]===c.type)||['',c.typeLabel])[1])+'</span></div>'+
       '<div class="s">'+nvE(c.scopeLabel||'')+' · '+md(c.start)+' '+hm(c.start)+' ~ '+(md(c.start)===md(c.end)?'':md(c.end)+' ')+hm(c.end)+(c.cond?' · 통화 기록자':'')+(c.limit7?' · 7일 1회':'')+(c.type==='raffle'?' · 응모 '+c.entries+'명':'')+(c.desc?' · '+nvE(c.desc):'')+' · '+nvE(c.by||'')+'</div>'+
       (c.winners&&c.winners.length?'<div class="wn">🎉 '+c.winners.map(w=>'<span'+(w.status!=='유효'?' class="x"':'')+'>'+nvE(w.name)+' <small>'+md(w.at)+' '+hm(w.at)+'</small>'+(w.status==='유효'&&c.canEdit?' <label title="쿠폰 보냈으면 체크"><input type="checkbox"'+(w.sent?' checked':'')+' onchange="nvCpSent(\''+c.id+'\','+w.row+',this.checked)"> 전달</label>':'')+'</span>').join('')+'</div>':'')+
       '<div class="b">'+(c.canEdit&&(c.status==='예약'||c.status==='진행')?'<button class="dn" onclick="nvCpCancel(\''+c.id+'\')">취소</button>':(c.canEdit?'':'<span class="mu" style="font-size:13px">보기만</span>'))+'</div></div>').join(''):'<div class="nv-empty">예약된 쿠폰이 없어요</div>')+'</section>';
@@ -3359,7 +3526,7 @@ function nvTalkHtml(){
     return '<div class="nv-q" onclick="nvTalkOpen('+i+')"><div class="m"><b>'+nvE(t.company)+'</b><span class="s">'+nvE(t.owner)+' · '+t.n+'개</span><div class="lm"><span>'+nvE(t.last.author)+':</span> '+nvE(t.last.text)+'</div></div><span class="bud" style="text-align:right">'+st+'</span></div>';};
   const sw=myScope().type!=='team'?'<label class="nv-sw" title="끄면 내가 남긴 대화만"><input type="checkbox" '+(NV.talkAll?'checked':'')+' onchange="NV.talkAll=this.checked;NV.talkTab=\'\';nvRefreshDb();nvBellCnt()"> 팀장 대화도 보기</label>':'';
   return '<section class="nv-card nv-talk"><div class="nv-sec-h" style="gap:6px;align-items:center"><h2 style="margin-right:6px">소통함</h2>'+tab('new')+tab('wait')+tab('open')+tab('done')+'<span class="r">'+sw+'<button class="nv-ib sm" title="새로고침" onclick="nvTalkLoad(true)">'+nvSvg('ref',14)+'</button></span></div>'+
-    (NV.talkErr&&!_nvTalk.length?'<div class="nv-empty" style="color:#B42D33">'+nvE(NV.talkErr)+'</div>':'')+
+    (NV.talkErr&&!_nvTalk.length?'<div class="nv-empty" style="color:var(--red)">'+nvE(NV.talkErr)+'</div>':'')+
     '<div class="nv-talklist">'+(rows.map(item).join('')||'<div class="nv-empty" style="padding:22px">'+(NV.talkTab==='new'?'새 답글이 없어요':NV.talkTab==='wait'?'답 기다리는 대화가 없어요':NV.talkTab==='done'?'완료한 대화가 없어요 (최근 60일)':'진행 중인 대화가 없어요')+'</div>')+'</div>'+
     '<div class="nv-foot">답 기다림은 내가 마지막으로 남긴 뒤 사원 답이 없는 대화 · 2영업일 넘으면 빨강 · 완료는 업체 패널에서 닫아요</div></section>';
 }
@@ -3406,7 +3573,7 @@ function nvBizSince(d){if(!d)return 99;const t=nvToday();let n=0,c=new Date(+d.s
 function nvLastAct(rows){let m='';rows.forEach(r=>{const x=String(r.mtime||'');if(x>m)m=x;});let lc='';rows.forEach(r=>{if((r.lastContact||'')>lc)lc=r.lastContact;});return m&&m.slice(0,10)>=lc?m:(lc||m);}
 // 상태: 도움 = 놓친 재콜 5+ 또는 활동 없이 1영업일 넘게 지남 · 주의 = 놓친 재콜 3+ 또는 정체 10+
 function nvMemStat(o){if(o.miss>=5||o.idle>1)return['help','도움'];if(o.miss>=3||o.gap>=10)return['warn','주의'];return['ok','양호'];}
-const NV_DIST=[['권한·단기','#2F44D0',['권한+브리핑','권한오픈','단기']],['장기·희망','#9AA6EC',['장기','희망건','메일전송']],['단순재콜·미분류','#D5D9E2',['단순재콜','미분류','선택없음','']]];
+const NV_DIST=[['권한·단기','#2F44D0',['권한+브리핑','권한오픈','단기']],['장기·희망','#9AA6EC',['장기','희망건','메일전송']],['단순재콜·미분류','var(--ln3)',['단순재콜','미분류','선택없음','']]];
 function nvMemStats(name,rows){
   const t=nvToday(),ms=t.slice(0,8)+'01',act=rows.filter(r=>r.grade!=='이관완료');
   const o={name,today:rows.filter(r=>(r.recalls||[]).some(x=>normalizeDate(x.date)===t)||nvFc(r)===t).length,miss:rows.filter(r=>r.missedRecallDate).length,gap:rows.filter(nvGap).length,
@@ -3467,7 +3634,7 @@ function nvHomeHtml(){
   const check='<section class="nv-card nv-ck"><div class="nv-sec-h"><h2>살펴볼 업체</h2><span>'+need.length+'건</span></div>'+chipRow+
     '<div class="nv-cklist" id="nvCkList">'+list+'</div><div class="nv-foot">★ 보내기 = DB 즐겨찾기(이유별 그룹)로 · 넘기기 = 목록에서만 빼기 · 같은 이유로는 다시 안 떠요</div></section>';
   const talk=nvTalkHtml();
-  return '<div class="nv-wrap nv-home"><div class="nv-h1"><h1>팀 홈</h1><span style="font-size:14px;color:#6B7080">'+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+wd+') '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' 기준</span></div>'+
+  return '<div class="nv-wrap nv-home"><div class="nv-h1"><h1>팀 홈</h1><span style="font-size:14px;color:var(--t3)">'+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+wd+') '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' 기준</span></div>'+
     '<div id="nvNtc"></div>'+kpis+focus+'<div class="nv-hgrid"><div style="display:flex;flex-direction:column;gap:16px">'+board+talk+'</div>'+check+'</div></div>';
 }
 function nvCkDoneOpen(i){const l=NV.ckDone&&NV.ckDone[i];if(!l)return;const r=(CURRENT_ROWS||[]).find(x=>x.company===l.company&&x.manager===l.manager&&(normalizeDate(x.firstCall)||'')===l.firstCall);
@@ -3507,13 +3674,14 @@ function nvNoticeDraw(){const box=document.getElementById('nvNtc');if(!box)retur
 function L_len(){return (_nvNtc||[]).length||1;}
 function nvNoticeOpen(){const L=_nvNtc||[];if(!L.length)return;const b=L[_nvNtcI%L.length];
   let m=document.getElementById('nvModal');if(!m){m=document.createElement('div');m.id='nvModal';m.onclick=e=>{if(e.target===m&&_downT===m)m.style.display='none';};document.body.appendChild(m);}
-  m.innerHTML='<div class="bx"><h3>'+nvE(b.title||'공지')+'</h3><div class="mt">'+nvE(b.scopeLabel||'')+(b.author?' · '+nvE(b.author):'')+(b.start?' · '+nvE(String(b.start).slice(0,16)):'')+'</div><div class="bd">'+nvE(b.body||'')+'</div><div class="ft"><button class="nv-btn" style="height:34px;padding:0 14px;border:1px solid #E1E4EA;border-radius:8px;background:#fff;cursor:pointer" onclick="document.getElementById(\'nvModal\').style.display=\'none\'">닫기</button></div></div>';
+  m.innerHTML='<div class="bx"><h3>'+nvE(b.title||'공지')+'</h3><div class="mt">'+nvE(b.scopeLabel||'')+(b.author?' · '+nvE(b.author):'')+(b.start?' · '+nvE(String(b.start).slice(0,16)):'')+'</div><div class="bd">'+nvE(b.body||'')+'</div><div class="ft"><button class="nv-btn" style="height:34px;padding:0 14px;border:1px solid var(--ln3);border-radius:8px;background:var(--sf);cursor:pointer" onclick="document.getElementById(\'nvModal\').style.display=\'none\'">닫기</button></div></div>';
   m.style.display='flex';}
 
 // ── 기존 흐름에 연결 ──
 (function(){
-  const _ap=_applyData;_applyData=function(res){(res&&res.rows||[]).forEach(nvFixMt);_ap(res);nvHeaderBtn();if(['all','bu','team'].includes(myScope().type))nvFavLoad();if(nvEnabled())nvShow();else if(document.body.classList.contains('nv-on'))nvRender();};
+  const _ap=_applyData;_applyData=function(res){(res&&res.rows||[]).forEach(nvFixMt);if(res&&res._at)NV.dataAt=res._at;_ap(res);nvHeaderBtn();if(['all','bu','team'].includes(myScope().type))nvFavLoad();if(nvEnabled())nvShow();else if(document.body.classList.contains('nv-on'))nvRender();};
   const _lo=doLogout;doLogout=function(){nvHide();_nvTalk=null;NV.talkTab='';NV.talkAll=false;_nvNtc=null;_nvFav=null;_nvXs=null;_nvFavFor='';_nvMeta=null;_nvGroups=null;NV.fg='';NV.fmem='';NV._init=0;NV.q='';NV.g='';NV.flag='';NV.page='home';NV.hk=NV.hm=NV.ht='';NV.ckTab='need';_lo();};
+  const _cd=callData;callData=async function(p){const r=await _cd(p);if(r&&r.success&&!r._at){r._at=Date.now();NV.dataAt=r._at;const el=document.querySelector('.nv-at');if(el)el.textContent=nvDataAt();}return r;};
   const _rc=refreshCheckSectionOnly;refreshCheckSectionOnly=function(){try{_rc();}catch(e){}if(document.body.classList.contains('nv-on')&&NV.page==='home')nvRender();};
   const _ca=chActsHtml;chActsHtml=function(){const c=CH.ctx;   // 새 화면: 확인·보관·본부확인 대신 보내기·넘기기
     if(!(document.body.classList.contains('nv-on')&&c&&c.kind==='need'&&c.nvi!=null))return _ca();
