@@ -6,7 +6,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.118</title>
+<title>미래아이엔씨 통합DB (관리자용) v5.119</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link id="nvFont" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -33,6 +34,35 @@
 }
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Pretendard','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+.lg2{min-height:100vh;display:flex;font-family:'Noto Sans KR','Pretendard',system-ui,sans-serif;background:#fff;color:#1C1F26}
+.lg2-brand{flex:1 1 55%;position:relative;overflow:hidden;background:#0810E0;color:#fff;padding:44px 56px;display:flex;flex-direction:column}
+.lg2-brand::before{content:'';position:absolute;right:-180px;top:-160px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),rgba(255,255,255,0) 70%)}
+.lg2-brand::after{content:'';position:absolute;left:-120px;bottom:-220px;width:520px;height:520px;border-radius:50%;border:70px solid rgba(255,255,255,.06)}
+.lg2-top{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:500;position:relative;z-index:1}
+.lg2-ci{width:36px;height:36px;border-radius:10px;background:#fff;display:inline-flex;align-items:center;justify-content:center}
+.lg2-ci img{width:26px;height:26px;object-fit:contain}
+.lg2-copy{margin:auto 0;position:relative;z-index:1;max-width:520px}
+.lg2-tag{display:inline-block;font-size:13px;font-weight:500;padding:5px 12px;border-radius:20px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28)}
+.lg2-copy h1{font-size:44px;line-height:1.22;font-weight:700;margin:18px 0 16px;letter-spacing:-.5px}
+.lg2-copy p{font-size:16px;line-height:1.7;color:rgba(255,255,255,.82);margin:0 0 28px}
+.lg2-copy ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+.lg2-copy li{font-size:14px;color:rgba(255,255,255,.82);padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.lg2-copy li b{color:#fff;font-weight:500;margin-right:10px}
+.lg2-foot{font-size:13px;color:rgba(255,255,255,.7);position:relative;z-index:1}
+.lg2-foot a{color:#fff;text-decoration:underline;text-underline-offset:3px}
+.lg2-form{flex:1 1 45%;display:flex;align-items:center;justify-content:center;padding:40px;background:#F6F7F9}
+.lg2-box{width:100%;max-width:380px;background:#fff;border:1px solid #E6E8EC;border-radius:16px;padding:36px 32px;box-shadow:0 10px 30px rgba(20,24,40,.06)}
+.lg2-box h2{font-size:24px;font-weight:700;margin:0}
+.lg2-sub{font-size:13px;color:#6B7080;margin:6px 0 26px}
+.lg2 .login-field label{font-size:13px;font-weight:500;color:#4A4F5C}
+.lg2 .login-field select,.lg2 .login-field input{height:44px;padding:0 14px;border:1px solid #E1E4EA;border-radius:10px;background:#fff;color:#1C1F26;font-family:inherit}
+.lg2 .login-field select:focus,.lg2 .login-field input:focus{border-color:#0810E0;box-shadow:0 0 0 3px #EEF0FE}
+.lg2-keep{display:flex;align-items:center;gap:8px;font-size:13px;color:#4A4F5C;margin:2px 0 18px;cursor:pointer}
+.lg2-keep input{width:16px;height:16px;accent-color:#0810E0;cursor:pointer}
+.lg2-keep span{color:#8A8F9C;font-size:12px}
+.lg2 .login-btn{height:46px;padding:0;margin:0;background:#0810E0;border-radius:10px;font-size:15px;font-weight:500;font-family:inherit}
+.lg2 .login-btn:hover{background:#0609A8;filter:none}
+.lg2 .login-btn:disabled{background:#C3C7D0}
 .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--header-bg);}
 .login-box{background:#fff;border-radius:20px;padding:40px 36px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(0,0,0,.3);}
 [data-theme="dark"] .login-box{background:#161b22;border:1px solid #30363d;}
@@ -222,34 +252,47 @@ tr:hover td{background:var(--surface2);}
 <div class="toast" id="toast"></div>
 <!-- 로그인 화면 -->
 <div id="loginScreen">
-  <div class="login-wrap">
-    <div class="login-box">
-      <div class="login-logo">
-        <img src="ci_logo/CI-png파일.png" alt="CI" style="height:56px;object-fit:contain;">
-        <h2>가망건 통합 대시보드</h2>
-        <p>권한에 맞는 역할을 선택하고 비밀번호를 입력하세요</p>
+  <div class="lg2">
+    <section class="lg2-brand">
+      <div class="lg2-top"><span class="lg2-ci"><img src="ci_logo/CI-png파일.png" alt="미래아이엔씨" onerror="this.style.display='none'"></span><span>미래아이엔씨</span></div>
+      <div class="lg2-copy">
+        <span class="lg2-tag">관리자용</span>
+        <h1>미래아이엔씨<br>통합DB</h1>
+        <p>팀원들의 가망건을 살피고, 놓친 재콜을 발견하고,<br>코멘트로 소통하는 부서장 화면이에요.</p>
+        <ul>
+          <li><b>팀원 DB</b>팀원별 가망건 · 놓친 재콜 · 정체를 한눈에</li>
+          <li><b>DB 즐겨찾기</b>챙길 업체를 모아 보고 엑셀로 받기</li>
+          <li><b>업무미션 · 프로모션</b>팀 미션과 프로모션 현황</li>
+        </ul>
       </div>
-      <div class="login-field">
-        <label>역할 선택</label>
-        <select id="roleSelect">
-          <option value="">-- 역할 선택 --</option>
-          <option value="관리자모드">🔑 관리자모드</option>
-          <option value="center">📊 센터장 (박경숙 상무)</option>
-          <option value="bm2">🔵 BM2본부장 (이진기)</option>
-          <option value="bm3">🟣 BM3본부장 (김윤섭)</option>
-          <option value="bm2_2">👥 BM2-2팀장 (김혜윰)</option>
-          <option value="bm2_3">👥 BM2-3팀장 (김소현)</option>
-          <option value="bm3_2">👥 BM3-2팀장 (안상민)</option>
-        </select>
+      <div class="lg2-foot">팀원은 <a href="/member">사원용 통합DB</a>로 로그인하세요</div>
+    </section>
+    <section class="lg2-form">
+      <div class="lg2-box">
+        <h2>로그인</h2>
+        <p class="lg2-sub">계정을 고르고 비밀번호를 입력하세요</p>
+        <div class="login-field">
+          <label for="roleSelect">계정</label>
+          <select id="roleSelect">
+            <option value="">계정 선택</option>
+            <option value="관리자모드">관리자모드</option>
+            <option value="center">센터장 · 박경숙 상무</option>
+            <option value="bm2">BM2본부장 · 이진기</option>
+            <option value="bm3">BM3본부장 · 김윤섭</option>
+            <option value="bm2_2">BM2-2팀장 · 김혜윰</option>
+            <option value="bm2_3">BM2-3팀장 · 김소현</option>
+            <option value="bm3_2">BM3-2팀장 · 안상민</option>
+          </select>
+        </div>
+        <div class="login-field">
+          <label for="pwInput">비밀번호</label>
+          <input type="password" id="pwInput" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()"/>
+        </div>
+        <label class="lg2-keep"><input type="checkbox" id="keepLogin"> 로그인 유지 <span>30일 · 이 PC에서만</span></label>
+        <button class="login-btn" id="loginBtn" onclick="doLogin()">로그인</button>
+        <div class="login-error" id="loginError"></div>
       </div>
-      <div class="login-field">
-        <label>비밀번호</label>
-        <input type="password" id="pwInput" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()"/>
-      </div>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-sub);margin:-4px 0 12px;cursor:pointer;"><input type="checkbox" id="keepLogin" style="width:15px;height:15px;cursor:pointer;"> 로그인 유지 (30일 · 이 PC에서만)</label>
-      <button class="login-btn" id="loginBtn" onclick="doLogin()">로그인</button>
-      <div class="login-error" id="loginError"></div>
-    </div>
+    </section>
   </div>
 </div>
 <!-- 인원 관리 모달 -->
@@ -290,7 +333,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.118</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.119</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -2654,6 +2697,7 @@ function _promoTeamSW(team){_PRteam=team;_PRpromo=null;_promoRender();}
 function _promoRoundSW(id){const data=_PR&&_PR[_PRbu];const list=Array.isArray(data)?data:(data&&_PRteam?data[_PRteam]:[]);const p=(list||[]).find(x=>x.id===id);if(p){_PRpromo=p;_promoLoad(p);}}
 function _promoLoad(promo){const el=document.getElementById('promoContent');if(!el)return;el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';fetch(promo.file+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('파일을 불러올 수 없습니다 ('+r.status+')');return r.text();}).then(html=>{el.innerHTML='';const iframe=document.createElement('iframe');iframe.style.cssText='width:100%;border:none;display:block;min-height:200px;';iframe.scrolling='no';el.appendChild(iframe);iframe.srcdoc=html;iframe.addEventListener('load',function(){try{const body=iframe.contentDocument.body;iframe.style.height=(body.scrollHeight+40)+'px';const ro=new ResizeObserver(function(){try{iframe.style.height=(iframe.contentDocument.body.scrollHeight+40)+'px';}catch(e){}});ro.observe(body);}catch(e){iframe.style.height='800px';}});}).catch(e=>{el.innerHTML='<div style="text-align:center;padding:60px;color:#c62828;">❌ '+e.message+'</div>';});}
 </script>
+<!-- [v5.119] 이름 변경: 가망건 대시보드 → 미래아이엔씨 통합DB (관리자용) · 로그인 화면(대문) 새 디자인 -->
 <!-- [v5.118] DB 즐겨찾기·엑셀 선택을 서버(인원DB '즐겨찾기' 탭)에 저장 — 어느 PC에서든 같은 목록 (code2 v5.30 필요) -->
 <!-- [v5.117] 보고용 → DB 즐겨찾기(★로 모으기 → 거기서 체크해서 엑셀) -->
 <!-- ═══ [v5.116] 새 부서장 화면 1단계: 화면 틀(왼쪽 메뉴·상단 바) · 팀원 DB · 업체 패널 — 기존 화면은 '이전 화면'으로 그대로 사용 가능 ═══ -->
@@ -2806,7 +2850,7 @@ function nvSideHtml(){
   const ri=(SESSION&&SESSION.roleInfo)||{},s=myScope();
   const it=(p,label,extra)=>'<button class="nv-nav'+(NV.page===p?' on':'')+'" onclick="nvGo(\''+p+'\')">'+nvSvg(p)+label+(extra||'')+'</button>';
   const where=s.type==='team'?(s.bu+' · '+s.team):s.type==='bu'?s.bu:'전체';
-  return '<div class="nv-brand"><img src="ci_logo/CI-png파일.png" alt=""><div><b>가망건 대시보드</b><small>미래아이엔씨 · v5.118</small></div></div>'+
+  return '<div class="nv-brand"><img src="ci_logo/CI-png파일.png" alt=""><div><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.119</small></div></div>'+
     it('home','팀 홈','<span class="soon">준비 중</span>')+it('db','팀원 DB')+it('fav','DB 즐겨찾기','<span class="n nv-fav-n">'+nvFavRows().length+'</span>')+
     '<div class="nv-sep"></div>'+it('report','리포트','<span class="soon">이전 화면</span>')+it('mission','업무미션')+it('promo','프로모션')+
     '<div class="nv-me"><b>'+nvE(ri.name||'')+' '+nvE(ri.title||'')+'</b><br>'+nvE(where)+'<div class="b"><button onclick="nvOff()" title="예전 대시보드로 (다시 켜려면 상단 ✨새 화면)">이전 화면</button><button onclick="doLogout()">로그아웃</button></div></div>';
