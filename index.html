@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 통합DB (관리자용) v5.129</title>
+<title>미래아이엔씨 통합DB (관리자용) v5.130</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link id="nvFont" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -345,7 +345,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.129</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.130</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -2741,6 +2741,7 @@ function _promoTeamSW(team){_PRteam=team;_PRpromo=null;_promoRender();}
 function _promoRoundSW(id){const data=_PR&&_PR[_PRbu];const list=Array.isArray(data)?data:(data&&_PRteam?data[_PRteam]:[]);const p=(list||[]).find(x=>x.id===id);if(p){_PRpromo=p;_promoLoad(p);}}
 function _promoLoad(promo){const el=document.getElementById('promoContent');if(!el)return;el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';fetch(promo.file+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('파일을 불러올 수 없습니다 ('+r.status+')');return r.text();}).then(html=>{el.innerHTML='';const iframe=document.createElement('iframe');iframe.style.cssText='width:100%;border:none;display:block;min-height:200px;';iframe.scrolling='no';el.appendChild(iframe);iframe.srcdoc=html;iframe.addEventListener('load',function(){try{const body=iframe.contentDocument.body;iframe.style.height=(body.scrollHeight+40)+'px';const ro=new ResizeObserver(function(){try{iframe.style.height=(iframe.contentDocument.body.scrollHeight+40)+'px';}catch(e){}});ro.observe(body);}catch(e){iframe.style.height='800px';}});}).catch(e=>{el.innerHTML='<div style="text-align:center;padding:60px;color:#c62828;">❌ '+e.message+'</div>';});}
 </script>
+<!-- [v5.130] 메뉴 접기 버튼을 로고 아래로 옮김 (접으면 » 만) -->
 <!-- [v5.129] 세션 만료 처리: 로그인 유지가 없거나 실패하면 비밀번호만 넣는 창으로 그 자리에서 다시 로그인 → 하던 요청 이어서 (서버 v5.34는 쓰는 동안 자동 연장) · 북마크·공지쿠폰 불러오기 실패를 기억하지 않고 다시 시도 -->
 <!-- [v5.128] 신규등록 시간대: 팀원 보드 '등록 시간대' 미니 막대 · 팀원 DB '마지막 활동' 눌러 시간대 그래프(오늘 vs 최근 7일 평균) · 마지막 활동에 사용기록 반영·항상 시각 표시 · 공지 줄 항상 보이게(없음·오류 안내) — 사원 서버 s1.17 필요 -->
 <!-- [v5.127] + 사이트 북마크: 카드 그리드(썸네일/아이콘 보기 선택) · 폴더 탭 · 끌어서 순서 · 계정별 서버 저장(code2 v5.33) -->
@@ -3027,14 +3028,14 @@ body.nv-on #coHist{zoom:1.06}
 .nv-nav svg{flex:0 0 20px;width:20px;height:20px}
 .nv-nav .lb{white-space:nowrap}
 .nv-gl{margin:18px 12px 6px;font-size:12px;font-weight:500;color:var(--t4);letter-spacing:.02em}
-.nv-col{margin-top:auto;display:flex;align-items:center;gap:10px;height:40px;padding:0 14px;border:0;border-radius:10px;background:none;color:var(--t4);font-size:14px}
+.nv-col{display:flex;align-items:center;gap:8px;height:30px;padding:0 10px;margin:-8px 8px 12px;border:1px solid var(--ln);border-radius:8px;background:var(--sf);color:var(--t3);font-size:13px;align-self:flex-start}
 .nv-col:hover{background:var(--hv);color:var(--t2)}
 body.nv-colp .nv-side{flex-basis:72px;padding-left:10px;padding-right:10px}
 body.nv-colp .nv-side .lb,body.nv-colp .nv-side .n,body.nv-colp .nv-side .soon,body.nv-colp .nv-gl span{display:none}
 body.nv-colp .nv-gl{height:1px;background:var(--ln2);margin:12px 6px}
 body.nv-colp .nv-nav{justify-content:center;padding:0}
 body.nv-colp .nv-brand{justify-content:center;padding:6px 0 16px}
-body.nv-colp .nv-col{justify-content:center;padding:0}
+body.nv-colp .nv-col{justify-content:center;padding:0;width:36px;align-self:center;margin:-8px 0 12px}
 .nv-top{padding:12px 28px;gap:10px;min-height:64px}
 .nv-at{font-size:13px;color:var(--t4);white-space:nowrap}
 .nv-mechip{display:flex;align-items:center;gap:8px;height:42px;padding:0 10px 0 5px;border:1px solid var(--ln3);border-radius:21px;background:var(--sf);color:var(--t2)}
@@ -3190,11 +3191,11 @@ function nvBuild(){
 function nvSideHtml(){
   const it=(p,label,extra)=>'<button class="nv-nav'+(NV.page===p?' on':'')+'" onclick="nvGo(\''+p+'\')" title="'+label+'">'+nvSvg(p)+'<span class="lb">'+label+'</span>'+(extra||'')+'</button>';
   const gl=t=>'<div class="nv-gl"><span>'+t+'</span></div>';
-  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.129</small></div></div>'+
+  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.130</small></div></div>'+
+    '<button class="nv-col" onclick="nvSetCol(!nvCol())" title="'+(nvCol()?'메뉴 펼치기':'메뉴 접기')+'">'+(nvCol()?'»':'«')+'<span class="lb">메뉴 접기</span></button>'+
     '<div class="nv-navs">'+it('home','팀 홈')+it('db','팀원 DB')+it('fav','DB 즐겨찾기','<span class="n nv-fav-n">'+nvFavRows().length+'</span>')+it('bm','사이트 북마크')+
     gl('업무')+it('report','리포트','<span class="soon">이전 화면</span>')+it('mission','업무미션')+
-    gl('관리')+it('post','공지·쿠폰')+it('promo','프로모션')+it('card','명함 관리')+it('mem','인원 관리')+'</div>'+
-    '<button class="nv-col" onclick="nvSetCol(!nvCol())" title="'+(nvCol()?'메뉴 펼치기':'메뉴 접기')+'">'+(nvCol()?'»':'«')+'<span class="lb">메뉴 접기</span></button>';
+    gl('관리')+it('post','공지·쿠폰')+it('promo','프로모션')+it('card','명함 관리')+it('mem','인원 관리')+'</div>';
 }
 function nvCol(){return localStorage.getItem('bm_nvcol')==='1';}
 function nvSetCol(on){localStorage.setItem('bm_nvcol',on?'1':'0');document.body.classList.toggle('nv-colp',!!on);nvRender();}
