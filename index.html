@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 통합DB (관리자용) v5.131</title>
+<title>미래아이엔씨 통합DB (관리자용) v5.132</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link id="nvFont" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -345,7 +345,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.131</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.132</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -2741,6 +2741,7 @@ function _promoTeamSW(team){_PRteam=team;_PRpromo=null;_promoRender();}
 function _promoRoundSW(id){const data=_PR&&_PR[_PRbu];const list=Array.isArray(data)?data:(data&&_PRteam?data[_PRteam]:[]);const p=(list||[]).find(x=>x.id===id);if(p){_PRpromo=p;_promoLoad(p);}}
 function _promoLoad(promo){const el=document.getElementById('promoContent');if(!el)return;el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';fetch(promo.file+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('파일을 불러올 수 없습니다 ('+r.status+')');return r.text();}).then(html=>{el.innerHTML='';const iframe=document.createElement('iframe');iframe.style.cssText='width:100%;border:none;display:block;min-height:200px;';iframe.scrolling='no';el.appendChild(iframe);iframe.srcdoc=html;iframe.addEventListener('load',function(){try{const body=iframe.contentDocument.body;iframe.style.height=(body.scrollHeight+40)+'px';const ro=new ResizeObserver(function(){try{iframe.style.height=(iframe.contentDocument.body.scrollHeight+40)+'px';}catch(e){}});ro.observe(body);}catch(e){iframe.style.height='800px';}});}).catch(e=>{el.innerHTML='<div style="text-align:center;padding:60px;color:#c62828;">❌ '+e.message+'</div>';});}
 </script>
+<!-- [v5.132] 팀 홈 오른쪽 고정 칸 = [살펴볼 업체 · 소통함] 탭 (새 답글 있으면 소통함 먼저) · 왼쪽은 팀원 보드만 -->
 <!-- [v5.131] 표 정리: 팀원 보드·팀원 DB·즐겨찾기 칸 너비를 화면 폭에 고르게 나눔(한 칸만 넓어지던 문제) · 숫자 칸 가운데 정렬 · 예산 오른쪽 정렬 · 오늘 등록 막대 칸에 맞춰 늘어남 -->
 <!-- [v5.130] 메뉴 접기 버튼을 로고 아래로 옮김 (접으면 » 만) -->
 <!-- [v5.129] 세션 만료 처리: 로그인 유지가 없거나 실패하면 비밀번호만 넣는 창으로 그 자리에서 다시 로그인 → 하던 요청 이어서 (서버 v5.34는 쓰는 동안 자동 연장) · 북마크·공지쿠폰 불러오기 실패를 기억하지 않고 다시 시도 -->
@@ -2967,7 +2968,7 @@ body.nv-on .jump-fab{display:none!important}
 .nv-kpis.k7 .nv-kpi{padding:12px 14px}.nv-kpis.k7 .v{font-size:20px}
 .nv-st.bl{background:var(--ac-s);color:var(--ac)}
 .nv-talk .nv-sec-h{flex-wrap:wrap}
-.nv-talklist{max-height:420px;overflow:auto}
+.nv-talklist{flex:1;overflow:auto;min-height:120px}
 .nv-q .lm{font-size:13px;color:var(--t2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .nv-q .lm span{color:var(--t4)}
 .nv-q .sub{font-size:12px;color:var(--t4);margin-top:3px;white-space:nowrap}
@@ -3131,6 +3132,10 @@ body.nv-on.nv-t-dark #coHist .ch-h{background:var(--sf)}
 .nv-tb .nv-sp{flex:1;justify-content:space-between;gap:2px}
 .nv-tb .nv-sp i{flex:1;max-width:8px;width:auto}
 .nv-tb .nv-spw b{min-width:20px}
+.nv-rtabs{gap:6px;padding:10px 14px}
+.nv-rtabs .nv-tab{font-size:15px;height:36px;padding:0 14px;position:relative}
+.nv-dot{position:absolute;top:6px;right:5px;width:7px;height:7px;border-radius:4px;background:#D0383E}
+.nv-tsub{align-items:center;flex-wrap:nowrap;gap:2px}.nv-tsub .nv-tab{height:30px;font-size:13px;padding:0 9px;white-space:nowrap}.nv-tsub .r{margin-left:auto;display:flex;align-items:center;gap:6px}
 .nv-note{background:var(--sf);border:1px dashed var(--ln3);border-radius:12px;padding:28px;color:var(--t3);line-height:1.7}
 #nvBack{position:fixed;left:16px;bottom:16px;z-index:400;display:none;height:40px;padding:0 16px;border-radius:20px;border:0;background:#0810E0;color:#fff;font:500 13px 'Noto Sans KR',sans-serif;box-shadow:0 4px 14px rgba(8,16,224,.3);cursor:pointer}
 body.nv-old #nvBack{display:block}
@@ -3200,7 +3205,7 @@ function nvBuild(){
 function nvSideHtml(){
   const it=(p,label,extra)=>'<button class="nv-nav'+(NV.page===p?' on':'')+'" onclick="nvGo(\''+p+'\')" title="'+label+'">'+nvSvg(p)+'<span class="lb">'+label+'</span>'+(extra||'')+'</button>';
   const gl=t=>'<div class="nv-gl"><span>'+t+'</span></div>';
-  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.131</small></div></div>'+
+  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.132</small></div></div>'+
     '<button class="nv-col" onclick="nvSetCol(!nvCol())" title="'+(nvCol()?'메뉴 펼치기':'메뉴 접기')+'">'+(nvCol()?'»':'«')+'<span class="lb">메뉴 접기</span></button>'+
     '<div class="nv-navs">'+it('home','팀 홈')+it('db','팀원 DB')+it('fav','DB 즐겨찾기','<span class="n nv-fav-n">'+nvFavRows().length+'</span>')+it('bm','사이트 북마크')+
     gl('업무')+it('report','리포트','<span class="soon">이전 화면</span>')+it('mission','업무미션')+
@@ -3610,7 +3615,7 @@ function nvTalkScope(){   // 팀 홈 범위(상단 선택 + 보드 필터) 안�
 function nvTalkNew(){return (_nvTalk||[]).filter(t=>t.status==='new'&&(myScope().type==='team'||NV.talkAll||t.mine));}
 const NV_TS={new:['새 답글','b'],wait:['답 기다림','r'],open:['진행 중',''],done:['완료','g']};
 function nvTalkHtml(){
-  if(!_nvTalk)return '<section class="nv-card"><div class="nv-sec-h"><h2>소통함</h2><span>불러오는 중…</span></div></section>';
+  if(!_nvTalk)return '<div class="nv-empty">소통함 불러오는 중…</div>';
   const L=nvTalkScope(),c={new:0,wait:0,open:0,done:0};L.forEach(t=>c[t.status]++);
   if(!NV.talkTab)NV.talkTab=c.new?'new':c.wait?'wait':'open';
   const tab=k=>'<button class="nv-tab'+(NV.talkTab===k?' on':'')+'" onclick="NV.talkTab=\''+k+'\';nvRefreshDb()">'+NV_TS[k][0]+' <b>'+c[k]+'</b></button>';
@@ -3623,10 +3628,10 @@ function nvTalkHtml(){
     else st='<span class="mu" style="font-size:13px">'+nvE(String(t.last.ts).slice(5,10).replace('-','/'))+'</span>';
     return '<div class="nv-q" onclick="nvTalkOpen('+i+')"><div class="m"><b>'+nvE(t.company)+'</b><span class="s">'+nvE(t.owner)+' · '+t.n+'개</span><div class="lm"><span>'+nvE(t.last.author)+':</span> '+nvE(t.last.text)+'</div></div><span class="bud" style="text-align:right">'+st+'</span></div>';};
   const sw=myScope().type!=='team'?'<label class="nv-sw" title="끄면 내가 남긴 대화만"><input type="checkbox" '+(NV.talkAll?'checked':'')+' onchange="NV.talkAll=this.checked;NV.talkTab=\'\';nvRefreshDb();nvBellCnt()"> 팀장 대화도 보기</label>':'';
-  return '<section class="nv-card nv-talk"><div class="nv-sec-h" style="gap:6px;align-items:center"><h2 style="margin-right:6px">소통함</h2>'+tab('new')+tab('wait')+tab('open')+tab('done')+'<span class="r">'+sw+'<button class="nv-ib sm" title="새로고침" onclick="nvTalkLoad(true)">'+nvSvg('ref',14)+'</button></span></div>'+
+  return '<div class="nv-pchips nv-tsub">'+tab('new')+tab('wait')+tab('open')+tab('done')+'<span class="r">'+sw+'<button class="nv-ib sm" title="새로고침" onclick="nvTalkLoad(true)">'+nvSvg('ref',14)+'</button></span></div>'+
     (NV.talkErr&&!_nvTalk.length?'<div class="nv-empty" style="color:var(--red)">'+nvE(NV.talkErr)+'</div>':'')+
     '<div class="nv-talklist">'+(rows.map(item).join('')||'<div class="nv-empty" style="padding:22px">'+(NV.talkTab==='new'?'새 답글이 없어요':NV.talkTab==='wait'?'답 기다리는 대화가 없어요':NV.talkTab==='done'?'완료한 대화가 없어요 (최근 60일)':'진행 중인 대화가 없어요')+'</div>')+'</div>'+
-    '<div class="nv-foot">답 기다림은 내가 마지막으로 남긴 뒤 사원 답이 없는 대화 · 2영업일 넘으면 빨강 · 완료는 업체 패널에서 닫아요</div></section>';
+    '<div class="nv-foot">답 기다림 = 내가 마지막으로 남긴 뒤 사원 답이 없는 대화 · 2영업일 넘으면 빨강 · 완료는 업체 패널에서 닫아요</div>';
 }
 function nvTalkOpen(i,fromBell){const v=fromBell?NV.bellView:NV.talkView,t=v&&v[i];if(!t)return;const r=(CURRENT_ROWS||[]).find(x=>x.id===t.cid&&x.manager===t.owner)||(CURRENT_ROWS||[]).find(x=>x.company===t.company&&x.manager===t.owner);
   if(!r){toast('지금 데이터에 없는 업체예요 (삭제·이관 등)','err');return;}const b=document.getElementById('nvBell');if(b)b.style.display='none';openCoHist(r.company,r.manager,null,r);}
@@ -3701,7 +3706,7 @@ function nvHomeHtml(){
   const nMiss=cntOf('miss').length,nGap=cntOf('gap').length;
   const nDue=nvDue().length,tk=_nvTalk?nvTalkScope():[],tNew=tk.filter(t=>t.status==='new').length,tWait=tk.filter(t=>t.status==='wait').length;
   const kpis='<div class="nv-kpis k7">'+kp('today','',cntOf('today').length)+kp('miss',nMiss?' red':'',nMiss)+kp('nw','',cntOf('nw').length)+kp('gap',nGap?' amb':'',nGap)+kp('trf','',trf.length+' <small>건 · '+trfAmt.toLocaleString()+'만원</small>')+'<div class="nv-kpi clk'+(nDue?' blu':'')+'" onclick="nvBellToggle(event)" title="상단 🔔과 같음"><div class="k">⏰ 체크 알람</div><div class="v"><span class="nv-due-n">'+nDue+'</span></div></div>'+
-    '<div class="nv-kpi clk'+(tNew?' blu':tWait?' amb':'')+'" onclick="NV.talkTab=\''+(tNew?'new':'wait')+'\';nvRefreshDb();const e=document.querySelector(\'.nv-talk\');if(e)e.scrollIntoView({behavior:\'smooth\',block:\'center\'})" title="소통함으로"><div class="k">새 답글 · 답 기다림</div><div class="v">'+(_nvTalk?tNew+' <small>/ '+tWait+'</small>':'<small>…</small>')+'</div></div></div>';
+    '<div class="nv-kpi clk'+(tNew?' blu':tWait?' amb':'')+'" onclick="NV.rtab=\'talk\';NV.talkTab=\''+(tNew?'new':'wait')+'\';nvRefreshDb()" title="오른쪽 소통함 탭으로"><div class="k">새 답글 · 답 기다림</div><div class="v">'+(_nvTalk?tNew+' <small>/ '+tWait+'</small>':'<small>…</small>')+'</div></div></div>';
   let focus='';
   if(NV.hk){const fr=cntOf(NV.hk).sort((a,b)=>nvRank(a.grade)-nvRank(b.grade)||(b.budget||0)-(a.budget||0));NV.view=fr;const lim=NV.hlim||50;
     focus='<section class="nv-card nv-focus"><div class="nv-sec-h"><h2>'+NV_HK[NV.hk][0]+'</h2><span>'+fr.length+'건'+(NV.hm?' · '+nvE(NV.hm):NV.ht?' · '+nvE(NV.ht):'')+'</span><button class="nv-x r" onclick="nvHomeSet(\'hk\',\''+NV.hk+'\')" title="닫기">닫기 ✕</button></div>'+
@@ -3730,11 +3735,14 @@ function nvHomeHtml(){
   const dotC=g=>(NV_GC[nvGrp(g)]||NV_GC['미분류'])[1];
   const list=need.map((it,i)=>{const r=it.r,pc=nvPrimaryCat(it.cats.map(c=>c.cat));return '<div class="nv-q" onclick="nvCkOpen('+i+')"><span class="dot" style="background:'+dotC(r.grade)+'"></span><div class="m"><b>'+nvE(r.company)+'</b><span class="s">'+nvE(r.manager)+' · '+nvE(nvGrp(r.grade))+'</span><div class="tags">'+it.cats.map(c=>'<span title="'+nvE(c.reason||'')+'">'+nvE(c.cat)+'</span>').join('')+(r.budget>0?'<em>'+nvE(fmtB(r.budget))+'</em>':'')+'</div></div>'+
     '<span class="nv-qa"><button class="snd" title="DB 즐겨찾기 「'+nvE(pc)+'」 그룹으로 보내기" onclick="event.stopPropagation();nvCkDo('+i+',true)">★ 보내기</button><button title="즐겨찾기로 보내지 않고 목록에서만 빼기" onclick="event.stopPropagation();nvCkDo('+i+',false)">넘기기</button></span></div>';}).join('')||'<div class="nv-empty">살펴볼 업체가 없어요</div>';
-  const check='<section class="nv-card nv-ck"><div class="nv-sec-h"><h2>살펴볼 업체</h2><span>'+need.length+'건</span></div>'+chipRow+
-    '<div class="nv-cklist" id="nvCkList">'+list+'</div><div class="nv-foot">★ 보내기 = DB 즐겨찾기(이유별 그룹)로 · 넘기기 = 목록에서만 빼기 · 같은 이유로는 다시 안 떠요</div></section>';
-  const talk=nvTalkHtml();
+  const checkIn=chipRow+'<div class="nv-cklist" id="nvCkList">'+list+'</div><div class="nv-foot">★ 보내기 = DB 즐겨찾기(이유별 그룹)로 · 넘기기 = 목록에서만 빼기 · 같은 이유로는 다시 안 떠요</div>';
+  const tkAll=_nvTalk?nvTalkScope():[],tN=tkAll.filter(t=>t.status==='new').length,tW=tkAll.filter(t=>t.status==='wait').length;
+  if(!NV.rtab&&_nvTalk)NV.rtab=tN?'talk':'need';   // 소통함을 불러온 뒤 새 답글이 있으면 소통함 먼저 (처음 한 번)
+  const rtab=NV.rtab||'need';
+  const rt=(k,l,n,dot)=>'<button class="nv-tab'+(rtab===k?' on':'')+'" onclick="NV.rtab=\''+k+'\';nvRefreshDb()">'+l+' <b>'+n+'</b>'+(dot?'<i class="nv-dot"></i>':'')+'</button>';
+  const right='<section class="nv-card nv-ck"><div class="nv-sec-h nv-rtabs">'+rt('need','살펴볼 업체',need.length)+rt('talk','소통함',_nvTalk?tN+tW:'…',tN>0)+'</div>'+(rtab==='talk'?nvTalkHtml():checkIn)+'</section>';
   return '<div class="nv-wrap nv-home"><div class="nv-h1"><h1>팀 홈</h1><span style="font-size:14px;color:var(--t3)">'+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+wd+') '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' 기준</span></div>'+
-    '<div id="nvNtc"></div>'+kpis+focus+'<div class="nv-hgrid"><div style="display:flex;flex-direction:column;gap:16px">'+board+talk+'</div>'+check+'</div></div>';
+    '<div id="nvNtc"></div>'+kpis+focus+'<div class="nv-hgrid"><div style="display:flex;flex-direction:column;gap:16px">'+board+'</div>'+right+'</div></div>';
 }
 function nvCkDoneOpen(i){const l=NV.ckDone&&NV.ckDone[i];if(!l)return;const r=(CURRENT_ROWS||[]).find(x=>x.company===l.company&&x.manager===l.manager&&(normalizeDate(x.firstCall)||'')===l.firstCall);
   if(!r){toast('지금 데이터에 없는 업체예요 (삭제·이관 등)','err');return;}openCoHist(r.company,r.manager,null,r);}
@@ -3783,7 +3791,7 @@ function nvNoticeOpen(){const L=_nvNtc||[];if(!L.length)return;const b=L[_nvNtcI
 // ── 기존 흐름에 연결 ──
 (function(){
   const _ap=_applyData;_applyData=function(res){(res&&res.rows||[]).forEach(nvFixMt);if(res&&res._at)NV.dataAt=res._at;_ap(res);nvHeaderBtn();if(['all','bu','team'].includes(myScope().type))nvFavLoad();if(nvEnabled())nvShow();else if(document.body.classList.contains('nv-on'))nvRender();};
-  const _lo=doLogout;doLogout=function(){nvHide();NV.reg=null;NV.regOpen=false;_nvTalk=null;NV.talkTab='';NV.talkAll=false;_nvNtc=null;_nvFav=null;_nvXs=null;_nvFavFor='';_nvMeta=null;_nvGroups=null;NV.fg='';NV.fmem='';NV._init=0;NV.q='';NV.g='';NV.flag='';NV.page='home';NV.hk=NV.hm=NV.ht='';NV.ckTab='need';_lo();};
+  const _lo=doLogout;doLogout=function(){nvHide();NV.rtab='';NV.reg=null;NV.regOpen=false;_nvTalk=null;NV.talkTab='';NV.talkAll=false;_nvNtc=null;_nvFav=null;_nvXs=null;_nvFavFor='';_nvMeta=null;_nvGroups=null;NV.fg='';NV.fmem='';NV._init=0;NV.q='';NV.g='';NV.flag='';NV.page='home';NV.hk=NV.hm=NV.ht='';NV.ckTab='need';_lo();};
   const _cd=callData;callData=async function(p){const r=await _cd(p);if(r&&r.success&&!r._at){r._at=Date.now();NV.dataAt=r._at;const el=document.querySelector('.nv-at');if(el)el.textContent=nvDataAt();}return r;};
   const _rc=refreshCheckSectionOnly;refreshCheckSectionOnly=function(){try{_rc();}catch(e){}if(document.body.classList.contains('nv-on')&&NV.page==='home')nvRender();};
   const _ca=chActsHtml;chActsHtml=function(){const c=CH.ctx;   // 새 화면: 확인·보관·본부확인 대신 보내기·넘기기
