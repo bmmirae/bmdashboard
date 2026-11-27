@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 가망건 통합 대시보드 v5.114</title>
+<title>미래아이엔씨 가망건 통합 대시보드 v5.115</title>
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
@@ -290,7 +290,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.114</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 가망건 통합 대시보드 <span style="font-size:12px;opacity:.6;font-weight:400;">v5.115</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -386,8 +386,9 @@ tr:hover td{background:var(--surface2);}
 const NAVER_WORKER_URL = 'https://naver-api.bm1mirae.workers.dev';
 
 // ── 공통 상수 ─────────────────────────────────
-const BU_ORDER   = ['BM2본부','BM3본부'];
-const TEAM_ORDER = ['BM2-1팀','BM2-2팀','BM2-3팀','BM3-1팀','BM3-2팀'];
+// [v5.115] 본부·팀 순서는 서버 orgMap(인원DB)으로 채움 — 이름 하드코딩 없음
+const BU_ORDER   = [];
+const TEAM_ORDER = [];
 const VALID_GRADES = ['단기','장기','권한오픈','권한+브리핑','이관완료'];
 const EXCLUDE_GRADES = ['선택없음','단순재콜','희망건','메일전송',''];
 
@@ -476,7 +477,7 @@ function fmtDateDisp(d){const n=normalizeDate(d||'');if(!n||n==='-')return'-';co
 function fmtRecallDate(dateStr){if(!dateStr)return'-';const m=String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})$/);if(m)return`${m[1].slice(2)}/${parseInt(m[2])}/${parseInt(m[3])}`;return dateStr;}
 function gradeBadge(g){const map={'선택없음':'gb-none','단순재콜':'gb-recall','단기':'gb-short','장기':'gb-long','권한오픈':'gb-open','권한+브리핑':'gb-briefing','메일전송':'gb-mail','이관완료':'gb-done'};const c=map[g]||'gb-none';return`<span class="grade-badge ${c}">${g||'선택없음'}</span>`;}
 function gradeBadgeEx(g,changed){const map={'선택없음':'gb-none','단순재콜':'gb-recall','단기':'gb-short','장기':'gb-long','권한오픈':'gb-open','권한+브리핑':'gb-briefing','메일전송':'gb-mail','이관완료':'gb-done'};const c=map[g]||'gb-none';const icon=changed?`<span title="최근 등급 변경됨" style="margin-left:3px;font-size:10px;">🔄</span>`:'';return`<span class="grade-badge ${c}">${g||'선택없음'}${icon}</span>`;}
-function buBadge(b){return`<span class="bu-badge ${b==='BM2본부'?'bb-bm2':'bb-bm3'}">${b}</span>`;}
+function buBadge(b){return`<span class="bu-badge ${buAlt(b)?'bb-bm3':'bb-bm2'}">${b}</span>`;}
 function rankIcon(i){return['🥇','🥈','🥉'][i]||(i+1)+'위';}
 function rc(i){return['r1','r2','r3'][i]||'';}
 function toast(msg,type='ok'){const t=document.getElementById('toast');t.textContent=msg;t.style.background=type==='err'?'#c62828':'#1b5e20';t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
@@ -771,10 +772,17 @@ async function callData(params){
 function logDiag(res,tag){if(!res||!res._diag)return;const n=res._net||{};console.log('%c[로딩 진단]'+(tag?' '+tag:''),'color:#c62828;font-weight:700',(res._cached?'서버캐시 사용\n':'')+res._diag.join('\n')+'\n─ 브라우저: 요청~받기 완료 '+(n.ms!=null?n.ms+'ms':'?')+(n.gz?' · 전송 '+n.gzKB+'KB (원래 '+n.rawKB+'KB, 서버 압축 '+n.gzMs+'ms · 풀기 '+n.unzipMs+'ms)':' · 압축 안 함'));}
 
 // ── 조직 구조 (초기값 · 서버 orgMap으로 덮어씌워짐) ─────────────
-const ORG_MAP={
-  'BM2본부':{'BM2-1팀':['박태민','서진여'],'BM2-2팀':['박아연','장영진'],'BM2-3팀':['차민경']},
-  'BM3본부':{'BM3-1팀':['곽은영','문태희'],'BM3-2팀':['강민정','강태욱','오경진','하강우']},
-};
+const ORG_MAP={};
+// [v5.115] 조직 공통 함수: 인원DB 기준. 팀 추가·이름 변경 시 코드 수정 불필요
+const _kcmp=(a,b)=>a.localeCompare(b,'ko',{numeric:true});
+function orgRebuild(om){if(!om)return;Object.keys(ORG_MAP).forEach(k=>delete ORG_MAP[k]);Object.assign(ORG_MAP,om);BU_ORDER.length=0;TEAM_ORDER.length=0;Object.keys(om).sort(_kcmp).forEach(bu=>{BU_ORDER.push(bu);Object.keys(om[bu]).sort(_kcmp).forEach(t=>TEAM_ORDER.push(t));});}
+function teamsOf(bu){return TEAM_ORDER.filter(t=>ORG_MAP[bu]&&ORG_MAP[bu][t]);}
+function buOf(team){for(const bu in ORG_MAP)if(ORG_MAP[bu][team])return bu;return '';}
+function myScope(){const s=(SESSION&&SESSION.scope)||{};return{type:s.type||'',bu:s.bu||(s.team?buOf(s.team):''),team:s.team||''};}
+function isBuHeadRole(){return myScope().type==='bu';}
+function isTeamLeadRole(){return myScope().type==='team';}
+function buAlt(bu){return BU_ORDER.indexOf(bu)%2===1;}   // 본부 색 구분(파랑/보라 번갈아)
+function buIcon(bu){return buAlt(bu)?'🟣':'🔵';}
 const SHEET_MAP={};
 
 // ── _applyData ────────────────────────────────
@@ -783,7 +791,7 @@ function _applyData(res){
   CURRENT_FILTER='all';
   MEMBER_NAV_ACTIVATED=false;
   RECENT_GRADE_CHANGES=res.recentGradeChanges||[];
-  if(res.orgMap)Object.assign(ORG_MAP,res.orgMap);
+  if(res.orgMap)orgRebuild(res.orgMap);
   if(res.sheetMap)Object.assign(SHEET_MAP,res.sheetMap);
   if(res.roleInfo){
     SESSION.roleInfo=res.roleInfo;
@@ -880,19 +888,19 @@ function buildNav(stats){
   if(role==='center'||role==='관리자모드'||role==='master'){
     navWrap.style.display='block';stickyBar.dataset.navActive='1';
     topHtml=`<span class="nav-lbl">📌</span><button class="nbtn ${CURRENT_FILTER==='all'?'na':''}" onclick="filterView('all')">🏆 전체</button>`;
-    BU_ORDER.forEach(bu=>{if(!ORG_MAP[bu])return;const total=buMap[bu]?.total||0;const isBm2=bu==='BM2본부';topHtml+=`<button class="nbtn ${CURRENT_FILTER===bu?(isBm2?'na-bm2':'na-bm3'):''}" onclick="filterView('${bu}')">${isBm2?'🔵':'🟣'} ${bu}(${total})</button>`;TEAM_ORDER.filter(t=>t.startsWith(isBm2?'BM2':'BM3')).forEach(team=>{const tt=teamMap[team];if(!tt)return;topHtml+=`<button class="nbtn ${CURRENT_FILTER===team?'na-team':''}" onclick="filterView('${team}')">👥 ${team}(${tt.total})</button>`;});});
+    BU_ORDER.forEach(bu=>{if(!ORG_MAP[bu])return;const total=buMap[bu]?.total||0;const isBm2=!buAlt(bu);topHtml+=`<button class="nbtn ${CURRENT_FILTER===bu?(isBm2?'na-bm2':'na-bm3'):''}" onclick="filterView('${bu}')">${buIcon(bu)} ${bu}(${total})</button>`;teamsOf(bu).forEach(team=>{const tt=teamMap[team];if(!tt)return;topHtml+=`<button class="nbtn ${CURRENT_FILTER===team?'na-team':''}" onclick="filterView('${team}')">👥 ${team}(${tt.total})</button>`;});});
     botHtml=buildMemberNav(CURRENT_FILTER);
-  }else if(role==='bm2'||role==='bm3'){
+  }else if(isBuHeadRole()){
     navWrap.style.display='block';stickyBar.dataset.navActive='1';
-    const myBU=role==='bm2'?'BM2본부':'BM3본부';
-    const myTeams=TEAM_ORDER.filter(t=>t.startsWith(role==='bm2'?'BM2':'BM3'));
+    const myBU=myScope().bu;
+    const myTeams=teamsOf(myBU);
     topHtml=`<span class="nav-lbl">📌</span><button class="nbtn ${CURRENT_FILTER==='all'?'na':''}" onclick="filterView('all')">전체</button>`;
     myTeams.forEach(team=>{const tt=teamMap[team];if(!tt)return;topHtml+=`<button class="nbtn ${CURRENT_FILTER===team?'na-team':''}" onclick="filterView('${team}')">👥 ${team}(${tt.total})</button>`;});
     botHtml=buildMemberNav(CURRENT_FILTER,myBU);
-  }else if(['bm2_2','bm2_3','bm3_2'].includes(role)){
+  }else if(isTeamLeadRole()){
     navWrap.style.display='block';stickyBar.dataset.navActive='1';
-    const teamName=role==='bm2_2'?'BM2-2팀':role==='bm2_3'?'BM2-3팀':'BM3-2팀';
-    const bu=role.startsWith('bm2')?'BM2본부':'BM3본부';
+    const teamName=myScope().team;
+    const bu=myScope().bu;
     topHtml=`<span class="nav-lbl">📌</span><button class="nbtn ${CURRENT_FILTER==='all'?'na':''}" onclick="filterView('all')">👥 ${teamName} 전체</button>`;
     botHtml=`<span class="nav-lbl">👤</span>`;
     (ORG_MAP[bu]?.[teamName]||[]).forEach(name=>{
@@ -909,15 +917,15 @@ function buildMemberNav(filter,forceBU){
   if(!MEMBER_NAV_ACTIVATED)return'';
   const allNames=Object.values(ORG_MAP).flatMap(bu=>Object.values(bu).flat());
   const isMember=allNames.includes(filter);let members=[];
-  if(filter==='all'){BU_ORDER.forEach(bu=>{if(forceBU&&bu!==forceBU)return;if(!ORG_MAP[bu])return;TEAM_ORDER.filter(t=>t.startsWith(bu==='BM2본부'?'BM2':'BM3')).forEach(team=>{(ORG_MAP[bu][team]||[]).forEach(name=>members.push({name,bu,team}));});});}
+  if(filter==='all'){BU_ORDER.forEach(bu=>{if(forceBU&&bu!==forceBU)return;if(!ORG_MAP[bu])return;teamsOf(bu).forEach(team=>{(ORG_MAP[bu][team]||[]).forEach(name=>members.push({name,bu,team}));});});}
   else if(isMember){for(const bu in ORG_MAP)for(const team in ORG_MAP[bu])if(ORG_MAP[bu][team].includes(filter)){(ORG_MAP[bu][team]||[]).forEach(name=>members.push({name,bu,team}));break;}}
-  else if(ORG_MAP[filter]){TEAM_ORDER.filter(t=>t.startsWith(filter==='BM2본부'?'BM2':'BM3')).forEach(team=>{(ORG_MAP[filter][team]||[]).forEach(name=>members.push({name,bu:filter,team}));});}
+  else if(ORG_MAP[filter]){teamsOf(filter).forEach(team=>{(ORG_MAP[filter][team]||[]).forEach(name=>members.push({name,bu:filter,team}));});}
   else{for(const bu in ORG_MAP){if(ORG_MAP[bu][filter]){(ORG_MAP[bu][filter]||[]).forEach(name=>members.push({name,bu,team:filter}));break;}}}
   if(!members.length)return'';
   let html=`<span class="nav-lbl">👤</span>`;let lastTeam='';
   members.forEach(({name,team,bu})=>{
     if(team!==lastTeam){if(lastTeam)html+=`<span style="color:var(--border);margin:0 4px;">│</span>`;lastTeam=team;}
-    const colorClass=CURRENT_FILTER===name?'na-member':(bu==='BM2본부'?'mbr-bm2':'mbr-bm3');
+    const colorClass=CURRENT_FILTER===name?'na-member':(buAlt(bu)?'mbr-bm3':'mbr-bm2');
     const sheetId=SHEET_MAP[name]||'';
     const sheetBtn=sheetId?`<a href="https://docs.google.com/spreadsheets/d/${sheetId}" target="_blank" title="${name} 시트" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:5px;background:#e8f5e9;color:#2e7d32;border:1px solid #a5d6a7;font-size:12px;text-decoration:none;margin-left:2px;vertical-align:middle;" onclick="event.stopPropagation()">📊</a>`:'';const memBtn=memDashBtn(name);
     html+=`<span style="display:inline-flex;align-items:center;gap:2px;"><button class="nbtn ${colorClass}" onclick="filterView('${name}')">👤 ${name}</button>${sheetBtn}${memBtn}</span>`;
@@ -966,8 +974,8 @@ function calcClientStats(rows){
   let _budgetGroupType='bu',_budgetGroupOrder=[];
   if(CURRENT_FILTER==='all'){_budgetGroupType='bu';_budgetGroupOrder=BU_ORDER.slice();}
   else if(_allNames.includes(CURRENT_FILTER)){_budgetGroupType='none';_budgetGroupOrder=[];}
-  else if(ORG_MAP[CURRENT_FILTER]){_budgetGroupType='team';_budgetGroupOrder=TEAM_ORDER.filter(t=>t.startsWith(CURRENT_FILTER==='BM2본부'?'BM2':'BM3'));}
-  else{_budgetGroupType='member';const bu=TEAM_ORDER.includes(CURRENT_FILTER)?(CURRENT_FILTER.startsWith('BM2')?'BM2본부':'BM3본부'):'';_budgetGroupOrder=(ORG_MAP[bu]&&ORG_MAP[bu][CURRENT_FILTER])?ORG_MAP[bu][CURRENT_FILTER].slice():[];}
+  else if(ORG_MAP[CURRENT_FILTER]){_budgetGroupType='team';_budgetGroupOrder=teamsOf(CURRENT_FILTER);}
+  else{_budgetGroupType='member';const bu=TEAM_ORDER.includes(CURRENT_FILTER)?buOf(CURRENT_FILTER):'';_budgetGroupOrder=(ORG_MAP[bu]&&ORG_MAP[bu][CURRENT_FILTER])?ORG_MAP[bu][CURRENT_FILTER].slice():[];}
   const _budgetGroupKeyFn=r=>{if(_budgetGroupType==='bu')return r.bu;if(_budgetGroupType==='team')return r.team;if(_budgetGroupType==='member')return r.manager;return null;};
   const contactMap={};
   const _mRange=getMonthRange();activeRows.forEach(r=>{const g=r.grade||'미분류';gradeMap[g]=(gradeMap[g]||0)+1;if(!memberMap[r.manager])memberMap[r.manager]={name:r.manager,team:r.team,bu:r.bu,title:r.title||'',joinDate:r.joinDate||'',total:0,grades:{},thisMonthNew:0};memberMap[r.manager].total++;memberMap[r.manager].grades[g]=(memberMap[r.manager].grades[g]||0)+1;{const fc=normalizeDate(r.firstCall)||'';if(fc>=_mRange.start&&fc<=_mRange.end)memberMap[r.manager].thisMonthNew++;}if(!teamMap[r.team])teamMap[r.team]={team:r.team,bu:r.bu,total:0,grades:{}};teamMap[r.team].total++;teamMap[r.team].grades[g]=(teamMap[r.team].grades[g]||0)+1;if(!buMap[r.bu])buMap[r.bu]={bu:r.bu,total:0,grades:{}};buMap[r.bu].total++;buMap[r.bu].grades[g]=(buMap[r.bu].grades[g]||0)+1;if(r.budget>0)for(const b in bands)if(r.budget>=bands[b].min&&r.budget<bands[b].max){bands[b].count++;bands[b].total+=r.budget;const gk=_budgetGroupKeyFn(r);if(gk){if(!bandGroups[b])bandGroups[b]={};bandGroups[b][gk]=(bandGroups[b][gk]||0)+1;}break;}const cp=r.contactPoint||'미분류';if(!contactMap[r.manager])contactMap[r.manager]={name:r.manager,team:r.team,bu:r.bu,points:{}};contactMap[r.manager].points[cp]=(contactMap[r.manager].points[cp]||0)+1;});
@@ -1404,7 +1412,7 @@ function getNeedItemsFor(rowsSubset){
   });
   return[...needMap.values()];
 }
-const HQ_LEVEL_ROLES=['center','관리자모드','master','bm2','bm3'];
+const HQ_LEVEL_ROLES=['center','관리자모드','master'];   // [v5.115] 본부장은 scope.type==='bu'로 판정
 // [v5.13] 이관완료 탭 렌더링 — 체크로그와 무관하게 현재 가망도 기준으로 필터링된 항목을 기간별로 보여줌
 function renderTransferTab(items){
   if(!items.length) return `<div style="text-align:center;color:var(--text-muted);padding:24px;font-size:13px;">이관완료 처리된 항목이 없습니다</div>`;
@@ -1485,7 +1493,7 @@ function onTransferPeriodChange(val){
 function renderCheckSection(rows){
   const needItems=getNeedItemsFor(rows);
   _ensureNeedSeen(needItems); // [v5.17] 체크필요 목격 기록(백그라운드, 신규 항목만)
-  const isHqLevel=HQ_LEVEL_ROLES.includes(SESSION.role);
+  const isHqLevel=HQ_LEVEL_ROLES.includes(SESSION.role)||isBuHeadRole();
   // 현재 필터(본부/팀/인원) 범위에 속한 담당자만 체크로그에서 걸러냄
   const scopedManagers=new Set(rows.map(r=>r.manager));
   // [v5.15] 현재 가망도가 '이관완료'로 바뀐 업체는 확인/보관 탭에서 제외(이관완료 탭으로 이동한 것으로 취급)
@@ -1529,9 +1537,7 @@ function renderCheckSection(rows){
   const renderTeamOverviewPanel=()=>{
     if(!isHqLevel) return '';
     const role=SESSION.role;
-    const teamsInScope=(role==='bm2'||role==='bm3')
-      ? TEAM_ORDER.filter(t=>t.startsWith(role==='bm2'?'BM2':'BM3'))
-      : TEAM_ORDER;
+    const teamsInScope=isBuHeadRole()?teamsOf(myScope().bu):TEAM_ORDER;
     const activeAll=CURRENT_ROWS.filter(r=>r.grade!=='이관완료');
     const allNeed=getNeedItemsFor(activeAll);
     const teamCards=teamsInScope.map(team=>{
@@ -1592,8 +1598,8 @@ function renderCheckSection(rows){
 
     const role=SESSION.role;
     const isAdmin=role==='center'||role==='관리자모드'||role==='master';
-    const isBuHead=role==='bm2'||role==='bm3';
-    const isTeamLead=['bm2_2','bm2_3','bm3_2'].includes(role);
+    const isBuHead=isBuHeadRole();
+    const isTeamLead=isTeamLeadRole();
     const allNames=Object.values(ORG_MAP).flatMap(bu=>Object.values(bu).flat());
     const filterIsAll=CURRENT_FILTER==='all';
     const filterIsBu=!!ORG_MAP[CURRENT_FILTER];
@@ -1603,7 +1609,7 @@ function renderCheckSection(rows){
     let distHtml='';
     // 관리자가 전체 보기: 본부별 + 팀별
     if(isAdmin&&filterIsAll){
-      const buRows=BU_ORDER.filter(bu=>buCount[bu]).map(bu=>`<button onclick="filterView('${bu}')" style="background:none;border:none;cursor:pointer;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:${bu==='BM2본부'?'#1565c0':'#7b1fa2'};">${bu==='BM2본부'?'🔵':'🟣'} ${bu} ${buCount[bu]}건</button>`).join('');
+      const buRows=BU_ORDER.filter(bu=>buCount[bu]).map(bu=>`<button onclick="filterView('${bu}')" style="background:none;border:none;cursor:pointer;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:${buAlt(bu)?'#7b1fa2':'#1565c0'};">${buIcon(bu)} ${bu} ${buCount[bu]}건</button>`).join('');
       const teamRows=TEAM_ORDER.filter(t=>teamCount[t]).map(t=>`<button onclick="filterView('${t}')" style="background:none;border:none;cursor:pointer;padding:2px 8px;font-size:11px;color:var(--text-sub);">${t} ${teamCount[t]}건</button>`).join('');
       distHtml=`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
         <div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:4px;">🏢 본부/팀별 체크 필요 현황</div>
@@ -1614,7 +1620,7 @@ function renderCheckSection(rows){
     // 본부장이 본부 보기: 팀별
     else if(isBuHead&&filterIsBu){
       const myBu=CURRENT_FILTER;
-      const teamRows=TEAM_ORDER.filter(t=>t.startsWith(myBu==='BM2본부'?'BM2':'BM3')&&teamCount[t]).map(t=>`<button onclick="filterView('${t}')" style="background:none;border:none;cursor:pointer;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:var(--text);">👥 ${t} ${teamCount[t]}건</button>`).join('');
+      const teamRows=teamsOf(myBu).filter(t=>teamCount[t]).map(t=>`<button onclick="filterView('${t}')" style="background:none;border:none;cursor:pointer;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:var(--text);">👥 ${t} ${teamCount[t]}건</button>`).join('');
       distHtml=teamRows?`<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">
         <div style="font-size:11px;font-weight:700;color:var(--text-sub);margin-bottom:4px;">👥 팀별 체크 필요 현황</div>
         <div style="display:flex;flex-wrap:wrap;gap:4px;">${teamRows}</div>
@@ -2062,7 +2068,7 @@ function rptSave(){try{localStorage.setItem('rptSel_'+SESSION.role,JSON.stringif
 function rptOrd(a,b){const bi=x=>{const i=BU_ORDER.indexOf(x.bu);return i<0?99:i;},ti=x=>{const i=TEAM_ORDER.indexOf(x.team);return i<0?99:i;};return bi(a)-bi(b)||ti(a)-ti(b)||String(a.manager).localeCompare(String(b.manager),'ko');}
 function rptSelRows(){const st=rptSet();if(!st.size)return[];return(CURRENT_ROWS||[]).filter(r=>st.has(rptKey(r))).sort(rptOrd);}
 function rptEsc(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');}
-function rptLastRecall(r){return r.missedRecallDate||'';}
+function rptLastRecall(r){return r.lastContact||'';}   // [v5.115] 마지막 컨택일(서버 계산)
 function rptPickRows(){const q=_rptQ.trim().toLowerCase();return(window._rptRows||CURRENT_ROWS||[]).filter(r=>(!_rptG||r.grade===_rptG)&&(!q||[r.company,r.keyword,r.manager,r.phone,r.contactPoint].some(v=>String(v||'').toLowerCase().includes(q)))).slice().sort(rptOrd);}
 function rptCnt(){const n=rptSelRows().length;const c=document.getElementById('rptTabCnt');if(c)c.textContent=n;document.querySelectorAll('.rpt-n').forEach(e=>e.textContent=n);}
 function rptToggle(k,on){const st=rptSet();on?st.add(k):st.delete(k);rptSave();rptCnt();if(_rptView==='sel')rptRender();}
@@ -2433,7 +2439,7 @@ async function loadMemberMgmtList(){
   const listEl=document.getElementById('memberMgmtList');listEl.textContent='불러오는 중...';
   try{const res=await callServer('serverGetMembers',{role:SESSION.role,token:SESSION.token});if(!res.success){listEl.textContent='오류: '+res.error;return;}mgmtTeams=res.teams||[];
   const buSel=document.getElementById('addBU');const teamSel=document.getElementById('addTeam');const role=SESSION.role;
-  if(['bm2_2','bm2_3','bm3_2'].includes(role)){const myBU=role.startsWith('bm2')?'BM2본부':'BM3본부';const myTeam=role==='bm2_2'?'BM2-2팀':role==='bm2_3'?'BM2-3팀':'BM3-2팀';buSel.innerHTML=`<option value="${myBU}">${myBU}</option>`;buSel.value=myBU;buSel.disabled=true;teamSel.innerHTML=`<option value="${myTeam}">${myTeam}</option>`;teamSel.value=myTeam;teamSel.disabled=true;}
+  if(isTeamLeadRole()){const myBU=myScope().bu;const myTeam=myScope().team;buSel.innerHTML=`<option value="${myBU}">${myBU}</option>`;buSel.value=myBU;buSel.disabled=true;teamSel.innerHTML=`<option value="${myTeam}">${myTeam}</option>`;teamSel.value=myTeam;teamSel.disabled=true;}
   else{const buList=[...new Set(mgmtTeams.map(t=>t.bu))];buSel.innerHTML='<option value="">본부 선택</option>'+buList.map(b=>`<option value="${b}">${b}</option>`).join('');buSel.disabled=false;teamSel.innerHTML='<option value="">팀 선택</option>';teamSel.disabled=false;}
   if(!res.members.length){listEl.innerHTML='<div style="color:var(--text-muted);padding:20px;text-align:center;">등록된 인원이 없습니다</div>';return;}
   const grouped={};res.members.forEach(m=>{const key=`${m.bu}__${m.team}`;if(!grouped[key])grouped[key]={bu:m.bu,team:m.team,members:[]};grouped[key].members.push(m);});
@@ -2459,24 +2465,24 @@ function getPanelFilterOptions(){
     opts.push({value:'all',label:'🏆 전체',type:'all'});
     BU_ORDER.forEach(bu=>{
       if(!ORG_MAP[bu])return;
-      opts.push({value:bu,label:(bu==='BM2본부'?'🔵 ':'🟣 ')+bu,type:'bu'});
-      TEAM_ORDER.filter(t=>t.startsWith(bu==='BM2본부'?'BM2':'BM3')).forEach(team=>{
+      opts.push({value:bu,label:buIcon(bu)+' '+bu,type:'bu'});
+      teamsOf(bu).forEach(team=>{
         if(!ORG_MAP[bu][team])return;
         opts.push({value:team,label:'👥 '+team,type:'team'});
         ORG_MAP[bu][team].forEach(name=>opts.push({value:name,label:'👤 '+name,type:'member'}));
       });
     });
-  }else if(role==='bm2'||role==='bm3'){
-    const myBU=role==='bm2'?'BM2본부':'BM3본부';
+  }else if(isBuHeadRole()){
+    const myBU=myScope().bu;
     opts.push({value:'all',label:'전체',type:'all'});
-    TEAM_ORDER.filter(t=>t.startsWith(role==='bm2'?'BM2':'BM3')).forEach(team=>{
+    teamsOf(myBU).forEach(team=>{
       if(!ORG_MAP[myBU]||!ORG_MAP[myBU][team])return;
       opts.push({value:team,label:'👥 '+team,type:'team'});
       ORG_MAP[myBU][team].forEach(name=>opts.push({value:name,label:'👤 '+name,type:'member'}));
     });
-  }else if(['bm2_2','bm2_3','bm3_2'].includes(role)){
-    const teamName=role==='bm2_2'?'BM2-2팀':role==='bm2_3'?'BM2-3팀':'BM3-2팀';
-    const bu=role.startsWith('bm2')?'BM2본부':'BM3본부';
+  }else if(isTeamLeadRole()){
+    const teamName=myScope().team;
+    const bu=myScope().bu;
     opts.push({value:'all',label:'👥 '+teamName+' 전체',type:'all'});
     (ORG_MAP[bu]?.[teamName]||[]).forEach(name=>opts.push({value:name,label:'👤 '+name,type:'member'}));
   }
@@ -2638,8 +2644,9 @@ window.addEventListener('DOMContentLoaded',function(){
 // ── 프로모션 탭 ───────────────────────────────
 let _PR=null,_PRbu=null,_PRteam=null,_PRpromo=null;
 const _BU_LBL={'통합':'🟣 통합','BM2':'🔵 BM2본부','BM3':'🔴 BM3본부'};
-function _promoGetBUs(){if(!SESSION)return['통합','BM2','BM3'];const role=SESSION.role;if(role==='center'||role==='관리자모드'||role==='master')return['통합','BM2','BM3'];if(role==='bm2')return['통합','BM2'];if(role==='bm3')return['통합','BM3'];if(role==='bm2_2'||role==='bm2_3')return['통합','BM2'];if(role==='bm3_2')return['통합','BM3'];return['통합'];}
-function _promoGetTeams(bu){if(!_PR||!_PR[bu]||Array.isArray(_PR[bu]))return[];const all=Object.keys(_PR[bu]).filter(k=>k!=='전체');if(!SESSION)return all;const role=SESSION.role;if(role==='center'||role==='관리자모드'||role==='bm2'||role==='bm3')return all;const myTeamMap={'bm2_2':'BM2-2팀','bm2_3':'BM2-3팀','bm3_2':'BM3-2팀'};const myTeam=myTeamMap[role]||'';if(myTeam)return all.filter(t=>t===myTeam);return all;}
+function _promoBuAll(){return['통합'].concat(BU_ORDER.map(b=>b.replace('본부','')));}
+function _promoGetBUs(){if(!SESSION)return _promoBuAll();const role=SESSION.role;if(role==='center'||role==='관리자모드'||role==='master')return _promoBuAll();const b=myScope().bu.replace('본부','');if(b)return['통합',b];return['통합'];}
+function _promoGetTeams(bu){if(!_PR||!_PR[bu]||Array.isArray(_PR[bu]))return[];const all=Object.keys(_PR[bu]).filter(k=>k!=='전체');if(!SESSION)return all;const role=SESSION.role;if(role==='center'||role==='관리자모드'||role==='master'||isBuHeadRole())return all;const myTeam=isTeamLeadRole()?myScope().team:'';if(myTeam)return all.filter(t=>t===myTeam);return all;}
 function initPromoTab(){const area=document.getElementById('promoInner');if(!area)return;_PR=null;_PRbu=null;_PRteam=null;_PRpromo=null;area.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';fetch('promo-registry.json?t='+Date.now()).then(r=>r.json()).then(reg=>{_PR=reg;_promoRender();}).catch(e=>{console.error('promo-registry.json 로드 실패:',e);_PR={};_promoRender();});}
 function _promoRender(){const area=document.getElementById('promoInner');if(!area)return;const vis=_promoGetBUs();if(!_PRbu||!vis.includes(_PRbu))_PRbu=vis[0];const buTabs=vis.map(bu=>{const on=bu===_PRbu;return'<button onclick="_promoBUSW(\''+bu+'\')" style="padding:10px 20px;font-size:13px;font-weight:'+(on?700:400)+';border:none;background:none;cursor:pointer;color:'+(on?'#3949ab':'var(--text-sub)')+';border-bottom:3px solid '+(on?'#3949ab':'transparent')+';">'+(_BU_LBL[bu]||bu)+'</button>';}).join('');const data=_PR&&_PR[_PRbu];const isList=Array.isArray(data);const teams=isList?[]:['전체',..._promoGetTeams(_PRbu)].filter(k=>data&&data[k]!==undefined);if(!_PRteam||!teams.includes(_PRteam))_PRteam=teams[0]||'전체';let teamTabs='';if(!isList&&teams.length>1){teamTabs='<div style="background:var(--surface2);border-bottom:1px solid var(--border);padding:4px 16px;display:flex;gap:4px;">'+teams.map(k=>{const on=k===_PRteam;return'<button onclick="_promoTeamSW(\''+k+'\')" style="padding:5px 14px;font-size:12px;font-weight:600;border:none;border-radius:20px;cursor:pointer;background:'+(on?'#3949ab':'none')+';color:'+(on?'#fff':'var(--text-sub)')+';">'+(k==='전체'?'📋 전체':k)+'</button>';}).join('')+'</div>';}const list=isList?data:(data&&data[_PRteam])||[];const ai=list.findIndex(p=>p.active);if(!_PRpromo||!list.find(p=>p.id===_PRpromo.id))_PRpromo=list[ai>=0?ai:0]||null;let roundBar='<div style="background:var(--surface);border-bottom:1px solid var(--border);padding:8px 16px;display:flex;align-items:center;gap:10px;">';if(list.length){const hasActive=list.some(p=>p.active);roundBar+='<span style="font-size:12px;color:var(--text-sub);font-weight:600;">회차 선택</span><select onchange="_promoRoundSW(this.value)" style="padding:5px 10px;border-radius:8px;font-size:12px;background:var(--surface2);border:1px solid var(--border);color:var(--text);outline:none;">';list.forEach(p=>{roundBar+=`<option value="${p.id}"${_PRpromo&&_PRpromo.id===p.id?' selected':''}>${p.active?'● ':'○ '}${p.label}</option>`;});roundBar+='</select>';if(hasActive)roundBar+='<span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:50px;background:rgba(46,125,50,.15);color:#2e7d32;border:1px solid #388e3c;">● 진행 중</span>';}else{roundBar+='<span style="font-size:12px;color:var(--text-muted);">등록된 프로모션 없음</span>';}roundBar+='</div>';area.innerHTML='<div style="border-bottom:2px solid var(--border);">'+buTabs+'</div>'+teamTabs+roundBar+'<div id="promoContent" style="min-height:400px;"></div>';if(_PRpromo)_promoLoad(_PRpromo);else{const pc=document.getElementById('promoContent');if(pc)pc.innerHTML='<div style="text-align:center;padding:60px;color:var(--text-sub);">📭 등록된 프로모션이 없습니다.</div>';}}
 function _promoBUSW(bu){_PRbu=bu;_PRteam=null;_PRpromo=null;_promoRender();}
