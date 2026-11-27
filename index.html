@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 통합DB (관리자용) v5.137</title>
+<title>미래아이엔씨 통합DB (관리자용) v5.138</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link id="nvFont" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -345,7 +345,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.137</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.138</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -2744,6 +2744,7 @@ function _promoRoundSW(id){const data=_PR&&_PR[_PRbu];const list=Array.isArray(d
 function _promoLoad(promo){const el=document.getElementById('promoContent');if(!el)return;el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';fetch(promo.file+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('파일을 불러올 수 없습니다 ('+r.status+')');return r.text();}).then(html=>{el.innerHTML='';const iframe=document.createElement('iframe');iframe.style.cssText='width:100%;border:none;display:block;min-height:200px;';iframe.scrolling='no';el.appendChild(iframe);iframe.srcdoc=html;iframe.addEventListener('load',function(){try{const body=iframe.contentDocument.body;iframe.style.height=(body.scrollHeight+40)+'px';const ro=new ResizeObserver(function(){try{iframe.style.height=(iframe.contentDocument.body.scrollHeight+40)+'px';}catch(e){}});ro.observe(body);}catch(e){iframe.style.height='800px';}});}).catch(e=>{el.innerHTML='<div style="text-align:center;padding:60px;color:#c62828;">❌ '+e.message+'</div>';});}
 </script>
 <!-- [v5.137] 프로모션 화면 제목 옆 안내 문구 제거 -->
+<!-- [v5.138] 공지 줄: 팀 홈 안 → 상단 바 아래 공통 띠(모든 화면), 색 강조(일반=연남색+왼쪽 띠, 📌고정=진남색), 여러 건이면 5초마다 다음 공지 -->
 <!-- [v5.136] 4단계: 새 리포트(신규 · 이관 · 파이프라인+컨택포인트, 기간 선택, 엑셀 받기) · 이전 화면 제거(메뉴·버튼 없앰, 예전 화면 그리기 생략으로 로딩도 가벼워짐 · 사원 계정은 사원 화면으로) · 인원 관리 새 디자인 -->
 <!-- [v5.135] 부서 프로모션 등록·관리는 공지·쿠폰 > 프로모션 탭으로 · 업무 > 프로모션은 본부 프로모션 페이지 중심(진행 중 부서 프로모션은 위에 보기 전용 카드) -->
 <!-- [v5.134] 가망건 숫자 수정(권한+브리핑·권한오픈·단기·장기만, 아래에 전체 DB·이관완료) · 3-3 부서 프로모션: 공지+이관 쿠폰 한 번에 등록 · 기간 이관 현황·당첨자 · 취소 — 사원 서버 s1.19 필요 -->
@@ -3110,6 +3111,21 @@ body.nv-on.nv-t-dark #coHist .ch-h{background:var(--sf)}
 #nvModal .bx label small{font-weight:400;color:var(--t4)}
 #nvModal .nv-all input{height:40px}
 .nv-ntc .nv-ntc-w{margin-left:8px;font-size:13px;color:var(--ac);white-space:nowrap;text-decoration:none}
+/* [v5.138] 공지 줄: 상단 바 아래 공통 띠 · 색 강조 */
+.nv-ntcg{padding:12px 28px 0;flex:0 0 auto}
+.nv-ntcg:empty{display:none}
+.nv-ntc.on{background:var(--ac-s);border:1px solid var(--ac-l);border-left:4px solid var(--ac);font-weight:500;color:var(--tx)}
+.nv-ntc.on .lb{background:var(--ac);color:#fff;font-weight:600}
+.nv-ntc.on .sc{color:var(--t3);font-weight:400}
+.nv-ntc.pin{background:var(--ac);border-color:var(--ac);color:#fff}
+.nv-ntc.pin .lb{background:rgba(255,255,255,.2);color:#fff}
+.nv-ntc.pin .sc,.nv-ntc.pin .nb{color:rgba(255,255,255,.78)}
+.nv-ntc.pin .nb:hover{background:rgba(255,255,255,.15)}
+.nv-ntc.pin .nv-ntc-w{color:#fff;text-decoration:underline}
+body.nv-t-dark .nv-ntc.on .lb{color:#0F1115}
+body.nv-t-dark .nv-ntc.pin,body.nv-t-dark .nv-ntc.pin .lb,body.nv-t-dark .nv-ntc.pin .nv-ntc-w{color:#0F1115}
+body.nv-t-dark .nv-ntc.pin .sc,body.nv-t-dark .nv-ntc.pin .nb{color:rgba(15,17,21,.7)}
+.nv-body{padding-top:16px}
 .nv-ntc.err{border-color:var(--red-l)}.nv-ntc.err .tt{color:var(--red)}.nv-ntc.err a{color:var(--ac)}
 #nvNtc:empty{display:none}
 .nv-sp{display:flex;align-items:flex-end;gap:1px;height:22px}
@@ -3229,13 +3245,13 @@ function nvBuild(){
   let el=document.getElementById('nv');if(el)return el;
   if(!document.getElementById('nvFont')){const l=document.createElement('link');l.id='nvFont';l.rel='stylesheet';l.href='https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap';document.head.appendChild(l);}
   el=document.createElement('div');el.id='nv';
-  el.innerHTML='<aside class="nv-side" id="nvSide"></aside><main class="nv-main"><header class="nv-top" id="nvTop"></header><div class="nv-body" id="nvBody"></div></main>';
+  el.innerHTML='<aside class="nv-side" id="nvSide"></aside><main class="nv-main"><header class="nv-top" id="nvTop"></header><div class="nv-ntcg" id="nvNtc"></div><div class="nv-body" id="nvBody"></div></main>';
   document.body.appendChild(el);return el;
 }
 function nvSideHtml(){
   const it=(p,label,extra)=>'<button class="nv-nav'+(NV.page===p?' on':'')+'" onclick="nvGo(\''+p+'\')" title="'+label+'">'+nvSvg(p)+'<span class="lb">'+label+'</span>'+(extra||'')+'</button>';
   const gl=t=>'<div class="nv-gl"><span>'+t+'</span></div>';
-  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.137</small></div></div>'+
+  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.138</small></div></div>'+
     '<button class="nv-col" onclick="nvSetCol(!nvCol())" title="'+(nvCol()?'메뉴 펼치기':'메뉴 접기')+'">'+(nvCol()?'»':'«')+'<span class="lb">메뉴 접기</span></button>'+
     '<div class="nv-navs">'+it('home','팀 홈')+it('db','팀원 DB')+it('fav','DB 즐겨찾기','<span class="n nv-fav-n">'+nvFavRows().length+'</span>')+it('report','리포트')+
     gl('업무')+it('mission','업무미션')+it('promo','프로모션')+it('bm','사이트 북마크')+
@@ -3300,9 +3316,9 @@ function nvRender(){
   document.getElementById('nvSide').innerHTML=nvSideHtml();
   document.getElementById('nvTop').innerHTML=nvTopHtml();
   const body=document.getElementById('nvBody');
-  nvUnmount();
+  nvUnmount();nvNoticeLoad();
   if(NV.page==='db'||NV.page==='fav'||NV.q){body.innerHTML=nvDbHtml();if(NV.page==='db')nvRegLoad();return;}
-  if(NV.page==='home'){body.innerHTML=nvHomeHtml();nvNoticeLoad();nvTalkLoad();nvRegLoad();return;}   // 팀 홈 안 변경은 nvRefreshDb()로 다시 그림
+  if(NV.page==='home'){body.innerHTML=nvHomeHtml();nvTalkLoad();nvRegLoad();return;}   // 팀 홈 안 변경은 nvRefreshDb()로 다시 그림
 
   if(NV.page==='bm'){body.innerHTML=nvBmHtml();nvBmLoad();return;}
   if(NV.page==='report'){body.innerHTML=nvRepHtml();nvRepCharts();return;}
@@ -3933,7 +3949,7 @@ function nvHomeHtml(){
   const rt=(k,l,n,dot)=>'<button class="nv-tab'+(rtab===k?' on':'')+'" onclick="NV.rtab=\''+k+'\';nvRefreshDb()">'+l+' <b>'+n+'</b>'+(dot?'<i class="nv-dot"></i>':'')+'</button>';
   const right='<section class="nv-card nv-ck"><div class="nv-sec-h nv-rtabs">'+rt('need','살펴볼 업체',need.length)+rt('talk','소통함',_nvTalk?tN+tW:'…',tN>0)+'</div>'+(rtab==='talk'?nvTalkHtml():checkIn)+'</section>';
   return '<div class="nv-wrap nv-home"><div class="nv-h1"><h1>팀 홈</h1><span style="font-size:14px;color:var(--t3)">'+(d.getMonth()+1)+'월 '+d.getDate()+'일 ('+wd+') '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+' 기준</span></div>'+
-    '<div id="nvNtc"></div>'+kpis+focus+'<div class="nv-hgrid"><div style="display:flex;flex-direction:column;gap:16px">'+board+'</div>'+right+'</div></div>';
+    kpis+focus+'<div class="nv-hgrid"><div style="display:flex;flex-direction:column;gap:16px">'+board+'</div>'+right+'</div></div>';
 }
 function nvCkDoneOpen(i){const l=NV.ckDone&&NV.ckDone[i];if(!l)return;const r=(CURRENT_ROWS||[]).find(x=>x.company===l.company&&x.manager===l.manager&&(normalizeDate(x.firstCall)||'')===l.firstCall);
   if(!r){toast('지금 데이터에 없는 업체예요 (삭제·이관 등)','err');return;}openCoHist(r.company,r.manager,null,r);}
@@ -3959,20 +3975,22 @@ function nvCkOpen(i){const it=NV.ck&&NV.ck[i];if(!it)return;const r=it.r,fc=norm
   const hqOn=hq&&it.cats.some(({cat})=>{const l=_checkLogData.find(l=>l.company===r.company&&l.manager===r.manager&&l.firstCall===fc&&l.category===cat);return l&&l.hqChecked==='Y';});
   openCoHist(r.company,r.manager,{kind:'need',item,hqOn:!!hqOn,hq,nvi:i,cats:it.cats.map(c=>c.cat)},r);}
 // 공지 줄: 사원 서버의 공지(내 범위) 중 지금 노출 중인 것
-let _nvNtc=null,_nvNtcI=0,_nvNtcAt=0;
+let _nvNtc=null,_nvNtcI=0,_nvNtcAt=0,_nvNtcHold=0;
+/* 여러 건이면 5초마다 다음 공지 (마우스 올리면 멈춤) */
+setInterval(()=>{if(_nvNtcHold||!_nvNtc||_nvNtc.length<2||!document.getElementById('nvNtc'))return;_nvNtcI++;nvNoticeDraw();},5000);
 async function nvNoticeLoad(force){
   const box=document.getElementById('nvNtc');if(!box)return;
   if(!force&&_nvNtc&&Date.now()-_nvNtcAt<60000){nvNoticeDraw();return;}
   if(!_nvNtc){NV.ntcErr='';box.innerHTML='<div class="nv-ntc"><span class="lb">공지</span><span class="tt mu" style="cursor:default">불러오는 중…</span></div>';}
   const r=await pApi('board',{});
-  if(r&&r.success){_nvNtc=(r.active||[]).filter(b=>b.kind==='공지');NV.ntcErr='';}else{_nvNtc=_nvNtc||[];NV.ntcErr=(r&&r.error)||'공지를 불러오지 못했어요';}
+  if(r&&r.success){_nvNtc=(r.active||[]).filter(b=>b.kind==='공지').sort((a,b)=>(b.pinned?1:0)-(a.pinned?1:0));/* 고정 공지 먼저 */NV.ntcErr='';}else{_nvNtc=_nvNtc||[];NV.ntcErr=(r&&r.error)||'공지를 불러오지 못했어요';}
   _nvNtcAt=Date.now();_nvNtcI=0;nvNoticeDraw();}
 function nvNoticeDraw(){const box=document.getElementById('nvNtc');if(!box)return;const L=_nvNtc||[];
   const w=' <a href="#" class="nv-ntc-w" onclick="NV.page=\'post\';NP.tab=\'ntc\';nvRender();return false">공지 쓰기 →</a>';
   if(NV.ntcErr&&!L.length){box.innerHTML='<div class="nv-ntc err"><span class="lb">공지</span><span class="tt" style="cursor:default">'+nvE(NV.ntcErr)+' <a href="#" onclick="nvNoticeLoad(true);return false">다시 시도</a></span></div>';return;}
   if(!L.length){box.innerHTML='<div class="nv-ntc"><span class="lb">공지</span><span class="tt mu" style="cursor:default">지금 노출 중인 공지가 없어요</span>'+w+'</div>';return;}
   const b=L[_nvNtcI%L.length];
-  box.innerHTML='<div class="nv-ntc"><span class="lb">공지'+(L.length>1?' '+(_nvNtcI%L.length+1)+'/'+L.length:'')+'</span><span class="tt" onclick="nvNoticeOpen()">'+(b.pinned?'📌 ':'')+nvE(b.title||'(제목 없음)')+'<span class="sc">'+nvE(b.scopeLabel||'')+(b.author?' · '+nvE(b.author):'')+'</span></span>'+(L.length>1?'<button class="nb" onclick="_nvNtcI=(_nvNtcI+L_len()-1)%L_len();nvNoticeDraw()" title="이전">‹</button><button class="nb" onclick="_nvNtcI++;nvNoticeDraw()" title="다음">›</button>':'')+w+'</div>';}
+  box.innerHTML='<div class="nv-ntc on'+(b.pinned?' pin':'')+'" onmouseenter="_nvNtcHold=1" onmouseleave="_nvNtcHold=0"><span class="lb">'+(b.pinned?'📌 고정':'📢 공지')+(L.length>1?' '+(_nvNtcI%L.length+1)+'/'+L.length:'')+'</span><span class="tt" onclick="nvNoticeOpen()">'+nvE(b.title||'(제목 없음)')+'<span class="sc">'+nvE(b.scopeLabel||'')+(b.author?' · '+nvE(b.author):'')+'</span></span>'+(L.length>1?'<button class="nb" onclick="_nvNtcI=(_nvNtcI+L_len()-1)%L_len();nvNoticeDraw()" title="이전">‹</button><button class="nb" onclick="_nvNtcI++;nvNoticeDraw()" title="다음">›</button>':'')+w+'</div>';}
 function L_len(){return (_nvNtc||[]).length||1;}
 function nvNoticeOpen(){const L=_nvNtc||[];if(!L.length)return;const b=L[_nvNtcI%L.length];
   let m=document.getElementById('nvModal');if(!m){m=document.createElement('div');m.id='nvModal';m.onclick=e=>{if(e.target===m&&_downT===m)m.style.display='none';};document.body.appendChild(m);}
