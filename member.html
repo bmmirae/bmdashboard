@@ -105,6 +105,7 @@
   [v1.17] (서버 s1.11) 저장 후 메모 확인을 느슨하게 (그 날짜에 메모가 있으면 정상)
   [v1.18] 나의 영업DB 📑 보고용: 줄마다 체크 → '보고용' 분류(이 브라우저에 사원별 저장), 보고용 칩으로 모아보기, 구글시트와 같은 열 구성 엑셀 다운로드(요약·보고 시트, 재콜 메모=셀 메모)
   [v1.19] 보고 엑셀: 제목 '가망건 보고', 작성·검토·승인 칸 삭제
+  [v1.27] 새 디자인 5-4: 업체 카드 = 머리(업체·가망도·연락처 한 줄) + 처리 버튼 고정 + 탭(히스토리·업체 정보·코멘트, 새 코멘트 있으면 코멘트 탭 먼저·빨간 점), 폭 560px · 신규등록은 칸 배치 그대로 두고 흰 카드+왼쪽 파란 띠
   [v1.26] 새 디자인 5-3 나의 영업DB: 이달의 성과 칸 낮게·배지 색, 가망도 버튼+검색줄을 카드 하나로(선택 버튼은 그 색으로 채움·보고용 오른쪽 끝), 정렬 표시는 정렬 중인 칸만, 다음 재콜 지남=빨강·오늘=파랑·이후=글자만
   [v1.25] 새 디자인 5-2 오늘 할 일: 숫자 칸 5개 낮게(놓친 재콜 추가·누르면 해당 목록으로), 놓친 재콜 맨 위(빨간 띠)·간격 초과(주황 띠), 단순재콜 처음엔 접힘, 표 비율·부재/미루기 버튼 가볍게 (예전 디자인은 그대로)
   [v1.24] 상단 바 최대 폭(1700px) 해제 → 로고가 화면 왼쪽 끝(본문과 같은 선)에서 시작, 상단 간격 축소
@@ -808,6 +809,36 @@ body.nv2 .lc-memo{color:var(--t3);font-size:12.5px;}
 body.nv2 .chip.fut{background:none;color:var(--t2);padding:0;margin:0;font-size:14px;}
 body.nv2 td .chip.plan,body.nv2 td .chip.danger{font-size:12.5px;font-weight:600;}
 body.nv2 #dbTable .sec{border-radius:12px;}
+/* [v1.27] 업체 카드: 머리 + 처리 버튼 고정 + 탭 (히스토리 · 업체 정보 · 코멘트) */
+body.nv2 .drawer{width:min(560px,100%);}
+body.nv2 .dr-h.nv{display:grid;grid-template-columns:1fr auto auto;gap:6px 10px;align-items:center;padding:16px 18px 14px;background:var(--surface);}
+body.nv2 .dr-h.nv .co{font-size:19px;font-weight:700;}
+body.nv2 .dr-h.nv .dr-g{width:auto;padding:5px 8px;font-size:14px;}
+body.nv2 .dr-x{border:0;background:none;font-size:18px;color:var(--t3);width:34px;height:34px;border-radius:8px;}body.nv2 .dr-x:hover{background:var(--hv);}
+body.nv2 .dr-meta,body.nv2 .dr-line{grid-column:1/-1;font-size:13.5px;color:var(--t3);}
+body.nv2 .dr-line{color:var(--t2);font-size:14px;display:flex;flex-wrap:wrap;align-items:center;gap:2px 0;}
+body.nv2 .dr-line a{color:var(--ac);text-decoration:none;}body.nv2 .dr-line .sp{font-style:normal;color:var(--t4);margin:0 8px;}
+body.nv2 .dr-stick{background:var(--surface);padding:0 18px 12px;border-bottom:1px solid var(--ln);}
+body.nv2 .dr-stick .dr-acts{margin:0;}body.nv2 .dr-stick .dr-act{margin:10px 0 0;padding:8px;}body.nv2 .dr-stick .dr-act .dform{gap:6px;}body.nv2 .dr-stick #dMemo{min-width:100%;}
+body.nv2 .dr-tabs{display:flex;gap:18px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--ln);}
+body.nv2 .dr-tabs button{border:0;background:none;padding:12px 2px 11px;font-size:14.5px;color:var(--t3);font-weight:500;position:relative;}
+body.nv2 .dr-tabs button.on{color:var(--ac);font-weight:700;box-shadow:inset 0 -2px 0 var(--ac);}
+body.nv2 .dr-tabs button b{font-size:12px;background:var(--ac-s);color:var(--ac);border-radius:9px;padding:0 6px;margin-left:2px;}
+body.nv2 .dr-tabs .dot{position:absolute;top:9px;right:-8px;width:7px;height:7px;border-radius:50%;background:#D0383E;}
+body.nv2 .dr-b{padding:14px 18px 24px;}
+body.nv2 .dr-b .pane{display:none;}
+body.nv2 .dr-b[data-tab=hist] .p-hist,body.nv2 .dr-b[data-tab=info] .p-info,body.nv2 .dr-b[data-tab=cmt] .p-cmt{display:block;}
+body.nv2 .p-cmt .cmt-none{display:none;}body.nv2 .dr-b.no-cmt .p-cmt .cmt-none{display:block;}
+body.nv2 .p-cmt .cmt{background:var(--surface);border-color:var(--ln);}
+body.nv2 .hi .m{background:var(--surface2);color:var(--tx);}
+body.nv2 .hflt button{border-color:var(--ln3);color:var(--t2);}body.nv2 .hflt button.on{background:var(--tx);border-color:var(--tx);color:#fff;}
+/* 신규등록: 칸 배치는 그대로, 그라데이션만 흰 카드 + 왼쪽 파란 띠로 */
+body.nv2 .sec.new-box{background:var(--surface);border:1px solid var(--ln);border-left:4px solid var(--ac);border-top-width:1px;box-shadow:none;}
+body.nv2 .sec.new-box .sec-h h3{color:var(--tx);}
+body.nv2 .sec.new-box .inp{border-color:var(--ln3);}body.nv2 .sec.new-box .inp.ro{background:var(--surface2);}
+body.nv2 .sec.new-box #nSave{background:var(--ac);box-shadow:none;}body.nv2 .sec.new-box #nSave:hover{background:var(--ac-d);}
+body.nv2 .snip-sec{border-top-color:var(--ln);}body.nv2 .snip-h{color:var(--tx);}
+@media (min-width:900px){body.nv2 #tabNew .sec.new-box{box-shadow:0 0 0 8px var(--bg);}}
 /* 글자 크게 (이름 메뉴) */
 body.nv2.nv2-big main,body.nv2.nv2-big .drawer{zoom:1.08;}
 @media (max-width:640px){body.nv2 .top-in{padding:0 14px;gap:10px;}body.nv2 .top-in .tabs{gap:14px;overflow-x:auto;flex-wrap:nowrap;width:100%;order:9;}body.nv2 .tab{padding:12px 2px;}body.nv2 main{padding:14px;}}
@@ -834,7 +865,7 @@ body.nv2.nv2-big main,body.nv2.nv2-big .drawer{zoom:1.08;}
     <div id="testBanner" class="test-banner hidden">테스트 시트에 연결되어 있음 · 실제 업무 데이터 아님</div>
     <div class="hdr"><div class="top-in">
       <div class="logo" onclick="goHome()" style="cursor:pointer" title="오늘 할 일로"><img src="data:image/png;base64,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" alt="CI"></div>
-      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.26</span></h1>
+      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.27</span></h1>
       <div class="who"><select id="hqPick" class="hbtn hidden" style="padding:5px 8px;" title="본부" onchange="pickFilter('hq',this.value)"></select><select id="teamPick" class="hbtn hidden" style="padding:5px 8px;" title="팀" onchange="pickFilter('team',this.value)"></select><select id="viewPick" class="hbtn hidden" style="padding:5px 10px;" title="볼 인원 선택" onchange="if(this.value)changeViewAs(this.value)"></select><button id="calcBtn" class="hbtn bell" onclick="openCalc(event)" title="계산기 (마크업·CPA 성과·ROAS·일예산)">🧮</button><button id="bellBtn" class="hbtn bell" onclick="toggleMenu('bell',event)" title="알림">🔔<i id="bellDot" class="sgdot hidden"></i></button><span class="um-wrap"><button id="whoName" class="user-chip" onclick="toggleMenu('user',event)"></button><div id="userMenu" class="hmenu hidden"></div></span><div id="bellMenu" class="hmenu bellm hidden"></div><button id="cmtBtn" class="hbtn hidden" onclick="openInbox()">💬 코멘트<i id="cmtDot" class="sgdot hidden"></i></button><button id="sgBtn" class="hbtn" onclick="openSg()" title="대시보드 수정·개선 건의">💡 수정건의<i id="sgDot" class="sgdot hidden"></i></button><a id="sheetLink" class="hbtn hidden" target="_blank" rel="noopener" style="text-decoration:none;" title="내 구글시트 새 창으로 열기">📄 내 구글시트</a><button class="hbtn" onclick="loadRows();loadBoard();sgCount()">새로고침</button><button class="hbtn" id="btnLogout" onclick="logout()">로그아웃</button></div>
     </div></div>
     <div class="tabs">
@@ -1927,33 +1958,42 @@ function openCard(id){
   const url=r.url?'<a href="'+esc(/^https?:/i.test(r.url)?r.url:'http://'+r.url)+'" target="_blank" rel="noopener">URL ↗</a>':'';
   const mgr=[r.advertiserManager,r.email].filter(Boolean).map(esc).join(' · ');
   const nextTxt=d.next?(d.missed?'<b class="miss-t">'+fmtD(d.next)+' 놓침</b>':'다음 '+fmtD(d.next)):'다음 재콜 없음';
-  document.getElementById('drawer').innerHTML=
-    '<div class="dr-h"><div class="co">'+esc(r.company)+'<div class="hint" style="font-weight:400;margin-top:3px;">첫콜 '+fmtD(r.firstCall)+' · 재콜 '+d.recallCnt+'회 · '+nextTxt+(ro?'':' <button class="nx-ed-b" title="재콜예정일 변경" onclick="openNextPop(\''+esc(r.id)+'\',this)">✏️ 변경</button>')+'</div></div>'+
+  const P={};
+  P.head='<div class="dr-h"><div class="co">'+esc(r.company)+'<div class="hint" style="font-weight:400;margin-top:3px;">첫콜 '+fmtD(r.firstCall)+' · 재콜 '+d.recallCnt+'회 · '+nextTxt+(ro?'':' <button class="nx-ed-b" title="재콜예정일 변경" onclick="openNextPop(\''+esc(r.id)+'\',this)">✏️ 변경</button>')+'</div></div>'+
     (ro?gradeBadge(r.grade):'<select class="inp" style="width:auto;" onchange="saveGrade(this)">'+gradeOptions(r.grade,!r.grade)+'</select>')+
-    '<button class="btn sm" onclick="closeCard()">닫기</button></div>'+
-    '<div class="dr-b">'+
-      '<div class="dr-sum">'+
+    '<button class="btn sm" onclick="closeCard()">닫기</button></div>';
+  P.sum='<div class="dr-sum">'+
         '<span class="k">직통</span><span class="v">'+tel+'</span>'+
         '<span class="k">담당자</span><span class="v">'+(mgr||'<span class="muted">-</span>')+'</span>'+
         '<span class="k">키워드</span><span class="v">'+kwHtml(r)+'</span>'+
         '<span class="k">예산</span><span class="v">'+(r.budget?esc(fmtBudget(r.budget)):'<span class="muted">-</span>')+(url?' · '+url:'')+'</span>'+
-      '</div>'+
-      (ro?'':'<div class="dr-acts"><button class="btn act-done" onclick="openDone(\''+esc(r.id)+'\',\'drAct\')">통화완료</button><button class="btn act-abs" onclick="quickAbsent(\''+esc(r.id)+'\',\'drAct\')">부재</button><button class="btn" onclick="openPost(\''+esc(r.id)+'\',\'drAct\')">미루기 ▾</button></div><div class="texp hidden dr-act" id="drAct"></div>')+
-      '<div id="cmtBox"></div>'+
-      '<div class="box"><div class="hh"><h4>📜 히스토리</h4><span class="hint" id="hSum"></span><span class="hflt"><button class="'+(CARD.hf==='all'?'on':'')+'" onclick="CARD.hf=\'all\';histRender()">전체</button><button class="'+(CARD.hf==='call'?'on':'')+'" onclick="CARD.hf=\'call\';histRender()">통화만</button></span></div><div id="hList"></div></div>'+
-      (ro?'':'<details class="box dr-memo"><summary><h4>✏️ 상세 기록 <span class="hint" style="font-weight:400">지난 날짜 기록 · 긴 메모 · 재콜일만 바꾸기</span></h4></summary>'+
+      '</div>';
+  P.acts=(ro?'':'<div class="dr-acts"><button class="btn act-done" onclick="openDone(\''+esc(r.id)+'\',\'drAct\')">통화완료</button><button class="btn act-abs" onclick="quickAbsent(\''+esc(r.id)+'\',\'drAct\')">부재</button><button class="btn" onclick="openPost(\''+esc(r.id)+'\',\'drAct\')">미루기 ▾</button></div><div class="texp hidden dr-act" id="drAct"></div>');
+  P.hist='<div class="box"><div class="hh"><h4>📜 히스토리</h4><span class="hint" id="hSum"></span><span class="hflt"><button class="'+(CARD.hf==='all'?'on':'')+'" onclick="CARD.hf=\'all\';histRender()">전체</button><button class="'+(CARD.hf==='call'?'on':'')+'" onclick="CARD.hf=\'call\';histRender()">통화만</button></span></div><div id="hList"></div></div>';
+  P.memo=(ro?'':'<details class="box dr-memo"><summary><h4>✏️ 상세 기록 <span class="hint" style="font-weight:400">지난 날짜 기록 · 긴 메모 · 재콜일만 바꾸기</span></h4></summary>'+
         '<textarea id="cMemo" class="inp" data-draft="card_'+esc(r.id)+'" placeholder="통화 내용 (비워두고 다음 재콜일만 바꿀 수도 있음)"></textarea>'+
         '<div class="dr-memo-row"><span class="hint">통화일</span><input id="cDate" class="inp" type="date" value="'+t+'" max="'+t+'" style="width:150px">'+
         '<span class="hint">다음 재콜</span><input id="cNext" class="inp" type="date" min="'+addDays(t,1)+'" onchange="syncQuick(\'c\',this.value)" style="width:150px"></div>'+
-        '<div class="dr-memo-row">'+quickDates('c','cNext')+'<button class="btn primary" id="cSave" onclick="saveRecall()" style="margin-left:auto">저장</button></div><div id="cErr" class="err"></div></details>')+
-      '<div class="box" id="infoBox"><h4>업체 정보'+(ro?'':'<button class="btn sm r" onclick="editInfo()">수정</button>')+'</h4><div class="kv">'+
+        '<div class="dr-memo-row">'+quickDates('c','cNext')+'<button class="btn primary" id="cSave" onclick="saveRecall()" style="margin-left:auto">저장</button></div><div id="cErr" class="err"></div></details>');
+  P.info='<div class="box" id="infoBox"><h4>업체 정보'+(ro?'':'<button class="btn sm r" onclick="editInfo()">수정</button>')+'</h4><div class="kv">'+
         (isTestView()?'<div class="k">광고주ID</div><div class="v">'+(r.adCustomerId?esc(r.adCustomerId)+' <button class="btn sm primary" onclick="openAdAccount(\''+esc(r.adCustomerId)+'\')">광고 계정 열기 ↗</button>':'<span class="muted">없음 · 수정에서 입력</span>')+'</div>':'')+
         '<div class="k">URL</div><div class="v">'+(r.url?'<a href="'+esc(/^https?:/i.test(r.url)?r.url:'http://'+r.url)+'" target="_blank" rel="noopener">'+esc(r.url)+'</a>':'<span class="muted">-</span>')+'</div>'+
         '<div class="k">컨택포인트</div><div class="v">'+(r.contactPoint?esc(r.contactPoint):'<span class="muted">-</span>')+'</div>'+
         '<div class="k">이메일</div><div class="v">'+(r.email?esc(r.email):'<span class="chip warn" style="margin:0">없음 · 신규P 요건</span>')+'</div>'+
         '<div class="k">시트 위치</div><div class="v muted">'+r.rowNum+'행 · '+esc(r.id)+'</div>'+
-      '</div></div>'+
-    '</div>';
+      '</div></div>';
+  if(NV2){
+    // [v1.27] 새 디자인: 머리(업체·가망도·연락처) + 처리 버튼 고정 + 탭(히스토리·업체 정보·코멘트)
+    if(S.openId!==CARD.tabFor){CARD.tabFor=id;CARD.tab=CMT.items.some(c=>c.cid===id&&c.unread)?'cmt':'hist';}
+    const line=[r.phone?'📞 '+tel:'',r.advertiserManager?esc(r.advertiserManager):'',(r.keyword||r.rank)?kwHtml(r):'',r.budget?esc(fmtBudget(r.budget)):'',url].filter(Boolean).join('<i class="sp">·</i>');
+    document.getElementById('drawer').innerHTML=
+      '<div class="dr-h nv"><div class="co">'+esc(r.company)+'</div>'+(ro?gradeBadge(r.grade):'<select class="inp dr-g" onchange="saveGrade(this)">'+gradeOptions(r.grade,!r.grade)+'</select>')+'<button class="dr-x" onclick="closeCard()" title="닫기">✕</button>'+
+        '<div class="dr-meta">첫콜 '+fmtD(r.firstCall)+' · 재콜 '+d.recallCnt+'회 · '+nextTxt+(ro?'':' <button class="nx-ed-b" title="재콜예정일 변경" onclick="openNextPop(\''+esc(r.id)+'\',this)">✏️ 변경</button>')+'</div>'+
+        '<div class="dr-line">'+(line||'<span class="muted">연락처·담당자 정보 없음</span>')+'</div></div>'+
+      (ro?'':'<div class="dr-stick">'+P.acts+'</div>')+
+      '<div class="dr-tabs" id="drTabs"></div>'+
+      '<div class="dr-b" data-tab="'+CARD.tab+'"><div class="pane p-hist">'+P.hist+P.memo+'</div><div class="pane p-info">'+P.info+'</div><div class="pane p-cmt"><div id="cmtBox"></div><div class="empty cmt-none">코멘트 없음</div></div></div>';
+  }else document.getElementById('drawer').innerHTML=P.head+'<div class="dr-b">'+P.sum+P.acts+'<div id="cmtBox"></div>'+P.hist+P.memo+P.info+'</div>';
   document.getElementById('drawerWrap').classList.remove('hidden');
   histRender();loadCardLog(r);
   cmtRender();cmtMarkRead(id);restoreDrafts(document.getElementById('drawer'));
@@ -2010,6 +2050,10 @@ function histRender(){
     return '<div class="hi gc"><span class="dot"></span><div><div class="d">'+fmtD(e.date)+(e.at&&String(e.at).length>10?' '+String(e.at).slice(11,16):'')+' <span class="g">가망도 변경</span></div><div class="gm">'+esc(e.from||'-')+' → '+esc(e.to)+(up?' <span class="perf-up">▲</span>':dn?' <span class="perf-down">▼</span>':'')+'</div></div></div>';
   }).join('')+(list.length>10?'<div class="hmore"><button class="btn sm" onclick="CARD.more=!CARD.more;histRender()">'+(CARD.more?'접기 ▲':'이전 기록 '+(list.length-10)+'건 더보기 ▼')+'</button></div>':''):'<div class="hint">'+(first?'첫콜 이후 기록 없음':'기록 없음')+'</div>');
 }
+function drTabs(){const el=document.getElementById('drTabs');if(!el)return;const id=S.openId,L=CMT.items.filter(c=>c.cid===id),un=L.some(c=>c.unread);
+  el.innerHTML=[['hist','히스토리'],['info','업체 정보'],['cmt','코멘트'+(L.length?' <b>'+L.length+'</b>':'')+(un?'<i class="dot"></i>':'')]].map(t=>'<button class="'+(CARD.tab===t[0]?'on':'')+'" onclick="drTab(\''+t[0]+'\')">'+t[1]+'</button>').join('');
+  const b=document.querySelector('#drawer .dr-b');if(b)b.classList.toggle('no-cmt',!L.length&&!(S.master||S.mgr));}
+function drTab(k){CARD.tab=k;const b=document.querySelector('#drawer .dr-b');if(b){b.dataset.tab=k;b.scrollTop=0;}drTabs();}
 function closeCard(){S.openId='';document.getElementById('drawerWrap').classList.add('hidden');}
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&S.openId)closeCard();});
 
@@ -2793,6 +2837,7 @@ const NV2=(()=>{try{return localStorage.getItem('m2_nv2')!=='0';}catch(e){return
 function nv2Apply(){if(!NV2)return;document.body.classList.add('nv2');try{if(localStorage.getItem('m2_nv2big')==='1')document.body.classList.add('nv2-big');}catch(e){}const ti=document.querySelector('.top-in'),tb=document.querySelector('.top>.tabs'),h=document.querySelector('.top-in h1');if(ti&&tb&&h)h.after(tb);}
 function nv2Set(on){try{localStorage.setItem('m2_nv2',on?'1':'0');}catch(e){}location.reload();}
 function nv2Big(){const on=document.body.classList.toggle('nv2-big');try{localStorage.setItem('m2_nv2big',on?'1':'0');}catch(e){}}
+if(NV2){const f0=cmtRender;cmtRender=function(){f0();drTabs();};}
 nv2Apply();
 // 헤더 높이 → --topH (테스트 배너·화면 폭에 따라 바뀜)
 (function(){const t=document.querySelector('.top');if(!t)return;const f=()=>document.documentElement.style.setProperty('--topH',t.offsetHeight+'px');f();try{new ResizeObserver(f).observe(t);}catch(e){window.addEventListener('resize',f);}})();
