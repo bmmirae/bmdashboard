@@ -105,6 +105,7 @@
   [v1.17] (서버 s1.11) 저장 후 메모 확인을 느슨하게 (그 날짜에 메모가 있으면 정상)
   [v1.18] 나의 영업DB 📑 보고용: 줄마다 체크 → '보고용' 분류(이 브라우저에 사원별 저장), 보고용 칩으로 모아보기, 구글시트와 같은 열 구성 엑셀 다운로드(요약·보고 시트, 재콜 메모=셀 메모)
   [v1.19] 보고 엑셀: 제목 '가망건 보고', 작성·검토·승인 칸 삭제
+  [v1.28] 새 디자인 5-5: 화면 모드(밝음·그레이·어두움, 이름 메뉴), NOTICE 줄 관리자와 같은 색(공지=연남색+띠·📌고정=진남색·이관 축하=연금색), 리포트 그래프 색, 광고주관리 그룹 탭, 창 모양 통일, 로그인 화면 새 모양
   [v1.27] 새 디자인 5-4: 업체 카드 = 머리(업체·가망도·연락처 한 줄) + 처리 버튼 고정 + 탭(히스토리·업체 정보·코멘트, 새 코멘트 있으면 코멘트 탭 먼저·빨간 점), 폭 560px · 신규등록은 칸 배치 그대로 두고 흰 카드+왼쪽 파란 띠
   [v1.26] 새 디자인 5-3 나의 영업DB: 이달의 성과 칸 낮게·배지 색, 가망도 버튼+검색줄을 카드 하나로(선택 버튼은 그 색으로 채움·보고용 오른쪽 끝), 정렬 표시는 정렬 중인 칸만, 다음 재콜 지남=빨강·오늘=파랑·이후=글자만
   [v1.25] 새 디자인 5-2 오늘 할 일: 숫자 칸 5개 낮게(놓친 재콜 추가·누르면 해당 목록으로), 놓친 재콜 맨 위(빨간 띠)·간격 초과(주황 띠), 단순재콜 처음엔 접힘, 표 비율·부재/미루기 버튼 가볍게 (예전 디자인은 그대로)
@@ -674,6 +675,219 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
 .lk{border:none;background:none;color:#888;font-size:12px;text-decoration:underline;padding:2px 4px;}
 @media (max-width:700px){.bb-dots,.bb-meta,.bb-btn:not(.m){display:none;}.bb{gap:6px;}.bm{padding:18px;}}
 </style>
+<style id="nv2Dark1">
+/* [v1.28] 어두움 모드: 기존 스타일의 고정 색 → 변수 (자동 변환) */
+body.nv2-dark .logo{background:var(--surface)}
+body.nv2-dark select.hbtn option,body.nv2-dark select.hbtn optgroup{color:hsl(230,70%,72%);background:var(--surface)}
+body.nv2-dark select.hbtn optgroup{color:hsl(234,70%,72%)}
+body.nv2-dark select.hbtn option.tgrp{color:hsl(230,70%,72%)}
+body.nv2-dark #viewPick option{color:var(--text);background:var(--surface)}
+body.nv2-dark .sec.new-box{background:var(--surface);border-color:var(--border)}
+body.nv2-dark .sec.new-box .sec-h{border-bottom-color:var(--border)}
+body.nv2-dark .sec.new-box .sec-h h3{color:hsl(234,70%,72%)}
+body.nv2-dark .sec.new-box .inp{background:var(--surface);border-color:var(--border)}
+body.nv2-dark .sec.new-box .inp.ro{background:hsla(232,60%,55%,.16)}
+body.nv2-dark .snip-sec{border-top-color:var(--border)}
+body.nv2-dark .snip-h{color:hsl(234,70%,72%)}
+body.nv2-dark .snip{background:var(--surface)}
+body.nv2-dark .snip.has{background:hsla(46,60%,55%,.16);border-color:var(--border)}
+body.nv2-dark .snip .inp:focus{background:var(--surface)}
+body.nv2-dark .tmain:hover{background:hsla(232,60%,55%,.16)}
+body.nv2-dark .tkw{color:var(--text-sub)}
+body.nv2-dark .kw-r{background:hsla(231,60%,55%,.16);color:hsl(231,70%,72%)}
+body.nv2-dark .tact .act-abs,body.nv2-dark .dr-acts .act-abs{border-color:var(--border)}
+body.nv2-dark .ext-frame{background:var(--surface)}
+body.nv2-dark .gw-mid{background:hsla(48,60%,55%,.16)}
+body.nv2-dark .gw-mid .gw-chip{background:hsla(47,60%,55%,.16);color:hsl(47,70%,72%)}
+body.nv2-dark .gw-mid .lc-ago{color:hsl(47,70%,72%)}
+body.nv2-dark .gw-high{background:hsla(28,60%,55%,.16)}
+body.nv2-dark .gw-high .gw-chip{background:hsla(29,60%,55%,.16);color:hsl(24,70%,72%)}
+body.nv2-dark .gw-high .lc-ago{color:hsl(24,70%,72%)}
+body.nv2-dark .hmenu{background:var(--surface);color:var(--text)}
+body.nv2-dark .hmenu a,body.nv2-dark .hmenu button{color:var(--text)}
+body.nv2-dark .hmenu a:hover,body.nv2-dark .hmenu button:hover{background:hsla(229,60%,55%,.16)}
+body.nv2-dark .hmenu hr{border-top-color:var(--border)}
+body.nv2-dark .hmenu .mh{color:var(--text-sub)}
+body.nv2-dark .hmenu .bi-done:hover{background:hsla(124,60%,55%,.16);color:hsl(123,70%,72%)}
+body.nv2-dark .hmenu .bi-all{border-color:var(--border);background:var(--surface);color:hsl(231,70%,72%)}
+body.nv2-dark .hmenu .bi-all:hover{background:hsla(231,60%,55%,.16)}
+body.nv2-dark .bellm .bi small{color:var(--text-sub)}
+body.nv2-dark .bellm .empty{color:var(--text-sub)}
+body.nv2-dark .tri .tlist.two .item{border-right-color:var(--border)}
+body.nv2-dark .g-단기{background:hsla(205,60%,55%,.16);color:hsl(211,70%,72%);border-color:var(--border)}
+body.nv2-dark .g-장기{background:hsla(264,60%,55%,.16);color:hsl(254,70%,72%)}
+body.nv2-dark .g-권한오픈{background:hsla(124,60%,55%,.16);color:hsl(123,70%,72%);border-color:var(--border)}
+body.nv2-dark .g-권한브리핑{background:hsla(176,60%,55%,.16);color:hsl(172,70%,72%);border-color:var(--border)}
+body.nv2-dark .g-메일전송{background:hsla(36,60%,55%,.16);color:hsl(21,70%,72%);border-color:var(--border)}
+body.nv2-dark .g-희망건{background:hsla(340,60%,55%,.16);color:hsl(333,70%,72%)}
+body.nv2-dark .g-단순재콜{background:var(--surface2);color:hsl(14,70%,72%)}
+body.nv2-dark .goal-mini{color:var(--text-sub)}
+body.nv2-dark .goal-mini .gbar{background:hsla(227,60%,55%,.16)}
+body.nv2-dark .skel{background:var(--surface)}
+body.nv2-dark .zero-line{color:hsl(123,70%,72%)}
+body.nv2-dark .gt-단순재콜 .gv{color:hsl(14,70%,72%)}
+body.nv2-dark .gtile.on.gt-단순재콜{background:var(--surface2)}
+body.nv2-dark .gt-단기 .gv{color:hsl(211,70%,72%)}
+body.nv2-dark .gt-장기 .gv{color:hsl(254,70%,72%)}
+body.nv2-dark .gt-권한오픈 .gv{color:hsl(123,70%,72%)}
+body.nv2-dark .gt-권한브리핑 .gv{color:hsl(172,70%,72%)}
+body.nv2-dark .gt-메일전송 .gv{color:hsl(21,70%,72%)}
+body.nv2-dark .gt-희망건 .gv{color:hsl(333,70%,72%)}
+body.nv2-dark .gtile.on.gt-단기{background:hsla(205,60%,55%,.16)}
+body.nv2-dark .gtile.on.gt-장기{background:hsla(264,60%,55%,.16)}
+body.nv2-dark .gtile.on.gt-권한오픈{background:hsla(124,60%,55%,.16)}
+body.nv2-dark .gtile.on.gt-권한브리핑{background:hsla(176,60%,55%,.16)}
+body.nv2-dark .gtile.on.gt-이관완료{background:var(--surface2)}
+body.nv2-dark .gtile.on.gt-메일전송{background:hsla(36,60%,55%,.16);box-shadow:none}
+body.nv2-dark .gtile.on.gt-희망건{background:hsla(340,60%,55%,.16)}
+body.nv2-dark .gt-기타{border-left-color:var(--border)}
+body.nv2-dark table.nlist .nno{color:var(--text-sub)}
+body.nv2-dark .cmt-n{background:hsla(231,60%,55%,.16);color:hsl(231,70%,72%)}
+body.nv2-dark .hflt button{border-color:var(--border);background:var(--surface);color:var(--text-sub)}
+body.nv2-dark .hi:before{background:hsla(228,60%,55%,.16)}
+body.nv2-dark .hi .m{color:var(--text);background:hsla(230,60%,55%,.16)}
+body.nv2-dark .hi.mv .c{background:var(--surface2);color:var(--text-sub)}
+body.nv2-dark .hi.mv .mvt b{color:var(--text-sub)}
+body.nv2-dark .hi.abs .c{background:hsla(36,60%,55%,.16);color:hsl(21,70%,72%)}
+body.nv2-dark .hi.nomemo .c{background:var(--surface2);color:var(--text-sub)}
+body.nv2-dark .hi.plan .dot{background:var(--surface)}
+body.nv2-dark .hi.plan .c{background:hsla(231,60%,55%,.16);color:hsl(231,70%,72%)}
+body.nv2-dark .hi.miss .dot{background:var(--surface)}
+body.nv2-dark .hi .gm{color:hsl(123,70%,72%)}
+body.nv2-dark .h-first{border-color:var(--border)}
+body.nv2-dark .h-first .hf-h .g{color:var(--text-sub)}
+body.nv2-dark .h-first .hf-m{color:hsl(278,70%,72%)}
+body.nv2-dark .dupbox{border-color:var(--border);background:hsla(46,60%,55%,.16)}
+body.nv2-dark .duph{color:hsl(39,70%,72%)}
+body.nv2-dark .dupr{border-top-color:var(--border)}
+body.nv2-dark .adm-tab{background:var(--surface)}
+body.nv2-dark .adm-gs{background:var(--surface)}
+body.nv2-dark .adm-memo-row td{background:var(--surface2)}
+body.nv2-dark .adm-memo{background:var(--surface)}
+body.nv2-dark .adm-t tr.editing{background:hsla(46,60%,55%,.16)}
+body.nv2-dark .cpf{background:hsla(228,60%,55%,.16)}
+body.nv2-dark .cpst.live{color:hsl(21,70%,72%)}
+body.nv2-dark .nx-pop{background:var(--surface)}
+body.nv2-dark .nxf .nx-none{color:hsl(39,70%,72%);border-color:var(--border);background:hsla(39,60%,55%,.16)}
+body.nv2-dark td.nx-ed:hover{background:hsla(225,60%,55%,.16)}
+body.nv2-dark .calc-pop{background:var(--surface)}
+body.nv2-dark .calc-h:hover{background:hsla(229,60%,55%,.16)}
+body.nv2-dark .calc-ib:hover{background:hsla(226,60%,55%,.16)}
+body.nv2-dark .calc-ib.on{background:hsla(36,60%,55%,.16)}
+body.nv2-dark .calc-pinned{color:hsl(21,70%,72%);background:hsla(36,60%,55%,.16)}
+body.nv2-dark .calc-pop.pinned{border-color:var(--border)}
+body.nv2-dark .calc-tabs button.on{color:hsl(234,70%,72%)}
+body.nv2-dark .calc-q button{background:var(--surface)}
+body.nv2-dark .calc-tot{background:hsla(229,60%,55%,.16)}
+body.nv2-dark .calc-tot b{color:hsl(234,70%,72%)}
+body.nv2-dark .calc-r.hi b{color:hsl(234,70%,72%)}
+body.nv2-dark .cps-t tr.on{background:hsla(228,60%,55%,.16)}
+body.nv2-dark .cps-p{color:var(--text-sub)}
+body.nv2-dark .cps-p.hi{color:hsl(123,70%,72%)}
+body.nv2-dark .cps-sub td{background:var(--surface2)}
+body.nv2-dark .perf-amt{color:hsl(124,70%,72%)}
+body.nv2-dark .perf-card{background:var(--surface)}
+body.nv2-dark .perf-first{background:hsla(205,60%,55%,.16);color:hsl(211,70%,72%)}
+body.nv2-dark .perf-chg{background:hsla(292,60%,55%,.16);color:hsl(277,70%,72%)}
+body.nv2-dark .perf-chg.up{background:hsla(124,60%,55%,.16);color:hsl(123,70%,72%)}
+body.nv2-dark .perf-chg.down{background:hsla(0,60%,55%,.16);color:hsl(0,70%,72%)}
+body.nv2-dark .ld-card{background:var(--surface);border-color:var(--border)}
+body.nv2-dark .ld-bar{background:hsla(227,60%,55%,.16)}
+body.nv2-dark .ld-q{color:hsl(230,70%,72%)}
+body.nv2-dark .ld-t{color:var(--text-sub)}
+body.nv2-dark .goal{background:var(--surface)}
+body.nv2-dark .goal .gn{color:var(--text-sub)}
+body.nv2-dark .goal .gbar{background:hsla(227,60%,55%,.16)}
+body.nv2-dark .goal.empty{color:var(--text-sub)}
+body.nv2-dark .cmt{border-color:var(--border);background:hsla(232,60%,55%,.16)}
+body.nv2-dark .cmi2{border-top-color:var(--border)}
+body.nv2-dark .cmi2 .who.r-부서장{color:hsl(231,70%,72%)}
+body.nv2-dark .cmi2 .who.r-관리자{color:hsl(277,70%,72%)}
+body.nv2-dark .cmi2 .who.r-사원{color:hsl(123,70%,72%)}
+body.nv2-dark .ib-i{border-color:var(--border)}
+body.nv2-dark .ib-i:hover{background:var(--surface2);border-color:var(--border)}
+body.nv2-dark .ib-i .o{color:hsl(231,70%,72%)}
+body.nv2-dark .ib-i .t{color:var(--text-sub)}
+body.nv2-dark .rl-box{background:var(--surface)}
+body.nv2-dark .rl-box p{color:var(--text-sub)}
+body.nv2-dark .us-t th,body.nv2-dark .us-t td{border-bottom-color:var(--border)}
+body.nv2-dark .us-t th{background:hsla(229,60%,55%,.16);color:var(--text-sub)}
+body.nv2-dark .us-t .sh{color:hsl(21,70%,72%)}
+body.nv2-dark .bb{background:var(--surface)}
+body.nv2-dark .bb.k-cele{background:var(--surface);border-color:var(--border)}
+body.nv2-dark .bb.k-pin{background:var(--surface);border-color:var(--border)}
+body.nv2-dark .kc-quote{background:hsla(292,60%,55%,.16);color:hsl(277,70%,72%)}
+body.nv2-dark .bp.quote{background:hsla(282,60%,55%,.16);border-color:var(--border)}
+body.nv2-dark .bb.k-all{background:var(--surface);border-color:var(--border)}
+body.nv2-dark .bb.k-hq{background:var(--surface);border-color:var(--border)}
+body.nv2-dark .bb.k-team{background:var(--surface);border-color:var(--border)}
+body.nv2-dark .bp.n-all{background:var(--surface2);border-color:var(--border)}
+body.nv2-dark .bp.n-hq{background:hsla(275,60%,55%,.16);border-color:var(--border)}
+body.nv2-dark .bp.n-team{background:hsla(166,60%,55%,.16);border-color:var(--border)}
+body.nv2-dark .kc-cele{color:hsl(38,70%,72%)}
+body.nv2-dark .kc-note{background:hsla(231,60%,55%,.16);color:hsl(231,70%,72%)}
+body.nv2-dark .kc-none{background:var(--surface2)}
+body.nv2-dark .bb-msg{color:var(--text-sub)}
+body.nv2-dark .bb-dots i{background:hsla(231,60%,55%,.16)}
+body.nv2-dark .bb-btn{border-color:var(--border);background:var(--surface);color:var(--text-sub)}
+body.nv2-dark .bb-btn.m{border-color:var(--border)}
+body.nv2-dark .bm{background:var(--surface)}
+body.nv2-dark .bm-tabs button{border-color:var(--border);background:var(--surface);color:var(--text-sub)}
+body.nv2-dark .bp{border-color:var(--border)}
+body.nv2-dark .bp.cele{background:hsla(48,60%,55%,.16);border-color:var(--border)}
+body.nv2-dark .bp.pin{background:hsla(234,60%,55%,.16);border-color:var(--border)}
+body.nv2-dark .bp .bt{color:var(--text-sub)}
+body.nv2-dark .cheer{border-color:var(--border);background:var(--surface);color:hsl(42,70%,72%)}
+body.nv2-dark .cheer.on{border-color:var(--border);color:hsl(40,70%,72%)}
+body.nv2-dark .cm{border-top-color:var(--border)}
+body.nv2-dark .cmi b{color:hsl(44,70%,72%)}
+body.nv2-dark .cmi .cx{color:var(--text)}
+body.nv2-dark .cmi .cd:hover{color:hsl(1,70%,72%)}
+body.nv2-dark .cm-more{color:hsl(45,70%,72%)}
+body.nv2-dark .cmf input{border-color:var(--border);background:var(--surface)}
+body.nv2-dark .cmf input:focus{border-color:var(--border)}
+body.nv2-dark .cmf button{color:hsl(40,70%,72%)}
+body.nv2-dark .cmt-btn{border-color:var(--border);background:var(--surface);color:hsl(42,70%,72%)}
+body.nv2-dark .sgi{border-color:var(--border)}
+body.nv2-dark .sgi:hover{border-color:var(--border);background:var(--surface2)}
+body.nv2-dark .sgi.unread{border-color:var(--border);background:var(--surface2)}
+body.nv2-dark .sg-s0{background:var(--surface2);color:var(--text-sub)}
+body.nv2-dark .sg-s1{background:hsla(36,60%,55%,.16);color:hsl(21,70%,72%)}
+body.nv2-dark .sg-s2{background:hsla(124,60%,55%,.16);color:hsl(123,70%,72%)}
+body.nv2-dark .sg-s3{background:hsla(292,60%,55%,.16);color:hsl(277,70%,72%)}
+body.nv2-dark .sg-cat{color:hsl(231,70%,72%);background:hsla(230,60%,55%,.16)}
+body.nv2-dark .sg-rep{color:hsl(123,70%,72%)}
+body.nv2-dark .sgd-b{background:var(--surface2);border-color:var(--border)}
+body.nv2-dark .sg-img{border-color:var(--border);background:hsla(228,60%,55%,.16)}
+body.nv2-dark .sg-img img{background:var(--surface)}
+body.nv2-dark .sg-reply{background:hsla(88,60%,55%,.16);border-color:var(--border)}
+body.nv2-dark .sg-reply-h{color:hsl(103,70%,72%)}
+body.nv2-dark .sg-wait{background:hsla(228,60%,55%,.16)}
+body.nv2-dark .sg-mf{background:hsla(228,60%,55%,.16)}
+body.nv2-dark .sg-mf .l,body.nv2-dark .sgf .l{color:var(--text-sub)}
+body.nv2-dark .sg-drop{border-color:var(--border);color:hsl(230,70%,72%);background:var(--surface2)}
+body.nv2-dark .sg-drop.over{background:hsla(231,60%,55%,.16)}
+body.nv2-dark .sg-zoom img{background:var(--surface)}
+body.nv2-dark .cele-box p{color:var(--text-sub)}
+body.nv2-dark .cele-prev{background:hsla(46,60%,55%,.16);border-color:var(--border)}
+body.nv2-dark .cf-list{border-color:var(--border)}
+body.nv2-dark .cf-row{border-bottom-color:var(--border)}
+body.nv2-dark .cf-amt .inp:disabled{background:hsla(228,60%,55%,.16)}
+body.nv2-dark .cf-est{color:var(--text-sub)}
+body.nv2-dark .cf-note{color:var(--text-sub)}
+body.nv2-dark .cf-amtbox{background:hsla(232,60%,55%,.16);border-color:var(--border)}
+body.nv2-dark .bb-band{color:hsl(45,70%,72%)}
+body.nv2-dark .cf-ask{color:hsl(45,70%,72%)}
+body.nv2-dark .cele-prev small{color:hsl(45,70%,72%)}
+body.nv2-dark .bf{background:hsla(228,60%,55%,.16)}
+body.nv2-dark .bf label.l{color:var(--text-sub)}
+body.nv2-dark .seg{border-color:var(--border)}
+body.nv2-dark .seg button{background:var(--surface);color:var(--text-sub);border-right-color:var(--border)}
+body.nv2-dark .bf .hint{background:hsla(231,60%,55%,.16)}
+body.nv2-dark .bmt th{background:hsla(231,60%,55%,.16);color:var(--text-sub)}
+body.nv2-dark .bmt td{border-top-color:var(--border)}
+body.nv2-dark .lk{color:var(--text-sub)}
+</style>
 <style id="nv2Css">
 /* [v1.23] 새 디자인(관리자 화면과 같은 규칙) — body.nv2일 때만 적용, 이름 메뉴 '예전 디자인으로'로 끄기 가능 */
 body.nv2{--ac:#0810E0;--ac-d:#0609A8;--ac-s:#EEF0FE;--ac-l:#C9CCF8;--tx:#1C1F26;--t2:#4A4F5C;--t3:#6B7080;--t4:#8A8F9C;--ln:#E6E8EC;--ln2:#EEF0F3;--ln3:#E1E4EA;--hv:#F4F5F8;--mut:#EFF1F4;
@@ -842,6 +1056,116 @@ body.nv2 .snip-sec{border-top-color:var(--ln);}body.nv2 .snip-h{color:var(--tx);
 /* 글자 크게 (이름 메뉴) */
 body.nv2.nv2-big main,body.nv2.nv2-big .drawer{zoom:1.08;}
 @media (max-width:640px){body.nv2 .top-in{padding:0 14px;gap:10px;}body.nv2 .top-in .tabs{gap:14px;overflow-x:auto;flex-wrap:nowrap;width:100%;order:9;}body.nv2 .tab{padding:12px 2px;}body.nv2 main{padding:14px;}}
+/* [v1.28] 어두움: 새 디자인 고정 색 자동 변환 */
+body.nv2.nv2-dark .test-banner{color:hsl(34,70%,72%);border-bottom-color:var(--border)}
+body.nv2.nv2-dark .g-단기{background:hsla(228,60%,55%,.16);color:hsl(232,70%,72%)}
+body.nv2.nv2-dark .g-장기{background:hsla(257,60%,55%,.16);color:hsl(255,70%,72%)}
+body.nv2.nv2-dark .g-권한오픈{background:hsla(167,60%,55%,.16);color:hsl(168,70%,72%)}
+body.nv2.nv2-dark .g-권한브리핑{background:hsla(30,60%,55%,.16);color:hsl(28,70%,72%)}
+body.nv2.nv2-dark .g-이관완료{background:hsla(141,60%,55%,.16);color:hsl(143,70%,72%)}
+body.nv2.nv2-dark .g-메일전송{background:hsla(204,60%,55%,.16);color:hsl(204,70%,72%)}
+body.nv2.nv2-dark .g-희망건{background:hsla(337,60%,55%,.16);color:hsl(337,70%,72%)}
+body.nv2.nv2-dark .gt-단기 .gv{color:hsl(232,70%,72%)}
+body.nv2.nv2-dark .gt-장기 .gv{color:hsl(255,70%,72%)}
+body.nv2.nv2-dark .gt-권한오픈 .gv{color:hsl(168,70%,72%)}
+body.nv2.nv2-dark .gt-권한브리핑 .gv{color:hsl(28,70%,72%)}
+body.nv2.nv2-dark .gt-이관완료 .gv{color:hsl(143,70%,72%)}
+body.nv2.nv2-dark .gt-메일전송 .gv{color:hsl(204,70%,72%)}
+body.nv2.nv2-dark .gt-희망건 .gv{color:hsl(337,70%,72%)}
+body.nv2.nv2-dark .gtile.on.gt-단기{background:hsla(228,60%,55%,.16)}
+body.nv2.nv2-dark .gtile.on.gt-장기{background:hsla(257,60%,55%,.16)}
+body.nv2.nv2-dark .gtile.on.gt-권한오픈{background:hsla(167,60%,55%,.16)}
+body.nv2.nv2-dark .gtile.on.gt-권한브리핑{background:hsla(30,60%,55%,.16)}
+body.nv2.nv2-dark .gtile.on.gt-이관완료{background:hsla(141,60%,55%,.16)}
+body.nv2.nv2-dark .gtile.on.gt-메일전송{background:hsla(204,60%,55%,.16)}
+body.nv2.nv2-dark .gtile.on.gt-희망건{background:hsla(337,60%,55%,.16)}
+body.nv2.nv2-dark .skel{background:var(--surface)}
+body.nv2.nv2-dark .stat.red{border-color:var(--border);background:hsla(0,60%,55%,.16)}
+body.nv2.nv2-dark .stat.red .v,body.nv2.nv2-dark .stat.red .l{color:hsl(357,70%,72%)}
+body.nv2.nv2-dark .sec.k-red .sec-h h3{color:hsl(357,70%,72%)}
+body.nv2.nv2-dark .sec.k-amb .sec-h h3{color:hsl(34,70%,72%)}
+body.nv2.nv2-dark .tact .act-abs,body.nv2.nv2-dark .dr-acts .act-abs{color:hsl(34,70%,72%) !important}
+
+/* [v1.28] 화면 모드: 그레이 · 어두움 (관리자 화면과 같은 값) */
+body.nv2.nv2-gray{--ac:#2B3270;--ac-d:#1E2452;--ac-s:#E2E3EE;--ac-l:#BCBFD8;--tx:#1D1E23;--t2:#41444C;--t3:#62656E;--t4:#878A93;--ln:#D8D8DD;--ln2:#E1E1E5;--ln3:#CDCDD4;--hv:#E5E5E9;--mut:#DCDCE1;
+  --bg:#DFDFE3;--surface:#F1F1F3;--surface2:#EAEAED;--border:#D8D8DD;--text:#1D1E23;--text-sub:#41444C;--text-muted:#62656E;--primary:#2B3270;--primary-soft:#E2E3EE;--th-bg:#EAEAED;}
+body.nv2.nv2-dark{color-scheme:dark;--ac:#8A93FF;--ac-d:#727CF5;--ac-s:rgba(138,147,255,.15);--ac-l:rgba(138,147,255,.42);--tx:#E8EAEF;--t2:#C4C8D1;--t3:#9DA2AE;--t4:#747986;--ln:#2A2E37;--ln2:#23272F;--ln3:#363B46;--hv:#1F232B;--mut:#262A33;
+  --bg:#0F1115;--surface:#171A20;--surface2:#1B1F26;--border:#2A2E37;--text:#E8EAEF;--text-sub:#C4C8D1;--text-muted:#9DA2AE;--primary:#8A93FF;--primary-soft:rgba(138,147,255,.15);--th-bg:#1B1F26;
+  --danger:#F08A8E;--danger-soft:rgba(240,138,142,.12);--warn:#E6B866;--warn-soft:rgba(230,184,102,.12);--ok:#72C996;--ok-soft:rgba(114,201,150,.13);--purple:#C9A2F0;--purple-soft:rgba(201,162,240,.14);}
+body.nv2.nv2-gray .hmenu,body.nv2.nv2-gray .bm,body.nv2.nv2-gray .rl-box,body.nv2.nv2-gray .ld-card,body.nv2.nv2-gray .nx-pop,body.nv2.nv2-gray .calc-pop{background:var(--surface);}
+/* 이름 메뉴: 화면 모드 고르기 */
+body.nv2 .thm{display:flex;gap:2px;margin:2px 10px 6px;padding:3px;border-radius:9px;background:var(--mut);}
+body.nv2 .hmenu .thm button{flex:1;justify-content:center;padding:6px 0;font-size:13px;color:var(--t2);border-radius:7px;}
+body.nv2 .hmenu .thm button.on{background:var(--surface);color:var(--tx);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12);}
+/* [v1.28] NOTICE 줄: 관리자와 같은 색 규칙 — 공지=연남색+왼쪽 띠, 📌고정=진남색, 이관 축하=연금색, 한마디=흰색 */
+body.nv2 .bb{background:var(--surface);border:1px solid var(--ln);}
+body.nv2 .bb.k-all,body.nv2 .bb.k-hq,body.nv2 .bb.k-team{background:var(--ac-s);border-color:var(--ac-l);border-left:4px solid var(--ac);}
+body.nv2 .bb.k-all .t b,body.nv2 .bb.k-hq .t b,body.nv2 .bb.k-team .t b{color:var(--tx);}
+body.nv2 .bb.pin{background:var(--ac);border-color:var(--ac);}
+body.nv2 .bb.pin .t,body.nv2 .bb.pin .t b,body.nv2 .bb.pin .bb-meta,body.nv2 .bb.pin .bb-tag,body.nv2 .bb.pin .bb-nav,body.nv2 .bb.pin .bb-nav button{color:#fff!important;}
+body.nv2 .bb.pin .bb-chip{background:rgba(255,255,255,.2)!important;color:#fff!important;}
+body.nv2 .bb.k-cele{background:#FFF6DC;border-color:#F3DDB6;border-left:4px solid #C98A1B;}
+body.nv2 .bb-chip.kc-all,body.nv2 .bb-chip.kc-hq,body.nv2 .bb-chip.kc-team,body.nv2 .bb-chip.kc-pin{background:var(--ac);color:#fff;}
+body.nv2 .bb-chip.kc-cele{background:#F3DDB6;color:#6B4206;}
+body.nv2 .bb-chip.kc-quote{background:var(--mut);color:var(--t2);}
+body.nv2 .bb-btn{border-color:var(--ln3);background:var(--surface);color:var(--t2);border-radius:8px;}
+body.nv2.nv2-dark .bb.pin .t,body.nv2.nv2-dark .bb.pin .t b,body.nv2.nv2-dark .bb.pin .bb-meta,body.nv2.nv2-dark .bb.pin .bb-tag,body.nv2.nv2-dark .bb.pin .bb-nav,body.nv2.nv2-dark .bb.pin .bb-nav button{color:#0F1115!important;}
+body.nv2.nv2-dark .bb.pin .bb-chip{color:#0F1115!important;background:rgba(15,17,21,.15)!important;}
+body.nv2.nv2-dark .bb.k-cele{background:rgba(230,184,102,.12);border-color:rgba(230,184,102,.38);}
+body.nv2.nv2-dark .bb-chip.kc-all,body.nv2.nv2-dark .bb-chip.kc-hq,body.nv2.nv2-dark .bb-chip.kc-team,body.nv2.nv2-dark .bb-chip.kc-pin{color:#0F1115;}
+body.nv2.nv2-dark .bb-chip.kc-cele{background:rgba(230,184,102,.25);color:#E6B866;}
+/* 창(NOTICE 전체 보기·수정건의·확인 창) */
+body.nv2 .bm{background:var(--surface);border-radius:14px;box-shadow:0 20px 50px rgba(20,24,40,.22);}
+body.nv2 .bm h3{font-size:18px;font-weight:700;}
+body.nv2 .bm-dim,body.nv2 .rl,body.nv2 .dim{background:rgba(20,24,40,.42);}
+body.nv2 .rl-box{background:var(--surface);}
+/* 리포트: 그래프 글자·선 색 = 변수 (어두움 대응) */
+body.nv2 .rchart line{stroke:var(--ln);}body.nv2 .rchart text{fill:var(--t3);}
+body.nv2 .rchart text[font-weight="700"]{fill:var(--t2);}
+/* 광고주관리: 그룹 탭 = 가망도 버튼 모양 */
+body.nv2 .adm-tab{background:var(--surface);border:1px solid var(--ln3);border-radius:8px;padding:6px 12px;font-size:13px;color:var(--t2);font-weight:500;}
+body.nv2 .adm-tab.on{background:var(--gc,var(--tx));border-color:var(--gc,var(--tx));color:#fff;}
+body.nv2 .adm-gs,body.nv2 .adm-memo{background:var(--surface);border-color:var(--ln3);color:var(--tx);}
+body.nv2 .adm-memo-row td{background:var(--surface2);}
+/* 로그인: 관리자 새 로그인과 같은 모양 (왼쪽 파란 소개 · 오른쪽 입력) */
+body.nv2 .login-wrap{background:var(--bg);padding:0;align-items:stretch;}
+body.nv2 .lg2-brand{flex:1 1 55%;position:relative;overflow:hidden;background:#0810E0;color:#fff;padding:44px 56px;display:flex;flex-direction:column;}
+body.nv2 .lg2-brand::before{content:'';position:absolute;right:-180px;top:-160px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.16),rgba(255,255,255,0) 70%);}
+body.nv2 .lg2-brand::after{content:'';position:absolute;left:-120px;bottom:-220px;width:520px;height:520px;border-radius:50%;border:70px solid rgba(255,255,255,.06);}
+body.nv2 .lg2-top{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:500;position:relative;z-index:1;}
+body.nv2 .lg2-ci{width:36px;height:36px;border-radius:10px;background:#fff;display:inline-flex;align-items:center;justify-content:center;}body.nv2 .lg2-ci img{width:26px;height:26px;object-fit:contain;}
+body.nv2 .lg2-copy{margin:auto 0;position:relative;z-index:1;max-width:520px;}
+body.nv2 .lg2-tag{display:inline-block;font-size:13px;font-weight:500;padding:5px 12px;border-radius:20px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);}
+body.nv2 .lg2-copy h1{font-size:44px;line-height:1.22;font-weight:700;margin:18px 0 16px;letter-spacing:-.5px;color:#fff;}
+body.nv2 .lg2-copy p{font-size:16px;line-height:1.7;color:rgba(255,255,255,.82);margin:0 0 28px;}
+body.nv2 .lg2-copy ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px;}
+body.nv2 .lg2-copy li{font-size:14px;color:rgba(255,255,255,.82);padding:12px 16px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);}
+body.nv2 .lg2-copy li b{color:#fff;font-weight:500;margin-right:10px;}
+body.nv2 .lg2-foot{font-size:13px;color:rgba(255,255,255,.7);position:relative;z-index:1;}body.nv2 .lg2-foot a{color:#fff;text-decoration:underline;text-underline-offset:3px;}
+body.nv2 .lg2-form{flex:1 1 45%;display:flex;align-items:center;justify-content:center;padding:40px;}
+body.nv2 .login{max-width:380px;border:1px solid var(--ln);border-radius:16px;padding:36px 32px;box-shadow:0 10px 30px rgba(20,24,40,.06);background:var(--surface);}
+body.nv2 .login .lg-ci{display:none;}body.nv2 .lg-head{text-align:left;}body.nv2 .login h2{color:var(--tx);font-size:24px!important;}
+body.nv2 .login .inp{height:44px;border-radius:10px;}
+body.nv2 .login .btn.primary{height:46px;border-radius:10px;font-size:15px;}
+@media (max-width:900px){body.nv2 .lg2-brand{display:none;}}
+/* 어두움 보정 (자동 변환으로 못 잡는 것) */
+body.nv2.nv2-dark .gtile.on .gv,body.nv2.nv2-dark .gtile.on .gl{color:#0F1115!important;}
+body.nv2.nv2-dark .gtile.on.gt-all{background:var(--tx);}
+body.nv2.nv2-dark .gtile.on.gt-단기{background:hsl(232,70%,72%);}body.nv2.nv2-dark .gtile.on.gt-장기{background:hsl(255,70%,72%);}body.nv2.nv2-dark .gtile.on.gt-권한오픈{background:hsl(168,55%,62%);}body.nv2.nv2-dark .gtile.on.gt-권한브리핑{background:hsl(28,75%,66%);}body.nv2.nv2-dark .gtile.on.gt-이관완료{background:hsl(143,50%,62%);}body.nv2.nv2-dark .gtile.on.gt-메일전송{background:hsl(204,70%,68%);}body.nv2.nv2-dark .gtile.on.gt-희망건{background:hsl(337,70%,72%);}body.nv2.nv2-dark .gtile.on.gt-단순재콜,body.nv2.nv2-dark .gtile.on.gt-기타{background:var(--t2);}
+body.nv2.nv2-dark .gtile.on{border-color:transparent;}
+body.nv2.nv2-dark .g-이관완료{background:rgba(114,201,150,.14);color:#72C996;}
+body.nv2.nv2-dark .tab.tab-new,body.nv2.nv2-dark .btn.primary,body.nv2.nv2-dark .tact .act-done,body.nv2.nv2-dark .dr-acts .act-done,body.nv2.nv2-dark .fchip.on,body.nv2.nv2-dark .user-chip .av,body.nv2.nv2-dark .hflt button.on,body.nv2.nv2-dark .adm-tab.on,body.nv2.nv2-dark .sec.new-box #nSave{color:#0F1115;}
+body.nv2.nv2-dark .tab.tab-new .plus{background:rgba(15,17,21,.18);}
+body.nv2.nv2-dark .tab .cnt{color:#fff;}
+body.nv2.nv2-dark .logo{background:#fff;}
+body.nv2.nv2-dark .ld{background:rgba(15,17,21,.72);}
+body.nv2.nv2-dark .hmenu{box-shadow:0 16px 40px rgba(0,0,0,.5);}
+body.nv2.nv2-dark [style*="color:#555"]{color:var(--t2)!important;}body.nv2.nv2-dark [style*="color:#c62828"]{color:var(--danger)!important;}body.nv2.nv2-dark [style*="background:#fff;"]{background:var(--surface)!important;}
+body.nv2.nv2-dark .rchart rect.hit:hover{fill:rgba(138,147,255,.08);}
+body.nv2.nv2-dark .stat .v[style*="var(--ok)"]{color:var(--ok)!important;}
+body.nv2.nv2-dark .sec.k-red{border-left-color:#F08A8E;}body.nv2.nv2-dark .sec.k-amb{border-left-color:#E6B866;}
+body.nv2.nv2-dark .bb.k-gold{background:rgba(230,184,102,.14);border-color:rgba(230,184,102,.5);box-shadow:none;}
+body.nv2.nv2-dark .ext-frame{background:#fff;}
 </style>
 </head>
 <body>
@@ -865,7 +1189,7 @@ body.nv2.nv2-big main,body.nv2.nv2-big .drawer{zoom:1.08;}
     <div id="testBanner" class="test-banner hidden">테스트 시트에 연결되어 있음 · 실제 업무 데이터 아님</div>
     <div class="hdr"><div class="top-in">
       <div class="logo" onclick="goHome()" style="cursor:pointer" title="오늘 할 일로"><img src="data:image/png;base64,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" alt="CI"></div>
-      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.27</span></h1>
+      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.28</span></h1>
       <div class="who"><select id="hqPick" class="hbtn hidden" style="padding:5px 8px;" title="본부" onchange="pickFilter('hq',this.value)"></select><select id="teamPick" class="hbtn hidden" style="padding:5px 8px;" title="팀" onchange="pickFilter('team',this.value)"></select><select id="viewPick" class="hbtn hidden" style="padding:5px 10px;" title="볼 인원 선택" onchange="if(this.value)changeViewAs(this.value)"></select><button id="calcBtn" class="hbtn bell" onclick="openCalc(event)" title="계산기 (마크업·CPA 성과·ROAS·일예산)">🧮</button><button id="bellBtn" class="hbtn bell" onclick="toggleMenu('bell',event)" title="알림">🔔<i id="bellDot" class="sgdot hidden"></i></button><span class="um-wrap"><button id="whoName" class="user-chip" onclick="toggleMenu('user',event)"></button><div id="userMenu" class="hmenu hidden"></div></span><div id="bellMenu" class="hmenu bellm hidden"></div><button id="cmtBtn" class="hbtn hidden" onclick="openInbox()">💬 코멘트<i id="cmtDot" class="sgdot hidden"></i></button><button id="sgBtn" class="hbtn" onclick="openSg()" title="대시보드 수정·개선 건의">💡 수정건의<i id="sgDot" class="sgdot hidden"></i></button><a id="sheetLink" class="hbtn hidden" target="_blank" rel="noopener" style="text-decoration:none;" title="내 구글시트 새 창으로 열기">📄 내 구글시트</a><button class="hbtn" onclick="loadRows();loadBoard();sgCount()">새로고침</button><button class="hbtn" id="btnLogout" onclick="logout()">로그아웃</button></div>
     </div></div>
     <div class="tabs">
@@ -2211,7 +2535,7 @@ function bbRender(noAnim){
   vp.appendChild(n);
   if(anim){void n.offsetWidth;n.classList.remove('in');}
   const c=it?bbChip(it):['소식 없음','kc-none'];chip.textContent=c[0];chip.className='bb-chip '+c[1];
-  bb.className='bb'+(it&&it.kind==='쿠폰live'?' k-gold':it&&(it.kind==='이관'||it.kind==='쿠폰')?' k-cele':it&&it.kind==='공지'?' k-'+ntcScope(it):'');cpTick();
+  bb.className='bb'+(it&&it.kind==='쿠폰live'?' k-gold':it&&(it.kind==='이관'||it.kind==='쿠폰')?' k-cele':it&&it.kind==='공지'?' k-'+ntcScope(it)+(it.pinned?' pin':''):'');cpTick();
   document.getElementById('bbNav').style.visibility=BB.items.length>1?'visible':'hidden';
   document.getElementById('bbDots').innerHTML=BB.items.length<=10?BB.items.map((x,j)=>'<i class="'+(j===BB.i?'on':'')+'"></i>').join(''):'<span>'+(BB.i+1)+'/'+BB.items.length+'</span>';
 }
@@ -2824,7 +3148,7 @@ function toggleMenu(k,e){
       '<button onclick="closeMenus();openSg()">💡 수정건의'+((S.master?SG.open:SG.unread)?'<span class="n">'+(S.master?SG.open:SG.unread)+'</span>':'')+'</button>'+
       (S.mgr?'':'<button onclick="closeMenus();goalEdit()">🎯 오늘 목표 설정 <span class="muted" style="margin-left:auto;font-size:12px">'+(S.goal?S.goal+'건':'미설정')+'</span></button>')+
       (S.mgr?'':'<button onclick="closeMenus();admMgrEditAny()">🔑 네이버 관리계정 번호</button>')+
-      '<hr>'+(NV2?'<button onclick="closeMenus();nv2Big()">🔠 글자 크게 <span class="muted" style="margin-left:auto;font-size:12px">'+(document.body.classList.contains('nv2-big')?'켜짐':'꺼짐')+'</span></button>':'')+'<button onclick="nv2Set('+(NV2?0:1)+')">'+(NV2?'↺ 예전 디자인으로':'✨ 새 디자인으로')+'</button>'+
+      '<hr>'+(NV2?'<div class="mh">화면 모드</div><div class="thm">'+[['light','밝음'],['gray','그레이'],['dark','어두움']].map(t=>'<button class="'+(nv2Theme()===t[0]?'on':'')+'" onclick="event.stopPropagation();nv2Theme(\''+t[0]+'\');this.parentNode.querySelectorAll(\'button\').forEach(b=>b.classList.toggle(\'on\',b===this))">'+t[1]+'</button>').join('')+'</div>':'')+(NV2?'<button onclick="closeMenus();nv2Big()">🔠 글자 크게 <span class="muted" style="margin-left:auto;font-size:12px">'+(document.body.classList.contains('nv2-big')?'켜짐':'꺼짐')+'</span></button>':'')+'<button onclick="nv2Set('+(NV2?0:1)+')">'+(NV2?'↺ 예전 디자인으로':'✨ 새 디자인으로')+'</button>'+
       (AUTO_LOGIN?'':'<hr><button onclick="closeMenus();logout()">↩ 로그아웃</button>');
   }else renderBellMenu(m);
   m.classList.remove('hidden');
@@ -2834,7 +3158,15 @@ async function admMgrEditAny(){if(!ADM.loaded){const r=await api('adList',{});if
 function goHome(){try{closeCard();closeMenus();}catch(e){}switchTab('today');window.scrollTo({top:0,behavior:'smooth'});}
 /* [v1.23] 새 디자인 켜기: body.nv2 + 탭을 상단 바 한 줄로 이동 · 끄면 예전 화면 그대로 */
 const NV2=(()=>{try{return localStorage.getItem('m2_nv2')!=='0';}catch(e){return true;}})();
-function nv2Apply(){if(!NV2)return;document.body.classList.add('nv2');try{if(localStorage.getItem('m2_nv2big')==='1')document.body.classList.add('nv2-big');}catch(e){}const ti=document.querySelector('.top-in'),tb=document.querySelector('.top>.tabs'),h=document.querySelector('.top-in h1');if(ti&&tb&&h)h.after(tb);}
+function nv2Apply(){if(!NV2)return;document.body.classList.add('nv2');nv2Theme(nv2Theme());
+  Object.assign(RPT_COLORS,{new:'#3B4BDB',recall:'#E07B39',transfer:'#22A06B'});
+  /* 로그인 화면: 왼쪽 소개 + 오른쪽 입력 */
+  const lw=document.getElementById('loginView'),lb=lw&&lw.querySelector('.login');
+  if(lb&&!lw.querySelector('.lg2-brand')){lw.insertAdjacentHTML('afterbegin','<section class="lg2-brand"><div class="lg2-top"><span class="lg2-ci"><img src="/ci_logo/CI-png%ED%8C%8C%EC%9D%BC.png" alt="미래아이엔씨" onerror="this.style.display=\'none\'"></span><span>미래아이엔씨</span></div><div class="lg2-copy"><span class="lg2-tag">사원용</span><h1>미래아이엔씨<br>통합DB</h1><p>오늘 걸 재콜을 챙기고, 내 영업DB를 관리하고,<br>부서장과 코멘트로 소통하는 화면이에요.</p><ul><li><b>오늘 할 일</b>놓친 재콜 · 오늘 재콜 · 통화 기록을 한 번에</li><li><b>나의 영업DB</b>가망도별로 보고, 검색하고, 바로 기록</li><li><b>리포트</b>신규 · 재콜 · 이관 흐름을 주·월별로</li></ul></div><div class="lg2-foot">부서장은 <a href="/">관리자용 통합DB</a>로 로그인하세요</div></section>');
+    const f=document.createElement('section');f.className='lg2-form';lb.parentNode.insertBefore(f,lb);f.appendChild(lb);}try{if(localStorage.getItem('m2_nv2big')==='1')document.body.classList.add('nv2-big');}catch(e){}const ti=document.querySelector('.top-in'),tb=document.querySelector('.top>.tabs'),h=document.querySelector('.top-in h1');if(ti&&tb&&h)h.after(tb);}
+/* 화면 모드: light · gray · dark (이 PC에 기억) */
+function nv2Theme(k){if(k===undefined){try{return localStorage.getItem('m2_theme')||'light';}catch(e){return 'light';}}
+  try{localStorage.setItem('m2_theme',k);}catch(e){}document.body.classList.toggle('nv2-gray',k==='gray');document.body.classList.toggle('nv2-dark',k==='dark');}
 function nv2Set(on){try{localStorage.setItem('m2_nv2',on?'1':'0');}catch(e){}location.reload();}
 function nv2Big(){const on=document.body.classList.toggle('nv2-big');try{localStorage.setItem('m2_nv2big',on?'1':'0');}catch(e){}}
 if(NV2){const f0=cmtRender;cmtRender=function(){f0();drTabs();};}
