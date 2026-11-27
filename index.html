@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 통합DB (관리자용) v5.128</title>
+<title>미래아이엔씨 통합DB (관리자용) v5.129</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link id="nvFont" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -295,6 +295,18 @@ tr:hover td{background:var(--surface2);}
     </section>
   </div>
 </div>
+<style>
+#reauthBox{position:fixed;inset:0;z-index:3000;background:rgba(20,22,30,.45);display:flex;align-items:center;justify-content:center;font-family:'Noto Sans KR','Pretendard',sans-serif}
+#reauthBox .ra-bx{width:380px;max-width:92vw;background:#fff;border-radius:16px;padding:26px 26px 20px;box-shadow:0 20px 50px rgba(0,0,0,.25);color:#1C1F26}
+#reauthBox h3{margin:0 0 6px;font-size:19px}#reauthBox p{margin:0 0 16px;font-size:14px;color:#6B7080;line-height:1.5}
+#reauthBox input[type=password]{width:100%;height:44px;border:1px solid #E1E4EA;border-radius:10px;padding:0 14px;font-size:15px;box-sizing:border-box}
+#reauthBox input[type=password]:focus{outline:0;border-color:#0810E0;box-shadow:0 0 0 3px #EEF0FE}
+#reauthBox .ra-k{display:flex;align-items:center;gap:7px;font-size:13px;color:#4A4F5C;margin:12px 0 0}
+#reauthBox .ra-e{color:#B42D33;font-size:13px;min-height:18px;margin-top:8px}
+#reauthBox .ra-f{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+#reauthBox button{height:40px;padding:0 16px;border-radius:10px;font-size:14px;cursor:pointer;border:1px solid #E1E4EA;background:#fff;color:#4A4F5C}
+#reauthBox .ra-ok{background:#0810E0;border-color:#0810E0;color:#fff;font-weight:500}
+</style>
 <!-- 인원 관리 모달 -->
 <div id="memberMgmtModal" style="display:none;position:fixed;inset:0;background:var(--overlay-bg);z-index:500;align-items:center;justify-content:center;">
   <div style="background:var(--surface);border-radius:16px;padding:24px;width:100%;max-width:680px;max-height:85vh;overflow-y:auto;margin:20px;box-shadow:0 20px 60px rgba(0,0,0,.3);">
@@ -333,7 +345,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.128</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.129</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -477,8 +489,8 @@ function callServer(fnName, params, _retry){
   const url = API_URL+'?action='+encodeURIComponent(fnName)+'&params='+encodeURIComponent(JSON.stringify(params||{}));
   return fetch(url).then(r=>r.json()).then(res=>typeof res==='string'?JSON.parse(res):res).then(async res=>{
     // [v5.112] 세션(1시간) 만료 → 로그인 유지 중이면 새 세션 받아서 한 번 다시 시도
-    if(!_retry&&res&&res.success===false&&/세션이 만료|인증 정보가 없/.test(res.error||'')&&params&&params.token&&rtkGet()){
-      if(await resumeLogin())return callServer(fnName,Object.assign({},params,{token:SESSION.token}),true);
+    if(!_retry&&res&&res.success===false&&/세션이 만료|인증 정보가 없/.test(res.error||'')&&params&&params.token&&SESSION){
+      if((rtkGet()&&await resumeLogin())||await reauthPrompt())return callServer(fnName,Object.assign({},params,{token:SESSION.token}),true);   // [v5.129] 유지 로그인 → 안 되면 비밀번호 창
     }
     return res;
   }).catch(e=>({success:false,error:e.message}));
@@ -486,6 +498,30 @@ function callServer(fnName, params, _retry){
 // [v5.112] 로그인 유지: rtk(서버 발급, 30일·쓸 때마다 연장)만 이 브라우저에 저장 — 비밀번호는 저장 안 함
 function rtkGet(){try{return JSON.parse(localStorage.getItem('bm_rtk')||'null');}catch(e){return null;}}
 let _resumeP=null;
+// [v5.129] 세션 만료 시 비밀번호만 다시 넣는 창 (여러 요청이 동시에 만료돼도 창은 하나, 끝나면 모두 이어서 진행)
+let _reauthP=null;
+function reauthPrompt(){
+  if(_reauthP)return _reauthP;if(!SESSION)return Promise.resolve(false);
+  _reauthP=new Promise(resolve=>{
+    const ri=SESSION.roleInfo||{},w=document.createElement('div');w.id='reauthBox';
+    w.innerHTML='<div class="ra-bx"><h3>로그인 시간이 지났어요</h3><p>'+chEsc((ri.name||'')+' '+(ri.title||''))+' · 비밀번호를 다시 넣으면 하던 작업을 그대로 이어서 해요</p>'+
+      '<input type="password" id="raPw" placeholder="비밀번호" autocomplete="current-password"><label class="ra-k"><input type="checkbox" id="raKeep"> 로그인 유지 (30일 · 이 PC에서만)</label><div class="ra-e" id="raErr"></div>'+
+      '<div class="ra-f"><button class="ra-o" id="raOut">로그아웃</button><button class="ra-ok" id="raOk">다시 로그인</button></div></div>';
+    document.body.appendChild(w);const pw=w.querySelector('#raPw');setTimeout(()=>pw.focus(),50);
+    const done=v=>{w.remove();_reauthP=null;resolve(v);};
+    const go=async()=>{const b=w.querySelector('#raOk');if(!pw.value){pw.focus();return;}b.disabled=true;b.textContent='확인 중…';
+      const keep=w.querySelector('#raKeep').checked;
+      const res=await fetch(API_URL+'?action=serverAuth&params='+encodeURIComponent(JSON.stringify({role:SESSION.role,password:pw.value,remember:keep}))).then(r=>r.json()).then(x=>typeof x==='string'?JSON.parse(x):x).catch(e=>({success:false,error:'연결 오류: '+e.message}));
+      if(!res||!res.success){w.querySelector('#raErr').textContent=(res&&res.error)||'비밀번호를 확인하세요';b.disabled=false;b.textContent='다시 로그인';pw.select();return;}
+      if(res.rtk)localStorage.setItem('bm_rtk',JSON.stringify({role:res.role,rtk:res.rtk}));
+      SESSION=Object.assign({},SESSION,{token:res.token,roleInfo:res.roleInfo||SESSION.roleInfo,scope:res.scope||SESSION.scope});
+      try{sessionStorage.setItem('dash_session',JSON.stringify(SESSION));sessionStorage.removeItem('psess');}catch(e){}
+      if(typeof PSESS!=='undefined')PSESS=null;
+      toast('다시 로그인됐어요');done(true);};
+    w.querySelector('#raOk').onclick=go;pw.onkeydown=e=>{if(e.key==='Enter')go();};
+    w.querySelector('#raOut').onclick=()=>{done(false);doLogout();};
+  });
+  return _reauthP;}
 function resumeLogin(){
   if(_resumeP)return _resumeP;
   const k=rtkGet();if(!k)return Promise.resolve(false);
@@ -2705,6 +2741,7 @@ function _promoTeamSW(team){_PRteam=team;_PRpromo=null;_promoRender();}
 function _promoRoundSW(id){const data=_PR&&_PR[_PRbu];const list=Array.isArray(data)?data:(data&&_PRteam?data[_PRteam]:[]);const p=(list||[]).find(x=>x.id===id);if(p){_PRpromo=p;_promoLoad(p);}}
 function _promoLoad(promo){const el=document.getElementById('promoContent');if(!el)return;el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';fetch(promo.file+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('파일을 불러올 수 없습니다 ('+r.status+')');return r.text();}).then(html=>{el.innerHTML='';const iframe=document.createElement('iframe');iframe.style.cssText='width:100%;border:none;display:block;min-height:200px;';iframe.scrolling='no';el.appendChild(iframe);iframe.srcdoc=html;iframe.addEventListener('load',function(){try{const body=iframe.contentDocument.body;iframe.style.height=(body.scrollHeight+40)+'px';const ro=new ResizeObserver(function(){try{iframe.style.height=(iframe.contentDocument.body.scrollHeight+40)+'px';}catch(e){}});ro.observe(body);}catch(e){iframe.style.height='800px';}});}).catch(e=>{el.innerHTML='<div style="text-align:center;padding:60px;color:#c62828;">❌ '+e.message+'</div>';});}
 </script>
+<!-- [v5.129] 세션 만료 처리: 로그인 유지가 없거나 실패하면 비밀번호만 넣는 창으로 그 자리에서 다시 로그인 → 하던 요청 이어서 (서버 v5.34는 쓰는 동안 자동 연장) · 북마크·공지쿠폰 불러오기 실패를 기억하지 않고 다시 시도 -->
 <!-- [v5.128] 신규등록 시간대: 팀원 보드 '등록 시간대' 미니 막대 · 팀원 DB '마지막 활동' 눌러 시간대 그래프(오늘 vs 최근 7일 평균) · 마지막 활동에 사용기록 반영·항상 시각 표시 · 공지 줄 항상 보이게(없음·오류 안내) — 사원 서버 s1.17 필요 -->
 <!-- [v5.127] + 사이트 북마크: 카드 그리드(썸네일/아이콘 보기 선택) · 폴더 탭 · 끌어서 순서 · 계정별 서버 저장(code2 v5.33) -->
 <!-- [v5.127] 메뉴 재구성(업무·관리 묶음, 명함·인원 관리 화면 안으로) · 메뉴 접기 · 로고 누르면 팀 홈 · 상단 오른쪽 내 정보 메뉴(화면 모드·글자·이전 화면·로그아웃) · 데이터 기준 시각 · 화면 모드 밝음/그레이/어두움 · 간격 통일 -->
@@ -3153,7 +3190,7 @@ function nvBuild(){
 function nvSideHtml(){
   const it=(p,label,extra)=>'<button class="nv-nav'+(NV.page===p?' on':'')+'" onclick="nvGo(\''+p+'\')" title="'+label+'">'+nvSvg(p)+'<span class="lb">'+label+'</span>'+(extra||'')+'</button>';
   const gl=t=>'<div class="nv-gl"><span>'+t+'</span></div>';
-  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.128</small></div></div>'+
+  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.129</small></div></div>'+
     '<div class="nv-navs">'+it('home','팀 홈')+it('db','팀원 DB')+it('fav','DB 즐겨찾기','<span class="n nv-fav-n">'+nvFavRows().length+'</span>')+it('bm','사이트 북마크')+
     gl('업무')+it('report','리포트','<span class="soon">이전 화면</span>')+it('mission','업무미션')+
     gl('관리')+it('post','공지·쿠폰')+it('promo','프로모션')+it('card','명함 관리')+it('mem','인원 관리')+'</div>'+
@@ -3429,13 +3466,13 @@ function nvBmView(){return localStorage.getItem('bm_bmview')==='icon'?'icon':'th
 function nvBmHost(u){try{return new URL(u).hostname.replace(/^www\./,'');}catch(e){return u;}}
 function nvBmHue(h){let x=0;for(const c of h)x=(x*31+c.charCodeAt(0))%360;return x;}
 async function nvBmLoad(force){if(BMK.items&&!force)return;const r=await callServer('serverBmGet',{role:SESSION.role,token:SESSION.token});
-  BMK.items=(r&&r.success)?r.items||[]:[];BMK.err=(r&&r.success)?'':((r&&r.error)||'불러오지 못함');if(NV.page==='bm'){const b=document.getElementById('nvBody');if(b)b.innerHTML=nvBmHtml();}}
+  if(r&&r.success){BMK.items=r.items||[];BMK.err='';}else{BMK.items=null;BMK.err=(r&&r.error)||'불러오지 못함';}   /* 실패하면 다음에 다시 불러옴 */if(NV.page==='bm'){const b=document.getElementById('nvBody');if(b)b.innerHTML=nvBmHtml();}}
 function nvBmHtml(){
   const v=nvBmView(),L=BMK.items;
   const folders=L?[...new Set(L.map(x=>x.folder).filter(Boolean))]:[];if(BMK.folder&&!folders.includes(BMK.folder))BMK.folder='';
   const tab=(f,l,n)=>'<button class="nv-tab'+(BMK.folder===f?' on':'')+'" onclick="BMK.folder=\''+nvE(f).replace(/'/g,"\\'")+'\';nvBmRedraw()">'+nvE(l)+' <b>'+n+'</b></button>';
   const head='<div class="nv-h1"><h1>사이트 북마크</h1><span class="nv-sub">자주 가는 사이트 · 나만 보여요</span><span style="margin-left:auto;display:flex;gap:8px;align-items:center"><span class="nv-seg2"><button class="'+(v==='thumb'?'on':'')+'" onclick="localStorage.setItem(\'bm_bmview\',\'thumb\');nvBmRedraw()">썸네일</button><button class="'+(v==='icon'?'on':'')+'" onclick="localStorage.setItem(\'bm_bmview\',\'icon\');nvBmRedraw()">아이콘</button></span><button class="nv-btn p" style="height:38px;padding:0 16px;font-size:15px" onclick="nvBmEdit()">+ 사이트 추가</button></span></div>';
-  if(!L)return '<div class="nv-wrap">'+head+'<div class="nv-empty">불러오는 중…</div></div>';
+  if(!L)return '<div class="nv-wrap">'+head+(BMK.err?'<div class="nv-empty" style="color:var(--red)">'+nvE(BMK.err)+' · <a href="#" onclick="BMK.err=\'\';nvBmRedraw();nvBmLoad(true);return false">다시 시도</a></div>':'<div class="nv-empty">불러오는 중…</div>')+'</div>';
   const tabs=folders.length?'<div class="nv-gtabs">'+tab('','전체',L.length)+folders.map(f=>tab(f,f,L.filter(x=>x.folder===f).length)).join('')+'</div>':'';
   const list=L.filter(x=>!BMK.folder||x.folder===BMK.folder);
   const card=x=>{const h=nvBmHost(x.url),hue=nvBmHue(h),fav='https://www.google.com/s2/favicons?sz=64&domain='+encodeURIComponent(h);
@@ -3475,6 +3512,7 @@ const NP_CPT=[['drop','🎲 랜덤 등장 선착순'],['fixed','⏰ 정시 선�
 const NP_HINT={drop:'시간대 안 무작위 시각에 화면에 뜸 (정확한 시각은 등장 후 공개) · 먼저 누른 사람 순',fixed:'시작 시각 정각에 화면에 뜸 · 먼저 누른 사람 순 (공지로 미리 예고하면 좋음)',raffle:'시작~끝 동안 화면에 떠 있고 [응모]만 받음 · 끝나는 순간 응모자 중 무작위 추첨',txfirst:'화면에 안 뜸 · 기간 안에 이관이 확정된 순서대로 지급 (이관 감지 시각 기준, 취소되면 다음 사람에게)',txdraw:'화면에 안 뜸 · 끝 시각에 기간 안 확정 이관자 중 자동 추첨 (이관 건수만큼 추첨권)'};
 const NP_ICONS=['☕','🧋','🍰','🍩','🍔','🍕','🍗','🍦','🎁','🎫','💰'];
 async function nvPostLoad(force){
+  if(NP.board&&NP.board.err)NP.board=null;if(NP.cps&&NP.cps.err)NP.cps=null;   // 실패는 기억하지 않음
   if(NP.tab==='ntc'){if(NP.board&&!force)return;const r=await pApi('board',{manage:1});NP.board=(r&&r.success)?r:{err:(r&&r.error)||'불러오지 못함'};}
   else{if(NP.cps&&!force)return;const [r,b]=await Promise.all([pApi('couponList',{}),NP.board?null:pApi('board',{manage:1})]);NP.cps=(r&&r.success)?r:{err:(r&&r.error)||'불러오지 못함'};if(b&&b.success)NP.board=b;}
   if(NV.page==='post'){const el=document.getElementById('nvBody');if(el)el.innerHTML=nvPostHtml();}}
