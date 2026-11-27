@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>미래아이엔씨 통합DB (관리자용) v5.134</title>
+<title>미래아이엔씨 통합DB (관리자용) v5.135</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link id="nvFont" rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -345,7 +345,7 @@ tr:hover td{background:var(--surface2);}
         <img src="ci_logo/CI-png파일.png" alt="CI" style="width:26px;height:26px;object-fit:contain;">
       </div>
       <div>
-        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.134</span></h1>
+        <h1 style="margin:0;">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.75;font-weight:500;">관리자용</span> <span style="font-size:12px;opacity:.6;font-weight:400;">v5.135</span></h1>
         <div class="scope" id="headerScope">-</div>
       </div>
     </div>
@@ -2741,6 +2741,7 @@ function _promoTeamSW(team){_PRteam=team;_PRpromo=null;_promoRender();}
 function _promoRoundSW(id){const data=_PR&&_PR[_PRbu];const list=Array.isArray(data)?data:(data&&_PRteam?data[_PRteam]:[]);const p=(list||[]).find(x=>x.id===id);if(p){_PRpromo=p;_promoLoad(p);}}
 function _promoLoad(promo){const el=document.getElementById('promoContent');if(!el)return;el.innerHTML='<div style="text-align:center;padding:40px;color:var(--text-sub);"><div style="width:28px;height:28px;border:3px solid var(--border);border-top-color:#3949ab;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px;"></div>불러오는 중...</div>';fetch(promo.file+'?t='+Date.now()).then(r=>{if(!r.ok)throw new Error('파일을 불러올 수 없습니다 ('+r.status+')');return r.text();}).then(html=>{el.innerHTML='';const iframe=document.createElement('iframe');iframe.style.cssText='width:100%;border:none;display:block;min-height:200px;';iframe.scrolling='no';el.appendChild(iframe);iframe.srcdoc=html;iframe.addEventListener('load',function(){try{const body=iframe.contentDocument.body;iframe.style.height=(body.scrollHeight+40)+'px';const ro=new ResizeObserver(function(){try{iframe.style.height=(iframe.contentDocument.body.scrollHeight+40)+'px';}catch(e){}});ro.observe(body);}catch(e){iframe.style.height='800px';}});}).catch(e=>{el.innerHTML='<div style="text-align:center;padding:60px;color:#c62828;">❌ '+e.message+'</div>';});}
 </script>
+<!-- [v5.135] 부서 프로모션 등록·관리는 공지·쿠폰 > 프로모션 탭으로 · 업무 > 프로모션은 본부 프로모션 페이지 중심(진행 중 부서 프로모션은 위에 보기 전용 카드) -->
 <!-- [v5.134] 가망건 숫자 수정(권한+브리핑·권한오픈·단기·장기만, 아래에 전체 DB·이관완료) · 3-3 부서 프로모션: 공지+이관 쿠폰 한 번에 등록 · 기간 이관 현황·당첨자 · 취소 — 사원 서버 s1.19 필요 -->
 <!-- [v5.133] 시간대 그래프에 재콜 추가: [신규등록 | 재콜 | 전체] 전환 (사원 화면에서 기록한 통화완료·부재·미루기) — 사원 서버 s1.18 필요 -->
 <!-- [v5.132] 팀 홈 오른쪽 고정 칸 = [살펴볼 업체 · 소통함] 탭 (새 답글 있으면 소통함 먼저) · 왼쪽은 팀원 보드만 -->
@@ -3138,6 +3139,9 @@ body.nv-on.nv-t-dark #coHist .ch-h{background:var(--sf)}
 .nv-rtabs .nv-tab{font-size:15px;height:36px;padding:0 14px;position:relative}
 .nv-dot{position:absolute;top:6px;right:5px;width:7px;height:7px;border-radius:4px;background:#D0383E}
 .nv-tsub{align-items:center;flex-wrap:nowrap;gap:2px}.nv-tsub .nv-tab{height:30px;font-size:13px;padding:0 9px;white-space:nowrap}.nv-tsub .r{margin-left:auto;display:flex;align-items:center;gap:6px}
+.pm-v{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px;padding:14px 16px}
+.pm-c{border:1px solid var(--ln);border-radius:10px;padding:12px 14px;background:var(--sf2)}
+.pm-c .t{font-size:15px}.pm-c .t b{font-weight:500}.pm-c .s{font-size:13px;color:var(--t3);margin-top:4px}
 .pm-b{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:13px}
 .pm-b .lb{font-weight:500;color:var(--t3);margin-right:2px}
 .pm-b>span:not(.lb){padding:2px 9px;border-radius:12px;background:var(--mut);color:var(--t2)}
@@ -3211,7 +3215,7 @@ function nvBuild(){
 function nvSideHtml(){
   const it=(p,label,extra)=>'<button class="nv-nav'+(NV.page===p?' on':'')+'" onclick="nvGo(\''+p+'\')" title="'+label+'">'+nvSvg(p)+'<span class="lb">'+label+'</span>'+(extra||'')+'</button>';
   const gl=t=>'<div class="nv-gl"><span>'+t+'</span></div>';
-  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.134</small></div></div>'+
+  return '<div class="nv-brand" onclick="nvHome()" title="팀 홈으로"><img src="ci_logo/CI-png파일.png" alt=""><div class="lb"><b>미래아이엔씨 통합DB</b><small>관리자용 · v5.135</small></div></div>'+
     '<button class="nv-col" onclick="nvSetCol(!nvCol())" title="'+(nvCol()?'메뉴 펼치기':'메뉴 접기')+'">'+(nvCol()?'»':'«')+'<span class="lb">메뉴 접기</span></button>'+
     '<div class="nv-navs">'+it('home','팀 홈')+it('db','팀원 DB')+it('fav','DB 즐겨찾기','<span class="n nv-fav-n">'+nvFavRows().length+'</span>')+it('report','리포트','<span class="soon">이전 화면</span>')+
     gl('업무')+it('mission','업무미션')+it('promo','프로모션')+it('bm','사이트 북마크')+
@@ -3289,7 +3293,7 @@ function nvRender(){
     const md=document.getElementById('memberMgmtModal'),inner=md&&md.firstElementChild;if(inner){nvMount(inner);document.getElementById('nvMemSlot').appendChild(inner);}
     openMemberMgmt();if(md)md.style.display='none';return;}
   if(NV.page==='mission'||NV.page==='promo'){
-    body.innerHTML='<div class="nv-wrap"><div class="nv-h1"><h1>'+(NV.page==='mission'?'업무미션':'프로모션')+'</h1>'+(NV.page==='promo'?'<span class="nv-sub">부서 프로모션 = 공지 + 이관 쿠폰을 한 번에 · 사원 화면 프로모션 탭과 공지 줄에 보여요</span>':'')+'</div>'+(NV.page==='promo'?'<div id="nvPromo">'+nvPromoHtml()+'</div><div class="nv-h1" style="margin-top:8px"><h2 style="margin:0;font-size:17px">본부 프로모션 페이지</h2></div>':'')+'<div id="nvSlot"></div></div>';
+    body.innerHTML='<div class="nv-wrap"><div class="nv-h1"><h1>'+(NV.page==='mission'?'업무미션':'프로모션')+'</h1>'+(NV.page==='promo'?'<span class="nv-sub">본부 프로모션 페이지 · 부서 프로모션 등록은 관리 › 공지·쿠폰 › 프로모션</span>':'')+'</div>'+(NV.page==='promo'?'<div id="nvPromoV"></div>':'')+'<div id="nvSlot"></div></div>';
     if(NV.page==='promo')nvPromoLoad();
     const el=nvMount(NV.page==='mission'?'missionInner':'promoInner');if(el)document.getElementById('nvSlot').appendChild(el);
     if(NV.page==='mission')openMissionTab();else if(!window._promoReady){initPromoTab();window._promoReady=true;}
@@ -3534,7 +3538,12 @@ async function nvBmDrop(e){e.preventDefault();const to=e.currentTarget.dataset.i
 const PM={list:null,err:'',type:'txfirst'};
 async function nvPromoLoad(force){if(PM.list&&!force){nvPromoDraw();return;}if(!NP.board){const b=await pApi('board',{manage:1});if(b&&b.success)NP.board=b;}
   const r=await pApi('promoList',{});if(r&&r.success){PM.list=r.list||[];PM.err='';}else{PM.list=null;PM.err=(r&&r.error)||'불러오지 못함';}nvPromoDraw();}
-function nvPromoDraw(){const el=document.getElementById('nvPromo');if(el)el.innerHTML=nvPromoHtml();}
+function nvPromoDraw(){const el=document.getElementById('nvPromo');if(el)el.innerHTML=nvPromoHtml();const v=document.getElementById('nvPromoV');if(v)v.innerHTML=nvPromoView();}
+// 업무 > 프로모션 위쪽: 진행 중·예정 부서 프로모션 (보기 전용)
+function nvPromoView(){const L=(PM.list||[]).filter(p=>p.state==='진행 중'||p.state==='예정');if(!L.length)return '';const md=x=>String(x||'').slice(5,10).replace('-','/');
+  return '<section class="nv-card" style="margin-bottom:4px"><div class="nv-sec-h"><h2>진행 중인 부서 프로모션</h2><span>'+L.length+'건</span><a class="r nv-ntc-w" href="#" onclick="NV.page=\'post\';NP.tab=\'pm\';nvRender();return false">관리하기 →</a></div><div class="pm-v">'+
+    L.map(p=>{const c=p.coupon;return '<div class="pm-c"><div class="t"><span class="nv-st '+(p.state==='진행 중'?'ok':'bl')+'">'+nvE(p.state)+'</span> <b>'+nvE(p.title)+'</b></div><div class="s">'+nvE(p.scopeLabel)+' · '+md(p.start)+' ~ '+md(tsPrevDay(p.end))+' · '+nvE(c.icon)+' '+nvE(c.item)+' × '+c.qty+' · '+nvE(c.typeLabel)+'</div>'+
+      '<div class="pm-b"><span class="lb">이관 현황</span>'+(p.board.length?p.board.slice(0,8).map(x=>'<span>'+nvE(x.name)+' <b>'+x.n+'</b></span>').join(''):'<span class="mu">아직 없음</span>')+'</div>'+(p.winners.length?'<div class="pm-b"><span class="lb">🎉 당첨</span>'+p.winners.map(w=>'<span>'+nvE(w.name)+'</span>').join('')+'</div>':'')+'</div>';}).join('')+'</div></section>';}
 function nvPromoHtml(){
   const t=PM.type,d=nvToday(),wk=(()=>{const x=new Date();x.setDate(x.getDate()+6);return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');})();
   const canPost=NP.board&&(NP.board.postScopes||[]).length;
@@ -3581,6 +3590,7 @@ const NP_HINT={drop:'시간대 안 무작위 시각에 화면에 뜸 (정확한 
 const NP_ICONS=['☕','🧋','🍰','🍩','🍔','🍕','🍗','🍦','🎁','🎫','💰'];
 async function nvPostLoad(force){
   if(NP.board&&NP.board.err)NP.board=null;if(NP.cps&&NP.cps.err)NP.cps=null;   // 실패는 기억하지 않음
+  if(NP.tab==='pm'){nvPromoLoad(force);return;}
   if(NP.tab==='ntc'){if(NP.board&&!force)return;const r=await pApi('board',{manage:1});NP.board=(r&&r.success)?r:{err:(r&&r.error)||'불러오지 못함'};}
   else{if(NP.cps&&!force)return;const [r,b]=await Promise.all([pApi('couponList',{}),NP.board?null:pApi('board',{manage:1})]);NP.cps=(r&&r.success)?r:{err:(r&&r.error)||'불러오지 못함'};if(b&&b.success)NP.board=b;}
   if(NV.page==='post'){const el=document.getElementById('nvBody');if(el)el.innerHTML=nvPostHtml();}}
@@ -3588,8 +3598,8 @@ function nvPostTab(t){NP.tab=t;const el=document.getElementById('nvBody');el.inn
 function nvScopeOpts(sel){const L=(NP.board&&NP.board.postScopes)||[];return L.map(x=>'<option value="'+nvE(x[0])+'"'+(x[0]===sel?' selected':'')+'>'+nvE(x[1])+'</option>').join('');}
 function nvPostHtml(){
   const tab=(k,l)=>'<button class="nv-tab'+(NP.tab===k?' on':'')+'" onclick="nvPostTab(\''+k+'\')">'+l+'</button>';
-  const head='<div class="nv-h1"><h1>공지·쿠폰</h1><div class="nv-gtabs" style="padding:4px;border-radius:10px">'+tab('ntc','📢 공지')+tab('cp','🎁 쿠폰')+'</div><span style="font-size:14px;color:var(--t3)">사원 화면 상단 공지 줄 · 쿠폰으로 보여요 · 대상은 내 권한 범위 안에서만</span></div>';
-  return '<div class="nv-wrap">'+head+(NP.tab==='ntc'?nvNtcPage():nvCpPage())+'</div>';}
+  const head='<div class="nv-h1"><h1>공지·쿠폰</h1><div class="nv-gtabs" style="padding:4px;border-radius:10px">'+tab('ntc','📢 공지')+tab('cp','🎁 쿠폰')+tab('pm','🎉 프로모션')+'</div><span style="font-size:14px;color:var(--t3)">사원 화면 상단 공지 줄 · 쿠폰으로 보여요 · 대상은 내 권한 범위 안에서만</span></div>';
+  return '<div class="nv-wrap">'+head+(NP.tab==='ntc'?nvNtcPage():NP.tab==='pm'?'<div id="nvPromo">'+nvPromoHtml()+'</div>':nvCpPage())+'</div>';}
 // ── 공지 ──
 function nvNtcPage(){
   const B=NP.board;if(!B)return '<div class="nv-empty">불러오는 중…</div>';if(B.err)return '<div class="nv-empty" style="color:var(--red)">'+nvE(B.err)+'</div>';
