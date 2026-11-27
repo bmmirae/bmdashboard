@@ -36,6 +36,7 @@
   [v4.2] 태그 표시 개수 2개 → 3개로 확대
   [v4.3] 태그 3개 이상일 때 줄바꿈되던 것을 한 줄 유지로 변경 — 로고 쪽 여백까지 침범
   [v4.5] 이 페이지 전용 로그인 화면(명함관리 계정 · 로그인 유지 30일 · 로그아웃) — 관리자 대시보드 💳로 열면 지금처럼 바로 열림 (code2 v5.28 필요)
+  [v4.6] 디자인을 관리자 통합DB 새 화면에 맞춤(Noto Sans KR · 흰 카드 · 파란 포인트 · 입력칸 높이) · 화면 모드(밝음/그레이/어두움) 따라감 · 관리자 화면 안에 들어가면 상단 줄 숨김
   [v4.4] 보안: 주소(?role=&token=)로 로그인 정보 받던 것 중단 — 관리자 대시보드 창의 로그인(세션)만 사용, 없으면 '로그인 유지'로 복원, 둘 다 없으면 열리지 않음 · 주소에 남은 값은 지움하며 로고 아래로 깔리도록 처리(줄바꿈보다 한 줄 유지 우선)
 -->
 <html lang="ko">
@@ -43,7 +44,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"></script>
-<title>💳 전자명함 관리 v4.5</title>
+<title>전자명함 관리 v4.6</title>
 <style>
 :root{
   --brand-blue:#0B13E7; --brand-red:#F00303;
@@ -129,15 +130,52 @@ textarea{resize:vertical;min-height:60px;}
 .form-outer-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;align-items:start;}
 @media(max-width:900px){.form-outer-grid{grid-template-columns:1fr;}}
 </style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<script>/* [v4.6] 관리자 화면의 화면 모드를 따라감 · 관리자 화면 안(iframe)이면 상단 줄 숨김 */(function(){try{var t=localStorage.getItem('bm_nvtheme');if(t==='gray'||t==='dark')document.documentElement.classList.add('t-'+t);if(window.self!==window.top)document.documentElement.classList.add('embed');}catch(e){}})();</script>
+<style id="nvTheme">
+/* [v4.6] 관리자 통합DB 새 디자인 */
+:root{--brand-blue:#0810E0;--bg:#F6F7F9;--surface:#fff;--surface2:#FAFBFC;--border:#E6E8EC;--text:#1C1F26;--text-sub:#4A4F5C;--text-muted:#8A8F9C;--ac-s:#EEF0FE;--ln3:#E1E4EA}
+html.t-gray{--brand-blue:#2B3270;--bg:#DFDFE3;--surface:#F1F1F3;--surface2:#EAEAED;--border:#D8D8DD;--text:#1D1E23;--text-sub:#41444C;--text-muted:#878A93;--ac-s:#E2E3EE;--ln3:#CDCDD4}
+html.t-dark{color-scheme:dark;--brand-blue:#8A93FF;--bg:#0F1115;--surface:#171A20;--surface2:#1B1F26;--border:#2A2E37;--text:#E8EAEF;--text-sub:#C4C8D1;--text-muted:#747986;--ac-s:rgba(138,147,255,.15);--ln3:#363B46}
+body{font-family:'Noto Sans KR','Pretendard',system-ui,sans-serif;font-size:14px;background:var(--bg);color:var(--text)}
+.header{background:var(--surface);color:var(--text);border-bottom:1px solid var(--border);padding:14px 28px}
+.header h1{font-size:19px}.header .sub{color:var(--text-muted);opacity:1;font-size:13px}
+html.embed .header{display:none}
+html.embed .container{max-width:none;padding:0}
+html.embed body{background:transparent}
+.container{max-width:1400px;padding:24px 28px}
+.card{background:var(--surface);border:1px solid var(--border);box-shadow:none;border-radius:12px;padding:20px}
+.bu-title{color:var(--text);font-size:15px;font-weight:700;border-bottom:1px solid var(--border);padding-bottom:8px}
+.team-title{font-size:13px;color:var(--text-muted);font-weight:500}
+.emp-list{gap:12px}
+.emp-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.emp-item:hover{border-color:var(--brand-blue)}
+.emp-item.active{background:var(--ac-s);border-color:var(--brand-blue)}
+.emp-item .name{font-size:15px;font-weight:500}.emp-item .meta{font-size:12px;color:var(--text-muted)}
+.emp-item .status{font-size:11px;font-weight:500;border-radius:6px}
+.add-btn{height:36px;padding:0 14px;border-radius:8px;border:1px dashed var(--brand-blue);background:var(--surface);color:var(--brand-blue);font-size:13px;font-weight:500}
+label{font-size:13px;font-weight:500;color:var(--text-sub)}
+input[type=text],input[type=url],input[type=email],input[type=tel],select{height:38px;padding:0 12px}
+input[type=text],input[type=url],input[type=email],input[type=tel],textarea,select{border:1px solid var(--ln3);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px}
+textarea{padding:10px 12px;line-height:1.6}
+input:focus,textarea:focus,select:focus{outline:0;border-color:var(--brand-blue);box-shadow:0 0 0 3px var(--ac-s)}
+.btn{height:38px;padding:0 16px;border-radius:8px;font-size:14px;font-weight:500}
+.btn-primary{background:var(--brand-blue);color:#fff}html.t-dark .btn-primary{color:#0F1115}
+.btn-ghost{background:var(--surface);color:var(--text-sub);border:1px solid var(--ln3)}
+.btn-danger{background:var(--surface);color:#B42D33;border:1px solid #F1C9CB}
+.empty-msg{color:var(--text-muted)}
+.toast{border-radius:10px;font-size:14px}
+html.t-dark .status-active{background:rgba(114,201,150,.13);color:#72C996}html.t-dark .status-inactive{background:#262A33;color:#9DA2AE}
+</style>
 </head>
 <body>
 
 <div class="header">
   <div>
-    <h1>💳 전자명함 관리 <span style="font-size:12px;opacity:.7;font-weight:400;">v4.5</span></h1>
+    <h1>전자명함 관리 <span style="font-size:12px;opacity:.6;font-weight:400;">v4.6</span></h1>
     <div class="sub" id="scopeInfo">-</div>
   </div>
-  <button class="btn btn-ghost" onclick="window.close()" style="background:rgba(255,255,255,.15);color:#fff;border:none;">닫기</button>
+  <button class="btn btn-ghost" onclick="window.close()">닫기</button>
 </div>
 
 <div class="container">
