@@ -105,6 +105,7 @@
   [v1.17] (서버 s1.11) 저장 후 메모 확인을 느슨하게 (그 날짜에 메모가 있으면 정상)
   [v1.18] 나의 영업DB 📑 보고용: 줄마다 체크 → '보고용' 분류(이 브라우저에 사원별 저장), 보고용 칩으로 모아보기, 구글시트와 같은 열 구성 엑셀 다운로드(요약·보고 시트, 재콜 메모=셀 메모)
   [v1.19] 보고 엑셀: 제목 '가망건 보고', 작성·검토·승인 칸 삭제
+  [v1.21] (서버 s1.15) 업체 코멘트: 부서장이 '완료'로 닫은 대화에 ✓ 완료 표시 (새 글이 오면 자동으로 사라짐) · APP_VER는 그대로(다시 로그인 안 시키려고)
   [v1.20] (서버 s1.13) 🔔 알림: 줄마다 ✓ 읽음 처리 + '모두 읽음' — 카드를 못 여는(삭제된) 업체 알림도 정리 가능
 -->
 <html lang="ko">
@@ -116,7 +117,7 @@
 if(/github\.io$|member-dashboard-dn6\.pages\.dev$/i.test(h)){var o={},n=0;try{for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(/^m2/.test(k)&&k!=='m2_api'&&k!=='m2_rtk'){o[k]=localStorage.getItem(k);n++;}}}catch(e){}
   location.replace(NEW+location.search+(n?'#m2mig='+encodeURIComponent(JSON.stringify(o)):location.hash));return;}
 if(location.hash.indexOf('#m2mig=')===0){try{var d=JSON.parse(decodeURIComponent(location.hash.slice(7)));for(var k in d)if(localStorage.getItem(k)===null)localStorage.setItem(k,d[k]);}catch(e){}try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}}})();</script>
-<title>미래아이엔씨 통합DB v1.20</title>
+<title>미래아이엔씨 통합DB v1.21</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Nanum+Gothic:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#f0f2f5;--surface:#fff;--surface2:#f5f7ff;--border:#e8eaf6;--text:#333;--text-sub:#4b5260;--text-muted:#6b7280;--header-bg:linear-gradient(135deg,#0B13E7,#080ead);--primary:#3949ab;--primary-soft:#e8eaf6;--th-bg:#e8eaf6;--danger:#c62828;--danger-soft:#fdecec;--warn:#e65100;--warn-soft:#fff3e8;--ok:#2e7d32;--ok-soft:#e9f5ea;--purple:#6a1b9a;--purple-soft:#f3e5f5;}
@@ -689,7 +690,7 @@ td.nx-ed{cursor:pointer;}td.nx-ed:hover{background:#eef2ff;box-shadow:inset 0 0 
     <div id="testBanner" class="test-banner hidden">테스트 시트에 연결되어 있음 · 실제 업무 데이터 아님</div>
     <div class="hdr"><div class="top-in">
       <div class="logo" onclick="goHome()" style="cursor:pointer" title="오늘 할 일로"><img src="data:image/png;base64,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" alt="CI"></div>
-      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.20</span></h1>
+      <h1 onclick="goHome()" style="cursor:pointer" title="오늘 할 일로">미래아이엔씨 통합DB <span style="font-size:12px;opacity:.6;font-weight:400;">v1.21</span></h1>
       <div class="who"><select id="hqPick" class="hbtn hidden" style="padding:5px 8px;" title="본부" onchange="pickFilter('hq',this.value)"></select><select id="teamPick" class="hbtn hidden" style="padding:5px 8px;" title="팀" onchange="pickFilter('team',this.value)"></select><select id="viewPick" class="hbtn hidden" style="padding:5px 10px;" title="볼 인원 선택" onchange="if(this.value)changeViewAs(this.value)"></select><button id="calcBtn" class="hbtn bell" onclick="openCalc(event)" title="계산기 (마크업·CPA 성과·ROAS·일예산)">🧮</button><button id="bellBtn" class="hbtn bell" onclick="toggleMenu('bell',event)" title="알림">🔔<i id="bellDot" class="sgdot hidden"></i></button><span class="um-wrap"><button id="whoName" class="user-chip" onclick="toggleMenu('user',event)"></button><div id="userMenu" class="hmenu hidden"></div></span><div id="bellMenu" class="hmenu bellm hidden"></div><button id="cmtBtn" class="hbtn hidden" onclick="openInbox()">💬 코멘트<i id="cmtDot" class="sgdot hidden"></i></button><button id="sgBtn" class="hbtn" onclick="openSg()" title="대시보드 수정·개선 건의">💡 수정건의<i id="sgDot" class="sgdot hidden"></i></button><a id="sheetLink" class="hbtn hidden" target="_blank" rel="noopener" style="text-decoration:none;" title="내 구글시트 새 창으로 열기">📄 내 구글시트</a><button class="hbtn" onclick="loadRows();loadBoard();sgCount()">새로고침</button><button class="hbtn" id="btnLogout" onclick="logout()">로그아웃</button></div>
     </div></div>
     <div class="tabs">
@@ -2502,7 +2503,7 @@ async function goalEdit(){
 const CMT={items:[],inbox:[],busy:false};
 async function loadCmt(){
   const r=await api('cmtList',{});if(!r||!r.success)return;
-  CMT.items=r.items||[];CMT.inbox=r.inbox||[];cmtDot();if(S.openId)cmtRender();
+  CMT.items=r.items||[];CMT.closed=r.closed||CMT.closed||{};CMT.inbox=r.inbox||[];cmtDot();if(S.openId)cmtRender();
 }
 function cmtDot(){bellDot();const n=CMT.inbox.length,b=document.getElementById('cmtBtn'),d=document.getElementById('cmtDot');if(!b)return;
   b.classList.toggle('hidden',!(n||S.master||S.mgr||CMT.items.length));d.textContent=n;d.classList.toggle('hidden',!n);
@@ -2513,8 +2514,9 @@ function cmtRender(){
   if(!L.length&&!viewer){box.innerHTML='';return;}
   // 접힘 기본 · 안 읽은 코멘트가 있거나 부서장·관리자(쓰러 온 경우)면 펼침
   const un=L.filter(c=>c.unread).length;CMT.open=CMT.open||{};
+  const cl=(CMT.closed||{})[r.id],done=cl&&L.length&&!L.some(c=>c.ts>cl.at);   // [v1.21] 부서장이 완료로 닫은 대화 (그 뒤 새 글 없음)
   const open=CMT.open[r.id]!==undefined?CMT.open[r.id]:(un>0||viewer);
-  const head='<h4 class="cmt-h" onclick="CMT.open=CMT.open||{};CMT.open[\''+esc(r.id)+'\']='+(!open)+';cmtRender()">💬 '+(viewer?'코멘트':'부서장 코멘트')+(L.length?' <span class="cmt-n">'+L.length+'</span>':'')+(un?' <span class="sg-new">새 '+un+'</span>':'')+(viewer?' <span class="muted" style="font-weight:400;font-size:12px">'+esc(S.viewAs)+'님에게 보임</span>':'')+'<span class="cmt-arr">'+(open?'▾':'▸')+'</span></h4>';
+  const head='<h4 class="cmt-h" onclick="CMT.open=CMT.open||{};CMT.open[\''+esc(r.id)+'\']='+(!open)+';cmtRender()">💬 '+(viewer?'코멘트':'부서장 코멘트')+(L.length?' <span class="cmt-n">'+L.length+'</span>':'')+(un?' <span class="sg-new">새 '+un+'</span>':'')+(done?' <span style="font-size:11px;font-weight:500;padding:1px 7px;border-radius:6px;background:#E7F5EC;color:#22663D" title="'+esc(cl.by)+' · '+esc(String(cl.at).slice(0,16))+'">✓ 완료</span>':'')+(viewer?' <span class="muted" style="font-weight:400;font-size:12px">'+esc(S.viewAs)+'님에게 보임</span>':'')+'<span class="cmt-arr">'+(open?'▾':'▸')+'</span></h4>';
   if(!open){box.innerHTML='<div class="cmt folded">'+head+'</div>';return;}
   box.innerHTML='<div class="cmt">'+head+
     (L.length?L.map(c=>'<div class="cmi2'+(c.unread?' new':'')+'"><span class="who r-'+esc(c.role)+'">'+esc(c.author)+(c.role!=='사원'?' <span class="muted" style="font-weight:400">'+esc(c.role)+'</span>':'')+'</span><span class="tx">'+esc(c.text)+'</span><span class="tm">'+tsMD(c.ts)+' '+tsHM(c.ts)+'</span>'+(c.mine||S.master?'<button class="x" title="삭제" onclick="cmtDel(\''+esc(c.id)+'\')">×</button>':'')+'</div>').join(''):'<div class="hint">아직 코멘트 없음</div>')+
@@ -2525,13 +2527,13 @@ async function cmtAdd(){
   const r=S.rows.find(x=>x.id===S.openId),inp=document.getElementById('cmtIn');if(!r||!inp)return;const t=inp.value.trim();if(!t){inp.focus();return;}
   inp.disabled=true;const res=await api('cmtAdd',{cid:r.id,company:r.company,text:t},true);inp.disabled=false;
   if(!res||!res.success){toast((res&&res.error)||'코멘트 저장 실패',2500);return;}
-  clearDraft('cmt_'+r.id);CMT.items=res.items||[];CMT.inbox=res.inbox||[];cmtDot();cmtRender();
+  clearDraft('cmt_'+r.id);CMT.items=res.items||[];CMT.closed=res.closed||CMT.closed||{};CMT.inbox=res.inbox||[];cmtDot();cmtRender();
 }
-async function cmtDel(id){if(!confirm('코멘트를 지울까요?'))return;const res=await api('cmtDel',{id},true);if(!res||!res.success){toast((res&&res.error)||'삭제 실패',2500);return;}CMT.items=res.items||[];CMT.inbox=res.inbox||[];cmtDot();cmtRender();}
+async function cmtDel(id){if(!confirm('코멘트를 지울까요?'))return;const res=await api('cmtDel',{id},true);if(!res||!res.success){toast((res&&res.error)||'삭제 실패',2500);return;}CMT.items=res.items||[];CMT.closed=res.closed||CMT.closed||{};CMT.inbox=res.inbox||[];cmtDot();cmtRender();}
 async function cmtMarkRead(cid){
   if(!CMT.items.some(c=>c.cid===cid&&c.unread))return;
   CMT.items.forEach(c=>{if(c.cid===cid)c.unread=false;});CMT.inbox=CMT.inbox.filter(c=>c.cid!==cid);cmtDot();
-  const r=await api('cmtRead',{cid},true);if(r&&r.success){CMT.items=r.items||[];CMT.inbox=r.inbox||[];cmtDot();}
+  const r=await api('cmtRead',{cid},true);if(r&&r.success){CMT.items=r.items||[];CMT.closed=r.closed||CMT.closed||{};CMT.inbox=r.inbox||[];cmtDot();}
 }
 // 모아보기: 안 읽은 것 먼저, 이어서 최근 코멘트 (부서장·관리자는 다른 사원 것도 → 누르면 그 사원 화면으로)
 function openInbox(){
@@ -2591,7 +2593,7 @@ async function cmtDone(ids,all){
   const m=document.getElementById('bellMenu');if(m&&!m.classList.contains('hidden'))renderBellMenu(m);
   const r=await api('cmtReadIds',{ids:ids||[],all:!!all},true);
   if(!r||!r.success){toast((r&&r.error)||'읽음 처리 실패',2500);loadCmt();return;}
-  CMT.items=r.items||[];CMT.inbox=r.inbox||[];cmtDot();if(m&&!m.classList.contains('hidden'))renderBellMenu(m);if(S.openId)cmtRender();
+  CMT.items=r.items||[];CMT.closed=r.closed||CMT.closed||{};CMT.inbox=r.inbox||[];cmtDot();if(m&&!m.classList.contains('hidden'))renderBellMenu(m);if(S.openId)cmtRender();
   if(all)toast('알림 모두 읽음 처리',1200);
 }
 function closeMenus(){document.querySelectorAll('.hmenu').forEach(m=>m.classList.add('hidden'));}
